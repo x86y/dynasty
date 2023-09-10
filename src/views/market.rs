@@ -5,19 +5,39 @@ use iced::{
 
 use crate::Message;
 
-pub fn market_view<'a>(quote: &str, pair: &str) -> Element<'a, Message> {
+pub fn market_view<'a>(quote: &str, amt: &str, pair: &str, book: &[f64]) -> Element<'a, Message> {
     column![
         Space::new(Length::Fill, 1.0),
-        text("Buy/Sell").size(24.0),
-        text_input("", pair)
+        if !book.is_empty() {
+            row![
+                column![
+                    text(format!("ask {} ", book[0])),
+                    text(format!("bid {} ", book[1])),
+                ],
+                column![
+                    text(format!("qty {} ", book[2])),
+                    text(format!("qty {}", book[3]))
+                ]
+            ]
+        } else {
+            row![]
+        },
+        text_input("Select Pair", pair)
             .on_input(Message::MarketPairChanged)
             .width(400.0)
             .on_submit(Message::MarketPairSet),
-        text_input("", quote)
-            .on_input(Message::MarketQuoteChanged)
-            .width(400.0),
+        row![
+            text_input("price", quote)
+                .on_input(Message::MarketQuoteChanged)
+                .width(150.0),
+            Space::new(Length::Fill, 1.0),
+            text_input("amount", amt)
+                .on_input(Message::MarketAmtChanged)
+                .width(150.0),
+        ].width(400.0),
         row![
             button("BUY").on_press(Message::BuyPressed),
+            Space::new(5.0, 0.0),
             button("SELL").on_press(Message::SellPressed),
         ],
         Space::new(Length::Fill, 1.0)

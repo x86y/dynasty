@@ -13,7 +13,7 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
             os.iter()
                 .map(|b| text(format!(
                     "{} {} {} {:?} {:?}",
-                    b.order_id, b.symbol, b.price, b.side, b.status
+                    b.symbol, b.price, b.executed_qty, b.side, b.status
                 )))
                 .map(Element::from)
                 .collect()

@@ -3,13 +3,15 @@ mod api;
 mod views;
 mod ws;
 
-use ws::prices;
 use std::collections::HashMap;
+use ws::market;
+use ws::user;
+use ws::prices;
 
 use api::trade_spot;
 use binance::rest_model::{Balance, Order};
 use iced::executor;
-use iced::widget::{column, container, scrollable, text, row, Space};
+use iced::widget::{column, container, row, scrollable, text, Space};
 use iced::{Application, Color, Command, Element, Length, Settings, Subscription, Theme};
 use once_cell::sync::Lazy;
 use views::balances::balances_view;
@@ -24,14 +26,17 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct App {
     symbols_whitelist: Vec<String>,
-    new_message: String,
+    new_price: String,
+    new_amt: String,
     new_pair: String,
+    pair_submitted: bool,
     data: AppData,
 }
 
 #[derive(Default)]
 struct AppData {
     prices: HashMap<String, f32>,
+    book: Vec<f64>,
     balances: Vec<Balance>,
     orders: Vec<Order>,
     quote: String,
@@ -40,14 +45,18 @@ struct AppData {
 #[derive(Debug, Clone)]
 pub enum Message {
     MarketQuoteChanged(String),
+    MarketAmtChanged(String),
     MarketPairChanged(String),
     MarketPairSet,
     MarketPrice(prices::Event),
     BuyPressed,
     SellPressed,
     Echo(prices::Event),
+    MarketEcho(market::MarketEvent),
+    UserEcho(user::MarketEvent),
     OrdersRecieved(Vec<Order>),
     MarketChanged(String),
+    AssetSelected(String),
     BalancesRecieved(Vec<Balance>),
 }
 
@@ -86,12 +95,14 @@ impl Application for App {
                 Command::none()
             }
             Message::MarketPairSet => {
+                self.pair_submitted = true;
                 Command::none()
             }
             Message::BuyPressed => Command::perform(
                 trade_spot(
-                    "LINKUSDT".to_string(),
-                    0.001,
+                    self.new_pair.clone(),
+                    self.new_price.clone().parse().unwrap(),
+                    self.new_amt.parse().unwrap(),
                     binance::rest_model::OrderSide::Buy,
                 ),
                 |m| {
@@ -101,8 +112,9 @@ impl Application for App {
             ),
             Message::SellPressed => Command::perform(
                 trade_spot(
-                    "LINKUSDT".to_string(),
-                    0.001,
+                    self.new_pair.clone(),
+                    self.new_price.clone().parse().unwrap(),
+                    self.new_amt.parse().unwrap(),
                     binance::rest_model::OrderSide::Sell,
                 ),
                 |m| {
@@ -119,7 +131,11 @@ impl Application for App {
                 Command::none()
             }
             Message::MarketQuoteChanged(nm) => {
-                self.new_message = nm;
+                self.new_price = nm;
+                Command::none()
+            }
+            Message::MarketAmtChanged(nm) => {
+                self.new_amt = nm;
                 Command::none()
             }
             Message::Echo(msg) => {
@@ -134,6 +150,18 @@ impl Application for App {
                 };
                 Command::none()
             }
+            Message::MarketEcho(msg) => {
+                match msg {
+                    market::MarketEvent::MessageReceived(m) => match m {
+                        market::Message::BookTicker(bt) => {
+                            self.data.book = vec![bt.bid, bt.ask, bt.bid_qty, bt.ask_qty];
+                            Some(())
+                        }
+                        _ => None
+                    },
+                };
+                Command::none()
+            }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;
                 Command::none()
@@ -142,11 +170,31 @@ impl Application for App {
                 self.data.balances = bals;
                 Command::none()
             }
+            Message::UserEcho(f) => {
+                dbg!(f);
+                Command::none()
+            }
+            Message::AssetSelected(a) => {
+                if !a.ends_with("USDT") {
+                    self.new_pair = format!("{a}USDT");
+                } else {
+                    self.new_pair = a;
+                }
+                Command::none()
+            }
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        prices::connect().map(Message::Echo)
+        Subscription::batch([
+            prices::connect().map(Message::Echo),
+            user::connect().map(Message::UserEcho),
+            if self.pair_submitted {
+                market::connect(self.new_pair.clone()).map(Message::MarketEcho)
+            } else {
+                Subscription::none()
+            }
+        ])
     }
 
     fn view(&self) -> Element<Message> {
@@ -160,7 +208,7 @@ impl Application for App {
         } else {
             column![
                 watchlist_view(&self.data.prices, &self.symbols_whitelist),
-                market_view(&self.new_message, &self.new_pair),
+                market_view(&self.new_price, &self.new_amt, &self.new_pair, &self.data.book),
                 row![
                     balances_view(&self.data.balances),
                     Space::new(Length::Fill, 1.0),

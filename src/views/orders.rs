@@ -1,7 +1,7 @@
 use binance::rest_model::Order;
 use iced::{
-    widget::{column, container, scrollable, text, Column},
-    Element,
+    widget::{column, container, row, scrollable, text, Column, Space},
+    Element, Length,
 };
 
 use crate::Message;
@@ -9,30 +9,63 @@ use crate::Message;
 use super::components::list::{RowA, RowB};
 
 pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
-    let header = text(format!(
-        "{:<8} {:<6} {:<8} {:<4} {:<8}",
-        "Symbol", "Price", "Executed", "Side", "Status"
-    ));
-    let rows = os
+    let symbol_header = text("Symbol");
+    let price_header = text("Price");
+    let executed_header = text("Executed");
+    let side_header = text("Side");
+    let status_header = text("Status");
+
+    let header = row![
+        symbol_header,
+        Space::new(Length::Fill, 0.0),
+        price_header,
+        Space::new(Length::Fill, 0.0),
+        executed_header,
+        Space::new(Length::Fill, 0.0),
+        side_header,
+        Space::new(Length::Fill, 0.0),
+        status_header,
+    ]
+    .width(300.0);
+
+    let rows: Vec<Element<_>> = os
         .iter()
         .enumerate()
         .map(|(i, b)| {
-            container(text(format!(
-                " {:<8} {:<6} {:<8} {:<4?} {:<8?}",
-                b.symbol, b.price, b.executed_qty, b.side, b.status
-            )))
+            let symbol_text = text(&b.symbol).width(Length::Fixed(100.0));
+            let price_text = text(b.price).width(Length::Fixed(50.0));
+            let executed_text = text(b.executed_qty).width(Length::Fixed(50.0));
+            let side_text = text(format!("{:?}", &b.side)).width(Length::Fixed(40.0));
+            let status_text = text(format!("{:?}", &b.status)).width(Length::Fixed(40.0));
+
+            container(
+                row![
+                    symbol_text,
+                    Space::new(Length::Fill, 0.0),
+                    price_text,
+                    Space::new(Length::Fill, 0.0),
+                    executed_text,
+                    Space::new(Length::Fill, 0.0),
+                    side_text,
+                    Space::new(Length::Fill, 0.0),
+                    status_text,
+                ]
+                .width(300.0),
+            )
             .style(iced::theme::Container::Custom(if i % 2 == 0 {
                 Box::new(RowA {})
             } else {
                 Box::new(RowB {})
             }))
-            .width(320.0)
+            .into()
         })
-        .map(Element::from);
-    column![
+        .collect();
+
+    let orders_column = column![
         text("ORDERS").size(24.0),
         header,
-        scrollable(Column::with_children(rows.collect()).spacing(4.0)).height(500.0)
-    ]
-    .into()
+        scrollable(Column::with_children(rows).spacing(4.0)).height(500.0),
+    ];
+
+    orders_column.into()
 }

@@ -34,7 +34,12 @@ pub fn connect(token: String) -> Subscription<MarketEvent> {
             let mut web_socket: WebSockets<'_, WebsocketEventUntag> =
                 WebSockets::new(|events: WebsocketEventUntag| {
                     if let binance::ws_model::WebsocketEventUntag::BookTicker(te) = events {
-                        let _ = s.send(BookTickerDetails { bid: te.best_bid, ask: te.best_ask, bid_qty: te.best_bid_qty, ask_qty: te.best_ask_qty });
+                        let _ = s.send(BookTickerDetails {
+                            bid: te.best_bid,
+                            ask: te.best_ask,
+                            bid_qty: te.best_bid_qty,
+                            ask_qty: te.best_ask_qty,
+                        });
                     };
                     Ok(())
                 });

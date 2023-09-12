@@ -1,3 +1,5 @@
+use std::env;
+
 use binance::account::Account;
 use binance::api::Binance;
 use binance::errors::Error;
@@ -7,20 +9,16 @@ use futures::future::join_all;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref B: Account = Binance::new(
-        Some("".into()),
-        Some("".into())
-    );
-    static ref W: Wallet = Binance::new(
-        Some("".into()),
-        Some("".into())
-    );
+    pub static ref PUB: Option<String> = env::var_os("DYN_PUB").map(|s| s.into_string().unwrap());
+    static ref SEC: Option<String> = env::var_os("DYN_SEC").map(|s| s.into_string().unwrap());
+    static ref B: Account = Binance::new(PUB.clone(), SEC.clone());
+    static ref W: Wallet = Binance::new(PUB.clone(), SEC.clone());
 }
 
 pub async fn orders_history() -> Vec<Order> {
     let now = chrono::offset::Local::now();
     let ago = now.checked_sub_signed(chrono::Duration::weeks(8)).unwrap();
-    let assets = ["LINKUSDT", "UNIUSDT", "1INCHUSDT", "OPUSDT"];
+    let assets = ["LINKUSDT", "UNIUSDT", "1INCHUSDT", "OPUSDT", "ARBUSDT"];
     let mut os: Vec<Order> = join_all(assets.iter().map(async move |a| {
         match B
             .get_all_orders(binance::account::OrdersQuery {
@@ -44,7 +42,7 @@ pub async fn orders_history() -> Vec<Order> {
     .into_iter()
     .flatten()
     .collect();
-    os.sort_by(|o, n| o.time.cmp(&n.time));
+    os.sort_by(|o, n| n.time.cmp(&o.time));
     os
 }
 

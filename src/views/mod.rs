@@ -1,4 +1,6 @@
 pub mod balances;
+pub mod book;
+pub mod components;
 pub mod market;
-pub mod watchlist;
 pub mod orders;
+pub mod watchlist;

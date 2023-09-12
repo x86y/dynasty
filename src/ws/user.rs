@@ -3,12 +3,13 @@ use iced_futures::futures;
 
 use binance::{api::Binance, userstream::UserStream, websockets::*, ws_model::WebsocketEvent};
 use futures::sink::SinkExt;
-use futures::{channel::mpsc, FutureExt};
-use std::fmt;
+use futures::FutureExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub fn connect() -> Subscription<MarketEvent> {
+use crate::api::PUB;
+
+pub fn connect() -> Subscription<WsUpdate> {
     struct Connect;
 
     subscription::channel(
@@ -16,8 +17,11 @@ pub fn connect() -> Subscription<MarketEvent> {
         100,
         |mut output| async move {
             let keep_running = AtomicBool::new(true);
-            let user_stream: UserStream = Binance::new(Some("".to_string()), None);
-            let (s, mut r): (UnboundedSender<()>, UnboundedReceiver<()>) = unbounded_channel();
+            let user_stream: UserStream = Binance::new(PUB.clone(), None);
+            let (s, mut r): (
+                UnboundedSender<WebsocketEvent>,
+                UnboundedReceiver<WebsocketEvent>,
+            ) = unbounded_channel();
 
             loop {
                 if let Ok(answer) = user_stream.start().await {
@@ -25,14 +29,7 @@ pub fn connect() -> Subscription<MarketEvent> {
 
                     let mut web_socket: WebSockets<'_, WebsocketEvent> =
                         WebSockets::new(|event: WebsocketEvent| {
-                            dbg!(&event);
-                            if let WebsocketEvent::OrderUpdate(trade) = event {
-                                println!(
-                                    "Symbol: {}, Side: {:?}, Price: {}, Execution Type: {:?}",
-                                    trade.symbol, trade.side, trade.price, trade.execution_type
-                                );
-                            };
-
+                            let _ = s.send(event);
                             Ok(())
                         });
                     loop {
@@ -43,7 +40,7 @@ pub fn connect() -> Subscription<MarketEvent> {
                                 recv2 = r.recv().fuse() => {
                                         if let Some(i) = recv2 {
                                             output
-                                                .send(MarketEvent::MessageReceived(Message::BookTicker(i)))
+                                                .send(WsUpdate::UpdateReceived(i))
                                                 .await
                                                 .unwrap();
                                         };
@@ -58,24 +55,6 @@ pub fn connect() -> Subscription<MarketEvent> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MarketEvent {
-    MessageReceived(Message),
-}
-
-#[derive(Debug, Clone)]
-pub struct Connection(mpsc::Sender<Message>);
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    BookTicker(()),
-    Input(String),
-}
-
-impl fmt::Display for Message {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Message::BookTicker(message) => write!(f, "{message:?}"),
-            _ => unreachable!(),
-        }
-    }
+pub enum WsUpdate {
+    UpdateReceived(WebsocketEvent),
 }

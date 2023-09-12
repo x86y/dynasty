@@ -1,24 +1,42 @@
 use binance::rest_model::Balance;
 use iced::{
-    widget::{button, column, text, Column},
+    widget::{button, column, container, scrollable, text, Column},
     Element,
 };
 
 use crate::Message;
 
+use super::components::{
+    list::{RowA, RowB},
+    unstyled_btn::UnstyledBtn,
+};
+
 pub fn balances_view(bs: &[Balance]) -> Element<'_, Message> {
     column![
         text("BALANCES").size(24.0),
-        Column::with_children(
-            bs.iter()
-                .map(|b| button(text(format!(
-                    "{} {}",
-                    b.asset,
-                    (b.free * 10.0).round() / 10.0
-                )))
-                .on_press(Message::AssetSelected(b.asset.clone())))
-                .map(Element::from)
-                .collect()
+        scrollable(
+            Column::with_children(
+                bs.iter()
+                    .enumerate()
+                    .map(|(i, b)| container(
+                        button(text(format!(
+                            "{:<8} {:<8}",
+                            b.asset,
+                            (b.free * 10.0).round() / 10.0
+                        )))
+                        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
+                        .on_press(Message::AssetSelected(b.asset.clone())),
+                    )
+                    .style(iced::theme::Container::Custom(if i % 2 == 0 {
+                        Box::new(RowA {})
+                    } else {
+                        Box::new(RowB {})
+                    }))
+                    .width(150.0))
+                    .map(Element::from)
+                    .collect()
+            )
+            .spacing(5),
         )
     ]
     .into()

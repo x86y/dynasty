@@ -1,6 +1,6 @@
 use iced::futures::FutureExt;
-use iced_futures::futures;
 use iced::subscription::{self, Subscription};
+use iced_futures::futures;
 
 use binance::{websockets::*, ws_model::WebsocketEvent};
 use futures::channel::mpsc;

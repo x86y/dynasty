@@ -4,8 +4,15 @@ mod views;
 mod ws;
 
 use iced::font;
+use iced::widget::responsive;
 use iced::Font;
+use pane_grid::Configuration;
 use std::collections::HashMap;
+use views::panes::style;
+use views::panes::view_controls;
+use views::panes::Pane;
+use views::panes::PANE_ID_COLOR_FOCUSED;
+use views::panes::PANE_ID_COLOR_UNFOCUSED;
 use ws::book;
 use ws::market;
 use ws::prices;
@@ -14,14 +21,15 @@ use ws::user;
 use api::trade_spot;
 use binance::rest_model::{Balance, Order};
 use iced::executor;
-use iced::widget::{column, container, row, scrollable, text, Space};
+use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Settings, Subscription, Theme};
-use once_cell::sync::Lazy;
 use views::balances::balances_view;
 use views::book::book_view;
 use views::market::market_view;
 use views::orders::orders_view;
 use views::watchlist::watchlist_view;
+
+use iced::widget::pane_grid::{self, PaneGrid};
 
 pub fn main() -> iced::Result {
     App::run(Settings {
@@ -34,8 +42,10 @@ pub fn main() -> iced::Result {
     })
 }
 
-#[derive(Default)]
 struct App {
+    panes: pane_grid::State<Pane>,
+    panes_created: usize,
+    focus: Option<pane_grid::Pane>,
     symbols_whitelist: Vec<String>,
     new_price: String,
     new_amt: String,
@@ -55,6 +65,16 @@ struct AppData {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Split(pane_grid::Axis, pane_grid::Pane),
+    SplitFocused(pane_grid::Axis),
+    FocusAdjacent(pane_grid::Direction),
+    Clicked(pane_grid::Pane),
+    Dragged(pane_grid::DragEvent),
+    Resized(pane_grid::ResizeEvent),
+    Maximize(pane_grid::Pane),
+    Restore,
+    Close(pane_grid::Pane),
+    CloseFocused,
     MarketQuoteChanged(String),
     MarketAmtChanged(String),
     MarketPairChanged(String),
@@ -84,15 +104,44 @@ impl Application for App {
     type Executor = executor::Default;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        let panes = pane_grid::State::with_configuration(Configuration::Split {
+            axis: pane_grid::Axis::Horizontal,
+            ratio: 0.7,
+            a: Box::new(Configuration::Split {
+                axis: pane_grid::Axis::Vertical,
+                ratio: 0.25,
+                a: Box::new(Configuration::Pane(Pane::new(0))),
+                b: Box::new(Configuration::Split {
+                    axis: pane_grid::Axis::Vertical,
+                    ratio: 0.25,
+                    a: Box::new(Configuration::Pane(Pane::new(1))),
+                    b: Box::new(Configuration::Split {
+                        axis: pane_grid::Axis::Vertical,
+                        ratio: 0.75,
+                        a: Box::new(Configuration::Pane(Pane::new(2))),
+                        b: Box::new(Configuration::Pane(Pane::new(3))),
+                    }),
+                }),
+            }),
+            b: Box::new(Configuration::Pane(Pane::new(4))),
+        });
+
         (
             App {
+                panes,
+                panes_created: 1,
+                focus: None,
                 symbols_whitelist: [
                     "BTCUSDT", "ETHUSDT", "LINKUSDT", "UNIUSDT", "ARBUSDT", "SYNUSDT", "OPUSDT",
                 ]
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
-                ..Self::default()
+                new_price: Default::default(),
+                new_amt: Default::default(),
+                new_pair: Default::default(),
+                pair_submitted: Default::default(),
+                data: Default::default(),
             },
             Command::batch(vec![
                 Command::perform(api::orders_history(), Message::OrdersRecieved),
@@ -109,6 +158,75 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::Split(axis, pane) => {
+                let result = self.panes.split(axis, &pane, Pane::new(self.panes_created));
+
+                if let Some((pane, _)) = result {
+                    self.focus = Some(pane);
+                }
+
+                self.panes_created += 1;
+                Command::none()
+            }
+            Message::SplitFocused(axis) => {
+                if let Some(pane) = self.focus {
+                    let result = self.panes.split(axis, &pane, Pane::new(self.panes_created));
+
+                    if let Some((pane, _)) = result {
+                        self.focus = Some(pane);
+                    }
+
+                    self.panes_created += 1;
+                }
+                Command::none()
+            }
+            Message::FocusAdjacent(direction) => {
+                if let Some(pane) = self.focus {
+                    if let Some(adjacent) = self.panes.adjacent(&pane, direction) {
+                        self.focus = Some(adjacent);
+                    }
+                }
+                Command::none()
+            }
+            Message::Clicked(pane) => {
+                self.focus = Some(pane);
+                Command::none()
+            }
+            Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
+                self.panes.resize(&split, ratio);
+                Command::none()
+            }
+            Message::Dragged(pane_grid::DragEvent::Dropped { pane, target }) => {
+                self.panes.drop(&pane, target);
+                Command::none()
+            }
+            Message::Dragged(_) => Command::none(),
+            Message::Maximize(pane) => {
+                self.panes.maximize(&pane);
+                Command::none()
+            }
+            Message::Restore => {
+                self.panes.restore();
+                Command::none()
+            }
+            Message::Close(pane) => {
+                if let Some((_, sibling)) = self.panes.close(&pane) {
+                    self.focus = Some(sibling);
+                }
+                Command::none()
+            }
+            Message::CloseFocused => {
+                if let Some(pane) = self.focus {
+                    if let Some(Pane { is_pinned, .. }) = self.panes.get(&pane) {
+                        if !is_pinned {
+                            if let Some((_, sibling)) = self.panes.close(&pane) {
+                                self.focus = Some(sibling);
+                            }
+                        }
+                    }
+                }
+                Command::none()
+            }
             Message::FontsLoaded(_) => Command::none(),
             Message::MarketPrice(p) => {
                 println!("incame price {p:?}");
@@ -298,10 +416,77 @@ impl Application for App {
             } else {
                 Subscription::none()
             },
+            /* keyboard::on_key_press(|key_code, modifiers| {
+            if !modifiers.command() {
+            return None;
+            }
+
+            handle_hotkey(key_code)
+            }), */
         ])
     }
 
     fn view(&self) -> Element<Message> {
+        let focus = self.focus;
+        let total_panes = self.panes.len();
+
+        let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
+            let is_focused = focus == Some(id);
+
+            let title = row![text(if pane.id == 0 {
+                "Prices"
+            } else if pane.id == 1 {
+                "Book"
+            } else if pane.id == 2 {
+                "Market"
+            } else if pane.id == 3 {
+                "Balances"
+            } else {
+                "Orders"
+            })
+            .style(if is_focused {
+                PANE_ID_COLOR_FOCUSED
+            } else {
+                PANE_ID_COLOR_UNFOCUSED
+            })]
+            .spacing(5);
+
+            let title_bar = pane_grid::TitleBar::new(title)
+                .controls(view_controls(id, total_panes, pane.is_pinned, is_maximized))
+                .padding(2)
+                .style(if is_focused {
+                    style::title_bar_focused
+                } else {
+                    style::title_bar_active
+                });
+
+            pane_grid::Content::new(responsive(move |_size| {
+                if pane.id == 0 {
+                    watchlist_view(&self.data.prices, &self.symbols_whitelist)
+                } else if pane.id == 1 {
+                    book_view(&self.data.book)
+                } else if pane.id == 2 {
+                    market_view(&self.new_price, &self.new_amt, &self.new_pair)
+                } else if pane.id == 3 {
+                    balances_view(&self.data.balances)
+                } else {
+                    orders_view(&self.data.orders)
+                }
+            }))
+            .title_bar(title_bar)
+            .style(if is_focused {
+                style::pane_focused
+            } else {
+                style::pane_active
+            })
+        })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .spacing(10)
+        .on_click(Message::Clicked)
+        .on_drag(Message::Dragged)
+        .on_resize(10, Message::Resized);
+
         let message_log: Element<_> = if self.data.prices.is_empty() {
             container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
                 .width(Length::Fill)
@@ -310,19 +495,10 @@ impl Application for App {
                 .center_y()
                 .into()
         } else {
-            column![
-                row![
-                    watchlist_view(&self.data.prices, &self.symbols_whitelist),
-                    Space::new(Length::Fill, 1.0),
-                    book_view(&self.data.book),
-                ],
-                market_view(&self.new_price, &self.new_amt, &self.new_pair,),
-                row![
-                    balances_view(&self.data.balances),
-                    Space::new(Length::Fill, 1.0),
-                    orders_view(&self.data.orders),
-                ]
-            ]
+            column![container(pane_grid)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .padding(10),]
             .into()
         };
 
@@ -338,5 +514,3 @@ impl Application for App {
         Theme::Dark
     }
 }
-
-static MESSAGE_LOG: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);

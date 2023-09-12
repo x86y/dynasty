@@ -9,7 +9,7 @@ edition = "2021"
 binance-rs-async = { version = "1.3.2", features = ["wallet_api"] }
 chrono = "0.4.24"
 futures = "0.3.28"
-iced = { version = "0.10.0", features = ["tokio", "debug"] }
+iced = { version = "0.10.0", features = ["tokio", "debug", "lazy"] }
 iced_futures = "0.7.0"
 iced_native = "0.10.3"
 itertools = "0.11.0"

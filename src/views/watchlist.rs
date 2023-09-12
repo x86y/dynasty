@@ -1,7 +1,7 @@
-use crate::{Message, MESSAGE_LOG};
+use crate::Message;
 use iced::{
-    widget::{button, column, container, scrollable, text, Column},
-    Element,
+    widget::{button, container, row, scrollable, text, Column, Space},
+    Element, Length,
 };
 use std::collections::HashMap;
 
@@ -26,32 +26,32 @@ pub fn watchlist_view<'a>(
         .collect();
     sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
 
-    column![
-        text("PRICES").size(24.0),
-        scrollable(
-            Column::with_children(
-                sorted_assets
-                    .iter()
-                    .enumerate()
-                    .map(|(i, (n, p))| {
-                        container(
-                            button(text(format!("{n:<8} {p:<8}")))
-                                .on_press(Message::AssetSelected(n.to_string()))
-                                .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
-                        )
-                        .style(iced::theme::Container::Custom(if i % 2 == 0 {
-                            Box::new(RowA {})
-                        } else {
-                            Box::new(RowB {})
-                        }))
-                        .width(150)
-                    })
-                    .map(Element::from)
-                    .collect(),
-            )
-            .spacing(5),
+    scrollable(
+        Column::with_children(
+            sorted_assets
+                .iter()
+                .enumerate()
+                .map(|(i, (n, p))| {
+                    container(row![
+                        button(text(n))
+                            .on_press(Message::AssetSelected(n.to_string()))
+                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+                        Space::new(Length::Fill, 1.0),
+                        button(text(p))
+                            .on_press(Message::AssetSelected(n.to_string()))
+                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+                    ])
+                    .style(iced::theme::Container::Custom(if i % 2 == 0 {
+                        Box::new(RowA {})
+                    } else {
+                        Box::new(RowB {})
+                    }))
+                    .width(Length::Fill)
+                })
+                .map(Element::from)
+                .collect(),
         )
-        .id(MESSAGE_LOG.clone())
-    ]
+        .spacing(5),
+    )
     .into()
 }

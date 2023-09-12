@@ -26,7 +26,7 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
         Space::new(Length::Fill, 0.0),
         status_header,
     ]
-    .width(300.0);
+    .width(Length::Fill);
 
     let rows: Vec<Element<_>> = os
         .iter()
@@ -50,7 +50,7 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
                     Space::new(Length::Fill, 0.0),
                     status_text,
                 ]
-                .width(300.0),
+                .width(Length::Fill),
             )
             .style(iced::theme::Container::Custom(if i % 2 == 0 {
                 Box::new(RowA {})
@@ -62,7 +62,6 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
         .collect();
 
     let orders_column = column![
-        text("ORDERS").size(24.0),
         header,
         scrollable(Column::with_children(rows).spacing(4.0)).height(500.0),
     ];

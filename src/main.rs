@@ -37,7 +37,7 @@ pub fn main() -> iced::Result {
             size: (800, 800),
             ..Default::default()
         },
-        default_font: Font::with_name("Iosevka Term"),
+        default_font: Font::with_name("Monospace"),
         ..Default::default()
     })
 }
@@ -146,7 +146,7 @@ impl Application for App {
             Command::batch(vec![
                 Command::perform(api::orders_history(), Message::OrdersRecieved),
                 Command::perform(api::balances(), Message::BalancesRecieved),
-                font::load(include_bytes!("../fonts/iosevka-term-regular.ttf").as_slice())
+                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
                     .map(Message::FontsLoaded),
             ]),
         )

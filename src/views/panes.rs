@@ -1,8 +1,9 @@
 use iced::{
     theme,
     widget::{button, pane_grid, row, text},
-    Color, Element,
+    Color, Element, Font,
 };
+use iced_futures::core::text::LineHeight;
 
 use crate::Message;
 
@@ -52,11 +53,21 @@ pub fn view_controls<'a>(
     if total_panes > 1 {
         let toggle = {
             let (content, message) = if is_maximized {
-                ("Restore", Message::Restore)
+                (
+                    text('\u{f149}'.to_string())
+                        .font(Font::with_name("bootstrap-icons"))
+                        .line_height(LineHeight::Relative(1.1)),
+                    Message::Restore,
+                )
             } else {
-                ("Maximize", Message::Maximize(pane))
+                (
+                    text('\u{f14a}'.to_string())
+                        .font(Font::with_name("bootstrap-icons"))
+                        .line_height(LineHeight::Relative(1.1)),
+                    Message::Maximize(pane),
+                )
             };
-            button(text(content).size(14))
+            button(content.size(14))
                 .style(theme::Button::Secondary)
                 .padding(3)
                 .on_press(message)
@@ -65,9 +76,14 @@ pub fn view_controls<'a>(
         row = row.push(toggle);
     }
 
-    let mut close = button(text("Close").size(14))
-        .style(theme::Button::Destructive)
-        .padding(3);
+    let mut close = button(
+        text('\u{f659}'.to_string())
+            .font(Font::with_name("bootstrap-icons"))
+            .line_height(LineHeight::Relative(1.1))
+            .size(14),
+    )
+    .style(theme::Button::Destructive)
+    .padding(3);
 
     if total_panes > 1 && !is_pinned {
         close = close.on_press(Message::Close(pane));
@@ -96,7 +112,9 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.background.strong.text),
-            background: Some(palette.background.strong.color.into()),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.9,
+            ))),
             ..Default::default()
         }
     }
@@ -106,7 +124,9 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.primary.strong.text),
-            background: Some(palette.primary.weak.color.into()),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.9,
+            ))),
             ..Default::default()
         }
     }
@@ -114,7 +134,7 @@ pub mod style {
     pub fn pane_active(_: &Theme) -> container::Appearance {
         container::Appearance {
             border_width: 1.0,
-            border_color: Color::from_rgba(0.3, 0.3, 0.3, 0.5),
+            background: Some(iced::Background::Color(Color::TRANSPARENT)),
             ..Default::default()
         }
     }

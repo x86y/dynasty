@@ -1,4 +1,4 @@
 pub mod book;
-pub mod market;
 pub mod prices;
+pub mod trades;
 pub mod user;

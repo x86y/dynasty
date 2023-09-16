@@ -5,7 +5,6 @@ use iced_futures::futures;
 use binance::{websockets::*, ws_model::WebsocketEventUntag};
 use futures::channel::mpsc;
 use futures::sink::SinkExt;
-use std::fmt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
@@ -25,7 +24,7 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
         100,
         |mut output| async move {
             let keep_running = AtomicBool::new(true);
-            let book_ticker: String = diff_book_depth_stream(&token.clone(), 100);
+            let book_ticker: String = book_ticker_stream(&token.clone());
             let (s, mut r): (
                 UnboundedSender<BookTickerDetails>,
                 UnboundedReceiver<BookTickerDetails>,
@@ -33,7 +32,6 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
 
             let mut web_socket: WebSockets<'_, WebsocketEventUntag> =
                 WebSockets::new(|events: WebsocketEventUntag| {
-                    // dbg!(&events);
                     if let binance::ws_model::WebsocketEventUntag::BookTicker(te) = events {
                         let _ = s.send(BookTickerDetails {
                             bid: te.best_bid,
@@ -53,7 +51,7 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
                         recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
                                     output
-                                        .send(BookEvent::MessageReceived(Message::BookTicker(i)))
+                                        .send(BookEvent::MessageReceived(i))
                                         .await
                                         .unwrap();
                                 };
@@ -67,23 +65,8 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
 
 #[derive(Debug, Clone)]
 pub enum BookEvent {
-    MessageReceived(Message),
+    MessageReceived(BookTickerDetails),
 }
 
 #[derive(Debug, Clone)]
-pub struct Connection(mpsc::Sender<Message>);
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    BookTicker(BookTickerDetails),
-    Input(String),
-}
-
-impl fmt::Display for Message {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Message::BookTicker(message) => write!(f, "{message:?}"),
-            _ => unreachable!(),
-        }
-    }
-}
+pub struct Connection(mpsc::Sender<BookTickerDetails>);

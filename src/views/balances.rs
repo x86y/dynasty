@@ -4,7 +4,7 @@ use iced::{
     Element, Length,
 };
 
-use crate::{Message, theme::h2c};
+use crate::{theme::h2c, Message};
 
 use super::components::{
     list::{RowA, RowB},
@@ -12,31 +12,29 @@ use super::components::{
 };
 
 pub fn balances_view(bs: &[Balance]) -> Element<'_, Message> {
-    scrollable(
-        Column::with_children(
-            bs.iter()
-                .enumerate()
-                .map(|(i, b)| {
-                    container(row![
-                        button(text(b.asset.clone()).style(h2c("EFE1D1").unwrap()))
-                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                            .on_press(Message::AssetSelected(b.asset.clone())),
-                        Space::new(Length::Fill, 1.0),
-                        // button(text("***"))
-                        button(text(format!("{}", (b.free * 10.0).round() / 10.0)))
-                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                            .on_press(Message::AssetSelected(b.asset.clone())),
-                    ])
-                    .style(iced::theme::Container::Custom(if i % 2 == 0 {
-                        Box::new(RowA {})
-                    } else {
-                        Box::new(RowB {})
-                    }))
-                    .width(Length::Fill)
-                })
-                .map(Element::from)
-                .collect(),
-        )
-    )
+    scrollable(Column::with_children(
+        bs.iter()
+            .enumerate()
+            .map(|(i, b)| {
+                container(row![
+                    button(text(b.asset.clone()).style(h2c("EFE1D1").unwrap()))
+                        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
+                        .on_press(Message::AssetSelected(b.asset.clone())),
+                    Space::new(Length::Fill, 1.0),
+                    // button(text("***"))
+                    button(text(format!("{}", (b.free * 10.0).round() / 10.0)))
+                        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
+                        .on_press(Message::AssetSelected(b.asset.clone())),
+                ])
+                .style(iced::theme::Container::Custom(if i % 2 == 0 {
+                    Box::new(RowA {})
+                } else {
+                    Box::new(RowB {})
+                }))
+                .width(Length::Fill)
+            })
+            .map(Element::from)
+            .collect(),
+    ))
     .into()
 }

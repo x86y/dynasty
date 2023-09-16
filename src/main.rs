@@ -1,23 +1,27 @@
 #![feature(async_closure)]
 mod api;
+mod theme;
 mod views;
 mod ws;
-mod theme;
 
+use binance::ws_model::TradesEvent;
 use iced::font;
 use iced::widget::responsive;
 use iced::Font;
 use pane_grid::Configuration;
-use views::watchlist::WatchlistFilter;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use views::panes::style;
 use views::panes::view_controls;
 use views::panes::Pane;
+use views::panes::PaneType;
 use views::panes::PANE_ID_COLOR_FOCUSED;
 use views::panes::PANE_ID_COLOR_UNFOCUSED;
+use views::trades::trades_view;
+use views::watchlist::WatchlistFilter;
 use ws::book;
-use ws::market;
 use ws::prices;
+use ws::trades;
 use ws::user;
 
 use api::trade_spot;
@@ -62,6 +66,7 @@ struct App {
 struct AppData {
     prices: HashMap<String, f32>,
     book: Vec<f64>,
+    trades: VecDeque<TradesEvent>,
     balances: Vec<Balance>,
     orders: Vec<Order>,
     quote: String,
@@ -92,7 +97,7 @@ pub enum Message {
     PriceInc(f64),
     QtySet(f64),
     PriceEcho(prices::Event),
-    MarketEcho(market::MarketEvent),
+    TradeEcho(trades::Event),
     BookEcho(book::BookEvent),
     UserEcho(user::WsUpdate),
     OrdersRecieved(Vec<Order>),
@@ -116,20 +121,25 @@ impl Application for App {
             a: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Vertical,
                 ratio: 0.25,
-                a: Box::new(Configuration::Pane(Pane::new(0))),
+                a: Box::new(Configuration::Pane(Pane::new(PaneType::Prices))),
                 b: Box::new(Configuration::Split {
                     axis: pane_grid::Axis::Vertical,
                     ratio: 0.25,
-                    a: Box::new(Configuration::Pane(Pane::new(1))),
+                    a: Box::new(Configuration::Split {
+                        axis: pane_grid::Axis::Horizontal,
+                        ratio: 0.5,
+                        a: Box::new(Configuration::Pane(Pane::new(PaneType::Book))),
+                        b: Box::new(Configuration::Pane(Pane::new(PaneType::Trades))),
+                    }),
                     b: Box::new(Configuration::Split {
                         axis: pane_grid::Axis::Vertical,
                         ratio: 0.75,
-                        a: Box::new(Configuration::Pane(Pane::new(2))),
-                        b: Box::new(Configuration::Pane(Pane::new(3))),
+                        a: Box::new(Configuration::Pane(Pane::new(PaneType::Market))),
+                        b: Box::new(Configuration::Pane(Pane::new(PaneType::Balances))),
                     }),
                 }),
             }),
-            b: Box::new(Configuration::Pane(Pane::new(4))),
+            b: Box::new(Configuration::Pane(Pane::new(PaneType::Orders))),
         });
 
         (
@@ -167,7 +177,9 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Split(axis, pane) => {
-                let result = self.panes.split(axis, &pane, Pane::new(self.panes_created));
+                let result = self
+                    .panes
+                    .split(axis, &pane, Pane::new(self.panes_created.into()));
 
                 if let Some((pane, _)) = result {
                     self.focus = Some(pane);
@@ -178,7 +190,9 @@ impl Application for App {
             }
             Message::SplitFocused(axis) => {
                 if let Some(pane) = self.focus {
-                    let result = self.panes.split(axis, &pane, Pane::new(self.panes_created));
+                    let result =
+                        self.panes
+                            .split(axis, &pane, Pane::new(self.panes_created.into()));
 
                     if let Some((pane, _)) = result {
                         self.focus = Some(pane);
@@ -294,38 +308,29 @@ impl Application for App {
             }
             Message::PriceEcho(msg) => {
                 match msg {
-                    prices::Event::MessageReceived(m) => match m {
-                        prices::Message::Asset(a) => {
-                            self.data.prices.insert(a.name.clone(), a.price);
-                            Some(())
-                        }
-                        _ => None,
-                    },
-                };
-                Command::none()
-            }
-            Message::MarketEcho(msg) => {
-                match msg {
-                    market::MarketEvent::MessageReceived(m) => match m {
-                        market::Message::BookTicker(bt) => {
-                            self.data.book = vec![bt.bid, bt.ask, bt.bid_qty, bt.ask_qty];
-                            Some(())
-                        }
-                        _ => None,
-                    },
+                    prices::Event::MessageReceived(m) => {
+                        self.data.prices.insert(m.name.clone(), m.price);
+                    }
                 };
                 Command::none()
             }
             Message::BookEcho(msg) => {
                 match msg {
-                    book::BookEvent::MessageReceived(m) => match m {
-                        book::Message::BookTicker(bt) => {
-                            self.data.book = vec![bt.bid, bt.ask, bt.bid_qty, bt.ask_qty];
-                            Some(())
-                        }
-                        _ => None,
-                    },
+                    book::BookEvent::MessageReceived(bt) => {
+                        self.data.book = vec![bt.bid, bt.ask, bt.bid_qty, bt.ask_qty];
+                    }
                 };
+                Command::none()
+            }
+            Message::TradeEcho(t) => {
+                match t {
+                    trades::Event::MessageReceived(te) => {
+                        if self.data.trades.len() >= 1000 {
+                            self.data.trades.pop_back();
+                        }
+                        self.data.trades.push_front(te);
+                    }
+                }
                 Command::none()
             }
             Message::OrdersRecieved(orders) => {
@@ -383,7 +388,7 @@ impl Application for App {
                 Command::none()
             }
             Message::AssetSelected(a) => {
-                if !a.ends_with("USDT") {
+                if !a.ends_with("USDT") && !a.ends_with("BTC") && !a.ends_with("ETH") {
                     self.new_pair = format!("{a}USDT");
                 } else {
                     self.new_pair = a;
@@ -410,11 +415,11 @@ impl Application for App {
             Message::ApplyWatchlistFilter(f) => {
                 self.filter = f;
                 Command::none()
-            },
+            }
             Message::WatchlistFilterInput(wfi) => {
                 self.filter_string = wfi;
                 Command::none()
-            },
+            }
         }
     }
 
@@ -423,7 +428,7 @@ impl Application for App {
             prices::connect().map(Message::PriceEcho),
             user::connect().map(Message::UserEcho),
             if self.pair_submitted {
-                market::connect(self.new_pair.to_lowercase()).map(Message::MarketEcho)
+                trades::connect(self.new_pair.to_lowercase()).map(Message::TradeEcho)
             } else {
                 Subscription::none()
             },
@@ -432,13 +437,14 @@ impl Application for App {
             } else {
                 Subscription::none()
             },
-            /* keyboard::on_key_press(|key_code, modifiers| {
-            if !modifiers.command() {
-            return None;
-            }
-
-            handle_hotkey(key_code)
-            }), */
+            /*
+            keyboard::on_key_press(|key_code, modifiers| {
+                if !modifiers.command() {
+                    return None;
+                }
+                handle_hotkey(key_code)
+            })
+            */
         ])
     }
 
@@ -449,18 +455,7 @@ impl Application for App {
         let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
-            let title = row![text(if pane.id == 0 {
-                "Prices"
-            } else if pane.id == 1 {
-                "Book"
-            } else if pane.id == 2 {
-                "Market"
-            } else if pane.id == 3 {
-                "Balances"
-            } else {
-                "Orders"
-            })
-            .style(if is_focused {
+            let title = row![text(pane.id.to_string()).style(if is_focused {
                 PANE_ID_COLOR_FOCUSED
             } else {
                 PANE_ID_COLOR_UNFOCUSED
@@ -476,18 +471,18 @@ impl Application for App {
                     style::title_bar_active
                 });
 
-            pane_grid::Content::new(responsive(move |_size| {
-                if pane.id == 0 {
-                    watchlist_view(&self.data.prices, &self.watchlist_favorites, self.filter, &self.filter_string)
-                } else if pane.id == 1 {
-                    book_view(&self.data.book)
-                } else if pane.id == 2 {
-                    market_view(&self.new_price, &self.new_amt, &self.new_pair)
-                } else if pane.id == 3 {
-                    balances_view(&self.data.balances)
-                } else {
-                    orders_view(&self.data.orders)
-                }
+            pane_grid::Content::new(responsive(move |_size| match pane.id {
+                PaneType::Prices => watchlist_view(
+                    &self.data.prices,
+                    &self.watchlist_favorites,
+                    self.filter,
+                    &self.filter_string,
+                ),
+                PaneType::Book => book_view(&self.data.book),
+                PaneType::Trades => trades_view(&self.data.trades),
+                PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
+                PaneType::Balances => balances_view(&self.data.balances),
+                PaneType::Orders => orders_view(&self.data.orders),
             }))
             .title_bar(title_bar)
             .style(if is_focused {

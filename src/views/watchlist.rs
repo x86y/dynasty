@@ -7,8 +7,9 @@ use std::collections::HashMap;
 
 use super::components::{
     better_btn::BetterBtn,
+    input::Inp,
     list::{RowA, RowB},
-    unstyled_btn::UnstyledBtn, input::Inp,
+    unstyled_btn::UnstyledBtn,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -56,7 +57,7 @@ pub fn watchlist_view<'a>(
                 .iter()
                 .filter_map(|i| {
                     if !search.is_empty() {
-                        i.0.contains(&search.to_uppercase()).then(|| (i.0, i.1))
+                        i.0.contains(&search.to_uppercase()).then_some((i.0, i.1))
                     } else {
                         match filter {
                             WatchlistFilter::Favorites => favorites.contains(i.0),
@@ -64,7 +65,7 @@ pub fn watchlist_view<'a>(
                             WatchlistFilter::Btc => i.0.contains("BTC"),
                             WatchlistFilter::Alts => true,
                         }
-                        .then(|| (i.0, i.1))
+                        .then_some((i.0, i.1))
                     }
                 })
                 .enumerate()

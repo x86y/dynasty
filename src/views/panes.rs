@@ -29,14 +29,44 @@ use crate::Message;
 
 #[derive(Clone, Copy)]
 pub struct Pane {
-    pub id: usize,
+    pub id: PaneType,
     pub is_pinned: bool,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum PaneType {
+    Prices,
+    Book,
+    Trades,
+    Market,
+    Balances,
+    Orders,
+}
+
+impl From<usize> for PaneType {
+    fn from(_value: usize) -> Self {
+        Self::Balances
+    }
+}
+
+impl ToString for PaneType {
+    fn to_string(&self) -> String {
+        match self {
+            PaneType::Prices => "Prices",
+            PaneType::Book => "Book",
+            PaneType::Trades => "Trades",
+            PaneType::Market => "Market",
+            PaneType::Balances => "Balances",
+            PaneType::Orders => "Orders",
+        }
+        .to_string()
+    }
+}
+
 impl Pane {
-    pub fn new(id: usize) -> Self {
+    pub fn new(ty: PaneType) -> Self {
         Self {
-            id,
+            id: ty,
             is_pinned: false,
         }
     }

@@ -13,7 +13,7 @@ macro_rules! fill {
         Space::new(Length::Fill, 0.0)
     };
 }
-fn t<'a>(s: impl ToString) -> iced::widget::Text<'a> {
+pub fn t<'a>(s: impl ToString) -> iced::widget::Text<'a> {
     text(s).font(Font::with_name("SF Mono"))
 }
 

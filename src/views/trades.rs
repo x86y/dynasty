@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 
 use binance::ws_model::TradesEvent;
 use iced::{
-    widget::{container, row, scrollable, text, Column, Space},
+    widget::{container, row, scrollable, Column, Space},
     Color, Element, Length,
 };
 
 use crate::{theme::h2c, Message};
 
-use super::components::list::{RowA, RowB};
+use super::{components::list::{RowA, RowB}, orders::t};
 
 pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
     scrollable(Column::with_children(
@@ -21,11 +21,11 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                     Color::from_rgb(0.0, 1.0, 0.0)
                 };
                 container(row![
-                    text(&b.symbol).style(h2c("EFE1D1").unwrap()).style(c),
+                    t(&b.symbol).style(h2c("EFE1D1").unwrap()).style(c),
                     Space::new(Length::Fill, 1.0),
-                    text(format!("{:.2}", b.price.parse::<f32>().unwrap())).style(c),
+                    t(format!("{:.2}", b.price.parse::<f32>().unwrap())).style(c),
                     Space::new(Length::Fill, 1.0),
-                    text(format!("{:.2}", b.qty.parse::<f32>().unwrap())).style(c),
+                    t(format!("{:.2}", b.qty.parse::<f32>().unwrap())).style(c),
                 ])
                 .style(iced::theme::Container::Custom(if i % 2 == 0 {
                     Box::new(RowA {})

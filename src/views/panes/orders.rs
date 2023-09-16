@@ -4,35 +4,25 @@ use iced::{
     Element, Font, Length,
 };
 
-use crate::Message;
+use crate::{views::components::scrollbar::ScrollbarStyle, Message, theme::h2c};
+use crate::views::components::list::{RowA, RowB};
 
-use super::components::list::{RowA, RowB};
+macro_rules! fill { () => { Space::new(Length::Fill, 0.0) }; }
+macro_rules! filled { ($($rs:expr),+) => { row![$($rs, fill![]),+] }; }
 
-macro_rules! fill {
-    () => {
-        Space::new(Length::Fill, 0.0)
-    };
-}
 pub fn t<'a>(s: impl ToString) -> iced::widget::Text<'a> {
-    text(s).font(Font::with_name("SF Mono"))
+    text(s).font(Font::with_name("SF Mono")).style(h2c("03DAC6").unwrap())
 }
 
 pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
-    let header = row![
+    let header = filled![
         t("Time").width(Length::Fixed(150.0)),
-        fill![],
         t("Id").width(Length::Fixed(150.0)),
-        fill![],
         t("Symbol").width(Length::Fixed(100.0)),
-        fill![],
         t("Price").width(Length::Fixed(100.0)),
-        fill![],
         t("Executed").width(Length::Fixed(100.0)),
-        fill![],
         t("Side").width(Length::Fixed(100.0)),
-        fill![],
-        t("Status").width(Length::Fixed(100.0)),
-        fill![],
+        t("Status").width(Length::Fixed(100.0))
     ]
     .width(Length::Fill);
 
@@ -49,23 +39,8 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
             let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
 
             container(
-                row![
-                    time_t,
-                    fill![],
-                    id_t,
-                    fill![],
-                    symbol_t,
-                    fill![],
-                    price_t,
-                    fill![],
-                    executed_t,
-                    fill![],
-                    side_t,
-                    fill![],
-                    status_t,
-                    fill![],
-                ]
-                .width(Length::Fill),
+                filled![time_t, id_t, symbol_t, price_t, executed_t, side_t, status_t]
+                    .width(Length::Fill),
             )
             .style(iced::theme::Container::Custom(if i % 2 == 0 {
                 Box::new(RowA {})
@@ -76,5 +51,9 @@ pub fn orders_view(os: &[Order]) -> Element<'_, Message> {
         })
         .collect();
 
-    column![header, scrollable(Column::with_children(rows))].into()
+    column![
+        header,
+        scrollable(Column::with_children(rows)).style(ScrollbarStyle::theme())
+    ]
+    .into()
 }

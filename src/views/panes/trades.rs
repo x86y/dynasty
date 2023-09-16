@@ -6,9 +6,11 @@ use iced::{
     Color, Element, Length,
 };
 
-use crate::{theme::h2c, Message};
+use crate::{theme::h2c, views::components::scrollbar::ScrollbarStyle, Message};
 
-use super::{components::list::{RowA, RowB}, orders::t};
+use crate::views::components::list::{RowA, RowB};
+
+use super::orders::t;
 
 pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
     scrollable(Column::with_children(
@@ -25,7 +27,7 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                     Space::new(Length::Fill, 1.0),
                     t(format!("{:.2}", b.price.parse::<f32>().unwrap())).style(c),
                     Space::new(Length::Fill, 1.0),
-                    t(format!("{:.2}", b.qty.parse::<f32>().unwrap())).style(c),
+                    t(format!("{:.2} ", b.qty.parse::<f32>().unwrap())).style(c),
                 ])
                 .style(iced::theme::Container::Custom(if i % 2 == 0 {
                     Box::new(RowA {})
@@ -37,5 +39,6 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
             .map(Element::from)
             .collect(),
     ))
+    .style(ScrollbarStyle::theme())
     .into()
 }

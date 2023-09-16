@@ -1,5 +1,5 @@
-use super::components::better_btn::BetterBtn;
-use super::components::input::Inp;
+use crate::views::components::better_btn::BetterBtn;
+use crate::views::components::input::Inp;
 use iced::{
     widget::{button, column, container, row, text, text_input, Space},
     Alignment, Element, Length,

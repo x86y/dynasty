@@ -1,3 +1,10 @@
+pub mod balances;
+pub mod book;
+pub mod market;
+pub mod orders;
+pub mod trades;
+pub mod watchlist;
+
 use iced::{
     theme,
     widget::{button, pane_grid, row, text},

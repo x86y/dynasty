@@ -1,11 +1,11 @@
-use crate::{theme::h2c, Message};
+use crate::{theme::h2c, views::components::scrollbar::ScrollbarStyle, Message};
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
 };
 use std::collections::HashMap;
 
-use super::components::{
+use crate::views::components::{
     better_btn::BetterBtn,
     input::Inp,
     list::{RowA, RowB},
@@ -75,7 +75,7 @@ pub fn watchlist_view<'a>(
                             .on_press(Message::AssetSelected(n.to_string()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                         Space::new(Length::Fill, 1.0),
-                        button(text(p))
+                        button(text(format!["{p} "]).style(h2c("03DAC6").unwrap()))
                             .on_press(Message::AssetSelected(n.to_string()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                     ])
@@ -89,6 +89,7 @@ pub fn watchlist_view<'a>(
                 .map(Element::from)
                 .collect(),
         ))
+        .style(ScrollbarStyle::theme())
     ]
     .into()
 }

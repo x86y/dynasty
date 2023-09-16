@@ -17,8 +17,6 @@ use views::panes::Pane;
 use views::panes::PaneType;
 use views::panes::PANE_ID_COLOR_FOCUSED;
 use views::panes::PANE_ID_COLOR_UNFOCUSED;
-use views::trades::trades_view;
-use views::watchlist::WatchlistFilter;
 use ws::book;
 use ws::prices;
 use ws::trades;
@@ -29,11 +27,13 @@ use binance::rest_model::{Balance, Order};
 use iced::executor;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Settings, Subscription, Theme};
-use views::balances::balances_view;
-use views::book::book_view;
-use views::market::market_view;
-use views::orders::orders_view;
-use views::watchlist::watchlist_view;
+use views::panes::trades::trades_view;
+use views::panes::watchlist::WatchlistFilter;
+use views::panes::balances::balances_view;
+use views::panes::book::book_view;
+use views::panes::market::market_view;
+use views::panes::orders::orders_view;
+use views::panes::watchlist::watchlist_view;
 
 use iced::widget::pane_grid::{self, PaneGrid};
 
@@ -108,6 +108,11 @@ pub enum Message {
     FontsLoaded(Result<(), iced::font::Error>),
 }
 
+macro_rules! v { ($r: expr, $a: expr, $b: expr) => { b![Vertical, $r, $a, $b] }; }
+macro_rules! h { ($r: expr, $a: expr, $b: expr) => { b![Horizontal, $r, $a, $b] }; }
+macro_rules! b { ($d: ident, $r: expr, $a: expr, $b: expr) => { Configuration::Split { axis: pane_grid::Axis::$d, ratio: $r, a: Box::new($a), b: Box::new($b), } }; }
+macro_rules! pane { ($p: ident) => { Configuration::Pane(Pane::new(PaneType::$p)) }; }
+
 impl Application for App {
     type Message = Message;
     type Theme = Theme;
@@ -115,32 +120,19 @@ impl Application for App {
     type Executor = executor::Default;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        let panes = pane_grid::State::with_configuration(Configuration::Split {
-            axis: pane_grid::Axis::Horizontal,
-            ratio: 0.7,
-            a: Box::new(Configuration::Split {
-                axis: pane_grid::Axis::Vertical,
-                ratio: 0.25,
-                a: Box::new(Configuration::Pane(Pane::new(PaneType::Prices))),
-                b: Box::new(Configuration::Split {
-                    axis: pane_grid::Axis::Vertical,
-                    ratio: 0.25,
-                    a: Box::new(Configuration::Split {
-                        axis: pane_grid::Axis::Horizontal,
-                        ratio: 0.5,
-                        a: Box::new(Configuration::Pane(Pane::new(PaneType::Book))),
-                        b: Box::new(Configuration::Pane(Pane::new(PaneType::Trades))),
-                    }),
-                    b: Box::new(Configuration::Split {
-                        axis: pane_grid::Axis::Vertical,
-                        ratio: 0.75,
-                        a: Box::new(Configuration::Pane(Pane::new(PaneType::Market))),
-                        b: Box::new(Configuration::Pane(Pane::new(PaneType::Balances))),
-                    }),
-                }),
-            }),
-            b: Box::new(Configuration::Pane(Pane::new(PaneType::Orders))),
-        });
+        let panes = pane_grid::State::with_configuration(h![
+            0.7,
+            v![
+                0.25,
+                pane![Prices],
+                v![
+                    0.25,
+                    h![0.5, pane![Book], pane![Trades]],
+                    v![0.75, pane![Market], pane![Balances]]
+                ]
+            ],
+            pane![Orders]
+        ]);
 
         (
             App {
@@ -157,8 +149,8 @@ impl Application for App {
                 .collect(),
                 new_price: Default::default(),
                 new_amt: Default::default(),
-                new_pair: Default::default(),
-                pair_submitted: Default::default(),
+                new_pair: "BTCUSDT".into(),
+                pair_submitted: true,
                 data: Default::default(),
             },
             Command::batch(vec![

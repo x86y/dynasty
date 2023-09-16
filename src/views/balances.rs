@@ -4,7 +4,7 @@ use iced::{
     Element, Length,
 };
 
-use crate::Message;
+use crate::{Message, theme::h2c};
 
 use super::components::{
     list::{RowA, RowB},
@@ -18,7 +18,7 @@ pub fn balances_view(bs: &[Balance]) -> Element<'_, Message> {
                 .enumerate()
                 .map(|(i, b)| {
                     container(row![
-                        button(text(b.asset.clone()))
+                        button(text(b.asset.clone()).style(h2c("EFE1D1").unwrap()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
                             .on_press(Message::AssetSelected(b.asset.clone())),
                         Space::new(Length::Fill, 1.0),
@@ -37,7 +37,6 @@ pub fn balances_view(bs: &[Balance]) -> Element<'_, Message> {
                 .map(Element::from)
                 .collect(),
         )
-        .spacing(5),
     )
     .into()
 }

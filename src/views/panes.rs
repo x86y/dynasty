@@ -112,9 +112,12 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.background.strong.text),
-            background: Some(iced::Background::Color(Color::from_rgba(
-                0.3, 0.3, 0.3, 0.9,
+            background: Some(iced::Background::Color(Color::from_rgb(
+                63.0 / 255.0,
+                46.0 / 255.0,
+                62.0 / 255.0,
             ))),
+            border_radius: 4.0.into(),
             ..Default::default()
         }
     }
@@ -124,16 +127,19 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.primary.strong.text),
-            background: Some(iced::Background::Color(Color::from_rgba(
-                0.3, 0.3, 0.3, 0.9,
+            background: Some(iced::Background::Color(Color::from_rgb(
+                63.0 / 255.0,
+                46.0 / 255.0,
+                62.0 / 255.0,
             ))),
+            border_radius: 4.0.into(),
             ..Default::default()
         }
     }
 
     pub fn pane_active(_: &Theme) -> container::Appearance {
         container::Appearance {
-            border_width: 1.0,
+            border_width: 0.0,
             background: Some(iced::Background::Color(Color::TRANSPARENT)),
             ..Default::default()
         }
@@ -143,7 +149,7 @@ pub mod style {
         let palette = theme.extended_palette();
 
         container::Appearance {
-            border_width: 1.0,
+            border_width: 0.0,
             border_color: palette.primary.strong.color,
             ..Default::default()
         }

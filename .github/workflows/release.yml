@@ -1,0 +1,78 @@
+name: Release
+on: [push]
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            build/obj
+            build/obj2
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust Windows target
+        run: |
+          rustup update && rustup target add x86_64-pc-windows-gnu
+      - name: Build Linux
+        run: |
+          cargo build --release
+          mv target/release/dynasty ./dynasty_x86_64-unknown-linux-gnu
+      - name: Build Windows
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
+          mv target/x86_64-pc-windows-gnu/release/dynasty.exe ./dynasty_x86_64-pc-windows-gnu.exe
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            beacon_x86_64-unknown-linux-gnu
+            beacon_x86_64-pc-windows-gnu.exe
+
+  macos:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            build/obj
+            build/obj2
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust ARM target
+        run: |
+          rustup update && rustup target add aarch64-apple-darwin
+          cargo install cargo-bundle || echo "already installed"
+      - name: Build
+        run: |
+            cargo bundle --release --target=x86_64-apple-darwin
+            cargo bundle --release --target=aarch64-apple-darwin
+      - name: Create DMG
+        run: |
+          git clone https://github.com/create-dmg/create-dmg
+          chmod u+x create-dmg/create-dmg
+          ./create-dmg/create-dmg Dynasty_aarch64-apple-darwin.dmg target/aarch64-apple-darwin/release/bundle/osx/Dynasty.app
+          ./create-dmg/create-dmg Dynasty_x86_64-apple-darwin.dmg target/release/bundle/osx/Dynasty.app
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            Dynasty_aarch64-apple-darwin.dmg
+            Dynasty_x86_64-apple-darwin.dmg

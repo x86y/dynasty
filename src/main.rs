@@ -2,11 +2,13 @@
 mod api;
 mod views;
 mod ws;
+mod theme;
 
 use iced::font;
 use iced::widget::responsive;
 use iced::Font;
 use pane_grid::Configuration;
+use views::watchlist::WatchlistFilter;
 use std::collections::HashMap;
 use views::panes::style;
 use views::panes::view_controls;
@@ -46,11 +48,13 @@ struct App {
     panes: pane_grid::State<Pane>,
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
-    symbols_whitelist: Vec<String>,
+    watchlist_favorites: Vec<String>,
     new_price: String,
     new_amt: String,
     new_pair: String,
     pair_submitted: bool,
+    filter: WatchlistFilter,
+    filter_string: String,
     data: AppData,
 }
 
@@ -78,6 +82,7 @@ pub enum Message {
     MarketQuoteChanged(String),
     MarketAmtChanged(String),
     MarketPairChanged(String),
+    WatchlistFilterInput(String),
     MarketPairSet,
     MarketPairSet2(()),
     MarketPairUnset(()),
@@ -94,6 +99,7 @@ pub enum Message {
     MarketChanged(String),
     AssetSelected(String),
     BalancesRecieved(Vec<Balance>),
+    ApplyWatchlistFilter(WatchlistFilter),
     FontsLoaded(Result<(), iced::font::Error>),
 }
 
@@ -131,7 +137,9 @@ impl Application for App {
                 panes,
                 panes_created: 1,
                 focus: None,
-                symbols_whitelist: [
+                filter: WatchlistFilter::Btc,
+                filter_string: "".to_string(),
+                watchlist_favorites: [
                     "BTCUSDT", "ETHUSDT", "LINKUSDT", "UNIUSDT", "ARBUSDT", "SYNUSDT", "OPUSDT",
                 ]
                 .iter()
@@ -399,6 +407,14 @@ impl Application for App {
                     (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
                 Command::none()
             }
+            Message::ApplyWatchlistFilter(f) => {
+                self.filter = f;
+                Command::none()
+            },
+            Message::WatchlistFilterInput(wfi) => {
+                self.filter_string = wfi;
+                Command::none()
+            },
         }
     }
 
@@ -462,7 +478,7 @@ impl Application for App {
 
             pane_grid::Content::new(responsive(move |_size| {
                 if pane.id == 0 {
-                    watchlist_view(&self.data.prices, &self.symbols_whitelist)
+                    watchlist_view(&self.data.prices, &self.watchlist_favorites, self.filter, &self.filter_string)
                 } else if pane.id == 1 {
                     book_view(&self.data.book)
                 } else if pane.id == 2 {
@@ -502,11 +518,14 @@ impl Application for App {
             .into()
         };
 
-        column![message_log]
+        container(message_log)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
-            .spacing(10)
+            .style(|_: &_| container::Appearance {
+                background: Some(iced::Background::Color(Color::from_rgb(0.2, 0.113, 0.172))),
+                ..Default::default()
+            })
             .into()
     }
 

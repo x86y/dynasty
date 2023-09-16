@@ -1,39 +1,76 @@
-use crate::Message;
+use crate::{theme::h2c, Message};
 use iced::{
-    widget::{button, container, row, scrollable, text, Column, Space},
-    Element, Length,
+    widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
+    Element, Font, Length,
 };
 use std::collections::HashMap;
 
 use super::components::{
+    better_btn::BetterBtn,
     list::{RowA, RowB},
-    unstyled_btn::UnstyledBtn,
+    unstyled_btn::UnstyledBtn, input::Inp,
 };
+
+#[derive(Debug, Clone, Copy)]
+pub enum WatchlistFilter {
+    Favorites,
+    Eth,
+    Btc,
+    Alts,
+}
 
 pub fn watchlist_view<'a>(
     ps: &'a HashMap<String, f32>,
-    whitelist: &'a [String],
+    favorites: &'a [String],
+    filter: WatchlistFilter,
+    search: &'a str,
 ) -> Element<'a, Message> {
-    let mut sorted_assets: Vec<_> = ps
-        .iter()
-        .filter_map(|(n, p)| {
-            if whitelist.contains(n) {
-                Some((n, p))
-            } else {
-                None
-            }
-        })
-        .collect();
+    let mut sorted_assets: Vec<_> = ps.iter().collect();
     sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
 
-    scrollable(
-        Column::with_children(
+    column![
+        row![
+            button(text("\u{F588}").font(Font::with_name("bootstrap-icons")))
+                .height(32.0)
+                .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
+                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)),
+            button("BTC")
+                .height(32.0)
+                .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
+                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Btc)),
+            button("ETH")
+                .height(32.0)
+                .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
+                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Eth)),
+            button("ALTS")
+                .height(32.0)
+                .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
+                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Alts)),
+            text_input("type to filter", search)
+                .on_input(Message::WatchlistFilterInput)
+                .style(iced::theme::TextInput::Custom(Box::new(Inp {})))
+        ]
+        .spacing(2.0),
+        scrollable(Column::with_children(
             sorted_assets
                 .iter()
+                .filter_map(|i| {
+                    if !search.is_empty() {
+                        i.0.contains(&search.to_uppercase()).then(|| (i.0, i.1))
+                    } else {
+                        match filter {
+                            WatchlistFilter::Favorites => favorites.contains(i.0),
+                            WatchlistFilter::Eth => i.0.contains("ETH"),
+                            WatchlistFilter::Btc => i.0.contains("BTC"),
+                            WatchlistFilter::Alts => true,
+                        }
+                        .then(|| (i.0, i.1))
+                    }
+                })
                 .enumerate()
                 .map(|(i, (n, p))| {
                     container(row![
-                        button(text(n))
+                        button(text(n).style(h2c("EFE1D1").unwrap()))
                             .on_press(Message::AssetSelected(n.to_string()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                         Space::new(Length::Fill, 1.0),
@@ -50,8 +87,7 @@ pub fn watchlist_view<'a>(
                 })
                 .map(Element::from)
                 .collect(),
-        )
-        .spacing(5),
-    )
+        ))
+    ]
     .into()
 }

@@ -32,10 +32,7 @@ pub async fn orders_history() -> Vec<Order> {
             .await
         {
             Ok(r) => r,
-            Err(e) => {
-                println!("Binance Error: {e}");
-                [].to_vec()
-            }
+            Err(_e) => { vec![] }
         }
     }))
     .await

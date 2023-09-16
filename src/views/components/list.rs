@@ -27,12 +27,7 @@ impl container::StyleSheet for RowA {
     fn appearance(&self, _: &Self::Style) -> container::Appearance {
         container::Appearance {
             text_color: Some(Color::WHITE),
-            background: Some(Background::Color(Color {
-                r: 0.2,
-                g: 0.2,
-                b: 0.2,
-                a: 0.9,
-            })),
+            background: Some(Background::Color(Color::from_rgb(0.15, 0.09, 0.15))),
             border_radius: 0.0.into(),
             border_width: 1.0,
             border_color: Color::TRANSPARENT,
@@ -46,12 +41,7 @@ impl container::StyleSheet for RowB {
     fn appearance(&self, _: &Self::Style) -> container::Appearance {
         container::Appearance {
             text_color: Some(Color::WHITE),
-            background: Some(Background::Color(Color {
-                r: 0.4,
-                g: 0.4,
-                b: 0.4,
-                a: 0.3,
-            })),
+            background: Some(Background::Color(Color::from_rgba(0.15, 0.09, 0.15, 0.5))),
             border_radius: 0.0.into(),
             border_width: 1.0,
             border_color: Color::TRANSPARENT,

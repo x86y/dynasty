@@ -9,6 +9,7 @@ use iced::font;
 use iced::widget::responsive;
 use iced::Font;
 use pane_grid::Configuration;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use views::panes::style;
@@ -27,23 +28,26 @@ use binance::rest_model::{Balance, Order};
 use iced::executor;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Settings, Subscription, Theme};
-use views::panes::trades::trades_view;
-use views::panes::watchlist::WatchlistFilter;
 use views::panes::balances::balances_view;
 use views::panes::book::book_view;
 use views::panes::market::market_view;
 use views::panes::orders::orders_view;
+use views::panes::trades::trades_view;
 use views::panes::watchlist::watchlist_view;
+use views::panes::watchlist::WatchlistFilter;
 
 use iced::widget::pane_grid::{self, PaneGrid};
 
 pub fn main() -> iced::Result {
     App::run(Settings {
         window: iced::window::Settings {
-            size: (800, 800),
+            size: iced::Size {
+                width: 800.0,
+                height: 800.0,
+            },
             ..Default::default()
         },
-        default_font: Font::with_name("Monospace"),
+        default_font: Font::with_name("SF Mono"),
         ..Default::default()
     })
 }
@@ -65,7 +69,7 @@ struct App {
 #[derive(Default)]
 struct AppData {
     prices: HashMap<String, f32>,
-    book: Vec<f64>,
+    book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     trades: VecDeque<TradesEvent>,
     balances: Vec<Balance>,
     orders: Vec<Order>,
@@ -108,10 +112,31 @@ pub enum Message {
     FontsLoaded(Result<(), iced::font::Error>),
 }
 
-macro_rules! v { ($r: expr, $a: expr, $b: expr) => { b![Vertical, $r, $a, $b] }; }
-macro_rules! h { ($r: expr, $a: expr, $b: expr) => { b![Horizontal, $r, $a, $b] }; }
-macro_rules! b { ($d: ident, $r: expr, $a: expr, $b: expr) => { Configuration::Split { axis: pane_grid::Axis::$d, ratio: $r, a: Box::new($a), b: Box::new($b), } }; }
-macro_rules! pane { ($p: ident) => { Configuration::Pane(Pane::new(PaneType::$p)) }; }
+macro_rules! v {
+    ($r: expr, $a: expr, $b: expr) => {
+        b![Vertical, $r, $a, $b]
+    };
+}
+macro_rules! h {
+    ($r: expr, $a: expr, $b: expr) => {
+        b![Horizontal, $r, $a, $b]
+    };
+}
+macro_rules! b {
+    ($d: ident, $r: expr, $a: expr, $b: expr) => {
+        Configuration::Split {
+            axis: pane_grid::Axis::$d,
+            ratio: $r,
+            a: Box::new($a),
+            b: Box::new($b),
+        }
+    };
+}
+macro_rules! pane {
+    ($p: ident) => {
+        Configuration::Pane(Pane::new(PaneType::$p))
+    };
+}
 
 impl Application for App {
     type Message = Message;
@@ -126,9 +151,9 @@ impl Application for App {
                 0.25,
                 pane![Prices],
                 v![
-                    0.25,
-                    h![0.5, pane![Book], pane![Trades]],
-                    v![0.75, pane![Market], pane![Balances]]
+                    0.5,
+                    h![0.5, pane![Market], pane![Trades]],
+                    v![0.75, pane![Book], pane![Balances]]
                 ]
             ],
             pane![Orders]
@@ -171,7 +196,7 @@ impl Application for App {
             Message::Split(axis, pane) => {
                 let result = self
                     .panes
-                    .split(axis, &pane, Pane::new(self.panes_created.into()));
+                    .split(axis, pane, Pane::new(self.panes_created.into()));
 
                 if let Some((pane, _)) = result {
                     self.focus = Some(pane);
@@ -182,9 +207,9 @@ impl Application for App {
             }
             Message::SplitFocused(axis) => {
                 if let Some(pane) = self.focus {
-                    let result =
-                        self.panes
-                            .split(axis, &pane, Pane::new(self.panes_created.into()));
+                    let result = self
+                        .panes
+                        .split(axis, pane, Pane::new(self.panes_created.into()));
 
                     if let Some((pane, _)) = result {
                         self.focus = Some(pane);
@@ -196,7 +221,7 @@ impl Application for App {
             }
             Message::FocusAdjacent(direction) => {
                 if let Some(pane) = self.focus {
-                    if let Some(adjacent) = self.panes.adjacent(&pane, direction) {
+                    if let Some(adjacent) = self.panes.adjacent(pane, direction) {
                         self.focus = Some(adjacent);
                     }
                 }
@@ -207,16 +232,16 @@ impl Application for App {
                 Command::none()
             }
             Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
-                self.panes.resize(&split, ratio);
+                self.panes.resize(split, ratio);
                 Command::none()
             }
             Message::Dragged(pane_grid::DragEvent::Dropped { pane, target }) => {
-                self.panes.drop(&pane, target);
+                self.panes.drop(pane, target);
                 Command::none()
             }
             Message::Dragged(_) => Command::none(),
             Message::Maximize(pane) => {
-                self.panes.maximize(&pane);
+                self.panes.maximize(pane);
                 Command::none()
             }
             Message::Restore => {
@@ -224,16 +249,16 @@ impl Application for App {
                 Command::none()
             }
             Message::Close(pane) => {
-                if let Some((_, sibling)) = self.panes.close(&pane) {
+                if let Some((_, sibling)) = self.panes.close(pane) {
                     self.focus = Some(sibling);
                 }
                 Command::none()
             }
             Message::CloseFocused => {
                 if let Some(pane) = self.focus {
-                    if let Some(Pane { is_pinned, .. }) = self.panes.get(&pane) {
+                    if let Some(Pane { is_pinned, .. }) = self.panes.get(pane) {
                         if !is_pinned {
-                            if let Some((_, sibling)) = self.panes.close(&pane) {
+                            if let Some((_, sibling)) = self.panes.close(pane) {
                                 self.focus = Some(sibling);
                             }
                         }
@@ -309,7 +334,7 @@ impl Application for App {
             Message::BookEcho(msg) => {
                 match msg {
                     book::BookEvent::MessageReceived(bt) => {
-                        self.data.book = vec![bt.bid, bt.ask, bt.bid_qty, bt.ask_qty];
+                        self.data.book = (bt.sym, bt.bids, bt.asks);
                     }
                 };
                 Command::none()
@@ -447,16 +472,17 @@ impl Application for App {
         let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
-            let title = row![text(pane.id.to_string()).style(if is_focused {
-                PANE_ID_COLOR_FOCUSED
-            } else {
-                PANE_ID_COLOR_UNFOCUSED
-            })]
-            .spacing(5);
+            let title =
+                row![text(pane.id.to_string()).style(if is_focused {
+                    PANE_ID_COLOR_FOCUSED
+                } else {
+                    PANE_ID_COLOR_UNFOCUSED
+                })]
+                .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(view_controls(id, total_panes, pane.is_pinned, is_maximized))
-                .padding(2)
+                .padding(16)
                 .style(if is_focused {
                     style::title_bar_focused
                 } else {
@@ -473,8 +499,8 @@ impl Application for App {
                 PaneType::Book => book_view(&self.data.book),
                 PaneType::Trades => trades_view(&self.data.trades),
                 PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
-                PaneType::Balances => balances_view(&self.data.balances),
-                PaneType::Orders => orders_view(&self.data.orders),
+                PaneType::Balances => balances_view(&self.data.balances, &self.data.prices),
+                PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
             }))
             .title_bar(title_bar)
             .style(if is_focused {
@@ -510,7 +536,7 @@ impl Application for App {
             .height(Length::Fill)
             .padding(20)
             .style(|_: &_| container::Appearance {
-                background: Some(iced::Background::Color(Color::from_rgb(0.2, 0.113, 0.172))),
+                background: Some(iced::Background::Color(Color::BLACK)),
                 ..Default::default()
             })
             .into()

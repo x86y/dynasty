@@ -1,4 +1,4 @@
-use crate::{theme::h2c, views::components::scrollbar::ScrollbarStyle, Message};
+use crate::{theme::h2c, Message};
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use crate::views::components::{
     better_btn::BetterBtn,
     input::Inp,
-    list::{RowA, RowB},
     unstyled_btn::UnstyledBtn,
 };
 
@@ -32,19 +31,19 @@ pub fn watchlist_view<'a>(
     column![
         row![
             button(text("\u{F588}").font(Font::with_name("bootstrap-icons")))
-                .height(32.0)
+                .padding(8)
                 .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
                 .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)),
             button("BTC")
-                .height(32.0)
+                .padding(8)
                 .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
                 .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Btc)),
             button("ETH")
-                .height(32.0)
+                .padding(8)
                 .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
                 .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Eth)),
             button("ALTS")
-                .height(32.0)
+                .padding(8)
                 .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
                 .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Alts)),
             text_input("type to filter", search)
@@ -68,8 +67,7 @@ pub fn watchlist_view<'a>(
                         .then_some((i.0, i.1))
                     }
                 })
-                .enumerate()
-                .map(|(i, (n, p))| {
+                .map(|(n, p)| {
                     container(row![
                         button(text(n).style(h2c("EFE1D1").unwrap()))
                             .on_press(Message::AssetSelected(n.to_string()))
@@ -79,17 +77,11 @@ pub fn watchlist_view<'a>(
                             .on_press(Message::AssetSelected(n.to_string()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                     ])
-                    .style(iced::theme::Container::Custom(if i % 2 == 0 {
-                        Box::new(RowA {})
-                    } else {
-                        Box::new(RowB {})
-                    }))
                     .width(Length::Fill)
                 })
                 .map(Element::from)
-                .collect(),
         ))
-        .style(ScrollbarStyle::theme())
-    ]
+        //.style(ScrollbarStyle::theme())
+    ].align_items(iced::Alignment::Start)
     .into()
 }

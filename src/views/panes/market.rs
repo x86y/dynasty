@@ -9,7 +9,7 @@ use crate::Message;
 
 macro_rules! bbtn {
     ($e: expr) => {
-        button($e).style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
+        button($e).style(iced::theme::Button::Custom(Box::new(BetterBtn {}))).padding(8)
     };
 }
 
@@ -33,8 +33,8 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
                         .on_input(Message::MarketQuoteChanged)
                         .width(175.0),
                     row![
-                        bbtn!(text("-0.1%")).on_press(Message::PriceInc(-0.1)),
-                        bbtn!(text("+0.1%")).on_press(Message::PriceInc(0.1)),
+                        bbtn!(text("-0.1%").size(14)).on_press(Message::PriceInc(-0.1)),
+                        bbtn!(text("+0.1%").size(14)).on_press(Message::PriceInc(0.1)),
                     ]
                     .spacing(2.0)
                     .width(175.0),
@@ -44,13 +44,13 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
                         .on_input(Message::MarketAmtChanged)
                         .width(175.0),
                     row![
-                        bbtn!(text("10%")).on_press(Message::QtySet(0.1)),
+                        bbtn!(text("10%").size(14)).on_press(Message::QtySet(0.1)),
                         Space::new(Length::Fill, 1.0),
-                        bbtn!(text("25%")).on_press(Message::QtySet(0.25)),
+                        bbtn!(text("25%").size(14)).on_press(Message::QtySet(0.25)),
                         Space::new(Length::Fill, 1.0),
-                        bbtn!(text("50%")).on_press(Message::QtySet(0.5)),
+                        bbtn!(text("50%").size(14)).on_press(Message::QtySet(0.5)),
                         Space::new(Length::Fill, 1.0),
-                        bbtn!(text("100%")).on_press(Message::QtySet(1.0)),
+                        bbtn!(text("100%").size(14)).on_press(Message::QtySet(1.0)),
                     ]
                     .width(175.0),
                 ]

@@ -18,7 +18,7 @@ lazy_static! {
 pub async fn orders_history() -> Vec<Order> {
     let now = chrono::offset::Local::now();
     let ago = now.checked_sub_signed(chrono::Duration::weeks(8)).unwrap();
-    let assets = ["LINKUSDT", "UNIUSDT", "1INCHUSDT", "OPUSDT", "ARBUSDT"];
+    let assets = ["LINKUSDT", "UNIUSDT", "1INCHUSDT", "OPUSDT", "ARBUSDT", "SYNUSDT"];
     let mut os: Vec<Order> = join_all(assets.iter().map(async move |a| {
         match B
             .get_all_orders(binance::account::OrdersQuery {

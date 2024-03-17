@@ -149,12 +149,11 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.background.strong.text),
-            background: Some(iced::Background::Color(Color::from_rgb(
-                63.0 / 255.0,
-                46.0 / 255.0,
-                62.0 / 255.0,
-            ))),
-            border_radius: 4.0.into(),
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border {
+                radius: 16.0.into(),
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
@@ -164,20 +163,20 @@ pub mod style {
 
         container::Appearance {
             text_color: Some(palette.primary.strong.text),
-            background: Some(iced::Background::Color(Color::from_rgb(
-                63.0 / 255.0,
-                46.0 / 255.0,
-                62.0 / 255.0,
-            ))),
-            border_radius: 4.0.into(),
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border { radius: 16.0.into(), ..Default::default() },
             ..Default::default()
         }
     }
 
     pub fn pane_active(_: &Theme) -> container::Appearance {
         container::Appearance {
-            border_width: 0.0,
-            background: Some(iced::Background::Color(Color::TRANSPARENT)),
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border {
+                width: 0.0,
+                radius: 16.0.into(),
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
@@ -186,8 +185,12 @@ pub mod style {
         let palette = theme.extended_palette();
 
         container::Appearance {
-            border_width: 0.0,
-            border_color: palette.primary.strong.color,
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border {
+                width: 0.0,
+                radius: 16.0.into(),
+                color: palette.primary.strong.color,
+            },
             ..Default::default()
         }
     }

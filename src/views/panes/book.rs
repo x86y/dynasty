@@ -5,23 +5,25 @@ use iced::{
     Element, Length,
 };
 
-use crate::Message;
+use crate::{theme::h2c, Message};
 
-use super::orders::t;
+use super::orders::{t, tb};
 
-pub fn book_view(book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>)) -> Element<'_, Message> {
-    let header = row![
-        t("Price").width(Length::FillPortion(1)),
-        t("Amount").width(Length::FillPortion(1)),
-        t("Total").width(Length::FillPortion(1)),
-    ]
-    .spacing(10)
-    .padding(10);
+pub fn book_view(
+    book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
+) -> Element<'_, Message> {
+    let header =
+        row![
+            tb("Price").width(Length::FillPortion(1)),
+            tb("Amount").width(Length::FillPortion(1)),
+            tb("Total").width(Length::FillPortion(1)),
+        ]
+        .spacing(10);
 
     let ask_rows = Column::with_children(
         book.1
             .iter()
-            .take(8)
+            .take(10)
             .map(|(price, quantity)| {
                 row![
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
@@ -29,34 +31,36 @@ pub fn book_view(book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>)) 
                         .style(iced::Color::from_rgb(1.0, 0.0, 0.0)),
                     t(format!("{:.4}", quantity))
                         .width(Length::FillPortion(1))
-                        .style(iced::Color::from_rgb(1.0, 0.0, 0.0)),
+                        .style(h2c("B7BDB7").unwrap()),
                     t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
-                        .style(iced::Color::from_rgb(1.0, 0.0, 0.0))
+                        .style(h2c("B7BDB7").unwrap())
                         .width(Length::FillPortion(1)),
                 ]
                 .spacing(10)
             })
-            .map(Element::from)
+            .map(Element::from),
     );
 
     let bid_rows = Column::with_children(
         book.2
             .iter()
             .rev()
-            .take(8)
+            .take(10)
             .map(|(price, quantity)| {
                 row![
-                    t(format!("{:.2}", price.parse::<f64>().unwrap())).width(Length::FillPortion(1))
-                        .style(iced::Color::from_rgb(0.0, 1.0, 0.0)),
-                    t(format!("{:.2}", quantity)).width(Length::FillPortion(1))
-                        .style(iced::Color::from_rgb(0.0, 1.0, 0.0)),
-                    t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
-                        .style(iced::Color::from_rgb(0.0, 1.0, 0.0))
+                    t(format!("{:.2}", price.parse::<f64>().unwrap()))
                         .width(Length::FillPortion(1))
+                        .style(iced::Color::from_rgb(0.0, 1.0, 0.0)),
+                    t(format!("{:.2}", quantity))
+                        .width(Length::FillPortion(1))
+                        .style(h2c("B7BDB7").unwrap()),
+                    t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
+                        .width(Length::FillPortion(1))
+                        .style(h2c("B7BDB7").unwrap())
                 ]
                 .spacing(10)
             })
-            .map(Element::from)
+            .map(Element::from),
     );
 
     let content = column![
@@ -67,9 +71,9 @@ pub fn book_view(book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>)) 
         Rule::horizontal(1),
         bid_rows,
     ]
+    .padding(12)
     .spacing(10)
     .max_width(500);
 
     Container::new(scrollable(content)).into()
 }
-

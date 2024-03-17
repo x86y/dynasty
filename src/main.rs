@@ -6,7 +6,11 @@ mod ws;
 
 use binance::ws_model::TradesEvent;
 use iced::font;
+use iced::widget::button;
 use iced::widget::responsive;
+use iced::widget::svg;
+use iced::widget::Row;
+use iced::widget::Space;
 use iced::Font;
 use pane_grid::Configuration;
 use std::collections::BTreeMap;
@@ -516,6 +520,31 @@ impl Application for App {
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
+        let header = row![
+            Row::with_children(
+                self.watchlist_favorites
+                    .iter()
+                    .map(|t| {
+                        let price_now = self.data.prices.get(t).unwrap_or(&0.0);
+                        let ticker = t.split("USDT").next().unwrap();
+                        let handle = svg::Handle::from_path(
+                            format!("{}/assets/logos/{}.svg", env!("CARGO_MANIFEST_DIR"), ticker)
+                        );
+
+                        let svg = svg(handle)
+                            .width(Length::Fixed(16.0))
+                            .height(Length::Fixed(16.0));
+                        return row![svg, text(price_now)]
+                            .spacing(4)
+                            .align_items(iced::Alignment::Center);
+                    })
+                    .map(Element::from)
+            )
+            .spacing(8),
+            Space::new(Length::Fill, 1),
+            button("⚙").padding(8).style(iced::theme::Button::Text)
+        ]
+        .spacing(8);
         let message_log: Element<_> = if self.data.prices.is_empty() {
             container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
                 .width(Length::Fill)
@@ -524,7 +553,7 @@ impl Application for App {
                 .center_y()
                 .into()
         } else {
-            column![container(pane_grid)
+            column![container(column![header, pane_grid].spacing(8))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .padding(10),]

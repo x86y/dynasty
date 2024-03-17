@@ -31,18 +31,18 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
 }
 
 pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a, Message> {
-    let header =
-        filled![
-            tb("Time").width(Length::Fixed(150.0)),
-            tb("Symbol").width(Length::Fixed(100.0)),
-            tb("Price").width(Length::Fixed(100.0)),
-            tb("Ex.Qty").width(Length::Fixed(100.0)),
-            tb("Ex.Base").width(Length::Fixed(100.0)),
-            tb("Side").width(Length::Fixed(100.0)),
-            tb("Status").width(Length::Fixed(100.0)),
-            tb("PNL").width(Length::Fixed(100.0))
-        ]
-        .width(Length::Fill);
+    let header = filled![
+        tb("Time").width(Length::Fixed(150.0)),
+        tb("Symbol").width(Length::Fixed(100.0)),
+        tb("Price").width(Length::Fixed(100.0)),
+        tb("Ex.Qty").width(Length::Fixed(100.0)),
+        tb("Ex.Base").width(Length::Fixed(100.0)),
+        tb("Side").width(Length::Fixed(100.0)),
+        tb("Status").width(Length::Fixed(100.0)),
+        tb("PNL").width(Length::Fixed(100.0))
+    ]
+    .padding(12)
+    .width(Length::Fill);
 
     let rows: Vec<Element<_>> = os
         .iter()
@@ -94,6 +94,7 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 ]
                 .width(Length::Fill),
             )
+            .padding(12)
             .into()
         })
         .collect();

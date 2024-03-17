@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use binance::rest_model::Balance;
 use iced::{
-    widget::{button, column, container, row, scrollable, text, Column, Space},
+    widget::{button, column, container, row, scrollable, svg, text, Column, Space},
     Element, Length,
 };
 
@@ -14,32 +14,40 @@ pub fn balances_view<'a>(bs: &[Balance], ps: &'a HashMap<String, f32>) -> Elemen
     scrollable(Column::with_children(
         bs.iter()
             .map(|b| {
-                let price_now = ps.get(&format!("{}USDT", b.asset)).unwrap_or(&0.0);
+                let ticker = &b.asset.split("USDT").next().unwrap();
+                let handle = svg::Handle::from_path(
+                    format!("{}/assets/logos/{}.svg", env!("CARGO_MANIFEST_DIR"), ticker)
+                );
+
+                let svg = svg(handle)
+                    .width(Length::Fixed(16.0))
+                    .height(Length::Fixed(16.0));
                 container(row![
-                    button(
-                        text(&b.asset)
-                            .font(iced::Font {
-                                weight: iced::font::Weight::Bold,
-                                ..Default::default()
-                            })
-                            .size(14)
-                            .style(h2c("EFE1D1").unwrap())
-                    )
-                    .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                    .on_press(Message::AssetSelected(b.asset.clone())),
-                    Space::new(Length::Fill, 1.0),
-                    // button(text("***"))
-                    column![
+                    row![
+                        svg,
                         button(
-                            text(format!("{}", (b.free * 10.0).round() / 10.0))
+                            text(&b.asset)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..Default::default()
+                                })
                                 .size(14)
-                                .style(h2c("03DAC6").unwrap())
+                                .style(h2c("B7BDB7").unwrap())
                         )
                         .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
                         .on_press(Message::AssetSelected(b.asset.clone())),
-                        text(price_now).size(14)
                     ]
-                    .align_items(iced::Alignment::End)
+                    .spacing(4)
+                    .align_items(iced::Alignment::Center),
+                    Space::new(Length::Fill, 1.0),
+                    // button(text("***"))
+                    button(
+                        text(format!("{}", (b.free * 10.0).round() / 10.0))
+                            .size(14)
+                            .style(h2c("B7BDB7").unwrap())
+                    )
+                    .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
+                    .on_press(Message::AssetSelected(b.asset.clone())),
                 ])
                 .width(Length::Fill)
             })

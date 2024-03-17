@@ -534,17 +534,19 @@ impl Application for App {
                         let svg = svg(handle)
                             .width(Length::Fixed(16.0))
                             .height(Length::Fixed(16.0));
-                        return row![svg, text(price_now)]
+                        return row![svg, text(format!("{:.2}", price_now))]
                             .spacing(4)
                             .align_items(iced::Alignment::Center);
                     })
                     .map(Element::from)
             )
-            .spacing(8),
+            .spacing(12),
             Space::new(Length::Fill, 1),
-            button("⚙").padding(8).style(iced::theme::Button::Text)
+            button("Settings")
+                .padding(8)
+                .style(iced::theme::Button::Text)
         ]
-        .spacing(8);
+        .align_items(iced::Alignment::Center);
         let message_log: Element<_> = if self.data.prices.is_empty() {
             container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
                 .width(Length::Fill)

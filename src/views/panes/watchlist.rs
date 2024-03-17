@@ -66,13 +66,25 @@ pub fn watchlist_view<'a>(
                     })
                     .map(|(n, p)| {
                         container(row![
-                            button(text(n).style(h2c("EFE1D1").unwrap()))
-                                .on_press(Message::AssetSelected(n.to_string()))
-                                .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+                            button(
+                                text(n)
+                                    .font(iced::Font {
+                                        weight: iced::font::Weight::Bold,
+                                        ..Default::default()
+                                    })
+                                    .size(14)
+                                    .style(h2c("EFE1D1").unwrap())
+                            )
+                            .on_press(Message::AssetSelected(n.to_string()))
+                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                             Space::new(Length::Fill, 1.0),
-                            button(text(format!["{p} "]).style(h2c("B7BDB76").unwrap()))
-                                .on_press(Message::AssetSelected(n.to_string()))
-                                .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+                            button(
+                                text(format!["{p} "])
+                                    .size(14)
+                                    .style(h2c("B7BDB76").unwrap())
+                            )
+                            .on_press(Message::AssetSelected(n.to_string()))
+                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
                         ])
                         .width(Length::Fill)
                     })

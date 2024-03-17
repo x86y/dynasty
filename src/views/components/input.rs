@@ -11,7 +11,12 @@ impl text_input::StyleSheet for Inp {
             border: iced::Border {
                 radius: 0.0.into(),
                 width: 1.0,
-                color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3, },
+                color: Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 0.3,
+                },
             },
             icon_color: Default::default(),
         }
@@ -23,7 +28,12 @@ impl text_input::StyleSheet for Inp {
             border: iced::Border {
                 radius: 0.0.into(),
                 width: 1.0,
-                color: Color { a: 0.5, r: 0.5, g: 0.5, b: 0.5, },
+                color: Color {
+                    a: 0.5,
+                    r: 0.5,
+                    g: 0.5,
+                    b: 0.5,
+                },
             },
             icon_color: Default::default(),
         }
@@ -51,7 +61,12 @@ impl text_input::StyleSheet for Inp {
             border: iced::Border {
                 radius: 0.0.into(),
                 width: 1.0,
-                color: Color { a: 0.5, r: 0.5, g: 0.5, b: 0.5, },
+                color: Color {
+                    a: 0.5,
+                    r: 0.5,
+                    g: 0.5,
+                    b: 0.5,
+                },
             },
             icon_color: Default::default(),
         }

@@ -1,10 +1,10 @@
 pub mod m {
     macro_rules! con {
         ($event:ty, $stream:expr, $connect_expr:expr, $process_msg:expr) => {
-            use iced::subscription::{self, Subscription};
-            use iced_futures::futures;
             use futures::sink::SinkExt;
             use futures::FutureExt;
+            use iced::subscription::{self, Subscription};
+            use iced_futures::futures;
             use std::sync::atomic::AtomicBool;
             use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
@@ -16,10 +16,8 @@ pub mod m {
                     100,
                     |mut output| async move {
                         let keep_running = AtomicBool::new(true);
-                        let (s, mut r): (
-                            UnboundedSender<$event>,
-                            UnboundedReceiver<$event>,
-                        ) = unbounded_channel();
+                        let (s, mut r): (UnboundedSender<$event>, UnboundedReceiver<$event>) =
+                            unbounded_channel();
 
                         let mut web_socket_connection = $connect_expr();
 

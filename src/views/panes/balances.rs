@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use binance::rest_model::Balance;
 use iced::{
-    widget::{button, column, container, row, scrollable, svg, text, Column, Space},
+    widget::{button, container, row, scrollable, svg, text, Column, Space},
     Element, Length,
 };
 

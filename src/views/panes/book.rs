@@ -23,7 +23,7 @@ pub fn book_view(
     let ask_rows = Column::with_children(
         book.1
             .iter()
-            .take(10)
+            .take(9)
             .map(|(price, quantity)| {
                 row![
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
@@ -45,7 +45,7 @@ pub fn book_view(
         book.2
             .iter()
             .rev()
-            .take(10)
+            .take(9)
             .map(|(price, quantity)| {
                 row![
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
@@ -63,17 +63,16 @@ pub fn book_view(
             .map(Element::from),
     );
 
-    let content = column![
-        header,
-        ask_rows,
-        Rule::horizontal(1),
-        t(format!("${}", book.1.iter().next_back().unwrap().0)),
-        Rule::horizontal(1),
-        bid_rows,
-    ]
-    .padding(12)
-    .spacing(10)
-    .max_width(500);
+    let content =
+        column![
+            header,
+            ask_rows,
+            t(format!("${}", book.1.iter().next_back().unwrap().0)),
+            bid_rows,
+        ]
+        .padding(12)
+        .spacing(10)
+        .max_width(500);
 
     Container::new(scrollable(content)).into()
 }

@@ -9,9 +9,7 @@ use crate::Message;
 
 macro_rules! bbtn {
     ($e: expr) => {
-        button($e)
-            .style(iced::theme::Button::Text)
-            .padding(8)
+        button($e).style(iced::theme::Button::Text).padding(8)
     };
 }
 

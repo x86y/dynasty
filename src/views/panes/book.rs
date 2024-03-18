@@ -72,10 +72,14 @@ pub fn book_view(
                 .next_back()
                 .unwrap_or((&String::new(), &0.0))
                 .0
-        )),
+        ))
+        .font(iced::Font {
+            weight: iced::font::Weight::Bold,
+            ..Default::default()
+        }),
         bid_rows,
     ]
-    .padding(12)
+    .padding([2, 12])
     .spacing(10)
     .max_width(500);
 

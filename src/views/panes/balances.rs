@@ -40,7 +40,6 @@ pub fn balances_view<'a>(bs: &[Balance], ps: &'a HashMap<String, f32>) -> Elemen
                     .spacing(4)
                     .align_items(iced::Alignment::Center),
                     Space::new(Length::Fill, 1.0),
-                    // button(text("***"))
                     button(
                         text(format!("{}", (b.free * 10.0).round() / 10.0))
                             .size(14)

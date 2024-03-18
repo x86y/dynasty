@@ -1,5 +1,4 @@
 use iced::subscription::{self, Subscription};
-use iced_futures::futures;
 
 use binance::{api::Binance, userstream::UserStream, websockets::*, ws_model::WebsocketEvent};
 use futures::sink::SinkExt;

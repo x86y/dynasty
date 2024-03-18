@@ -9,6 +9,7 @@ use iced::font;
 use iced::widget::button;
 use iced::widget::responsive;
 use iced::widget::svg;
+use iced::widget::text_input;
 use iced::widget::Row;
 use iced::widget::Space;
 use iced::Font;
@@ -16,6 +17,7 @@ use pane_grid::Configuration;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::env;
 use views::panes::style;
 use views::panes::view_controls;
 use views::panes::Pane;
@@ -68,6 +70,15 @@ struct App {
     filter: WatchlistFilter,
     filter_string: String,
     data: AppData,
+    current_view: ViewState,
+    api_key: String,
+    api_secret_key: String,
+}
+
+#[derive(PartialEq)]
+enum ViewState {
+    Dashboard,
+    Settings,
 }
 
 #[derive(Default)]
@@ -82,6 +93,10 @@ struct AppData {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    SettingsApiKeyChanged(String),
+    SettingsApiSecretChanged(String),
+    SetDashboardView,
+    SetSettingsView,
     Split(pane_grid::Axis, pane_grid::Pane),
     SplitFocused(pane_grid::Axis),
     FocusAdjacent(pane_grid::Direction),
@@ -168,7 +183,7 @@ impl Application for App {
                 panes,
                 panes_created: 1,
                 focus: None,
-                filter: WatchlistFilter::Btc,
+                filter: WatchlistFilter::Favorites,
                 filter_string: "".to_string(),
                 watchlist_favorites: [
                     "BTCUSDT", "ETHUSDT", "LINKUSDT", "UNIUSDT", "ARBUSDT", "SYNUSDT", "OPUSDT",
@@ -181,6 +196,13 @@ impl Application for App {
                 new_pair: "BTCUSDT".into(),
                 pair_submitted: true,
                 data: Default::default(),
+                current_view: ViewState::Dashboard,
+                api_key: env::var_os("DYN_PUB")
+                    .map(|s| s.into_string().unwrap())
+                    .unwrap(),
+                api_secret_key: env::var_os("DYN_SEC")
+                    .map(|s| s.into_string().unwrap())
+                    .unwrap(),
             },
             Command::batch(vec![
                 Command::perform(api::orders_history(), Message::OrdersRecieved),
@@ -197,6 +219,26 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::SettingsApiKeyChanged(value) => {
+                self.api_key = value;
+                Command::none()
+            }
+            Message::SettingsApiSecretChanged(value) => {
+                self.api_secret_key = value;
+                Command::none()
+            }
+            Message::SetSettingsView => {
+                if self.current_view == ViewState::Settings {
+                    self.current_view = ViewState::Dashboard;
+                } else {
+                    self.current_view = ViewState::Settings;
+                }
+                Command::none()
+            }
+            Message::SetDashboardView => {
+                self.current_view = ViewState::Dashboard;
+                Command::none()
+            }
             Message::Split(axis, pane) => {
                 let result = self
                     .panes
@@ -490,13 +532,12 @@ impl Application for App {
         let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
-            let title =
-                row![text(pane.id.to_string()).style(if is_focused {
-                    PANE_ID_COLOR_FOCUSED
-                } else {
-                    PANE_ID_COLOR_UNFOCUSED
-                })]
-                .spacing(5);
+            let title = row![text(pane.id.to_string()).style(if is_focused {
+                PANE_ID_COLOR_FOCUSED
+            } else {
+                PANE_ID_COLOR_UNFOCUSED
+            })]
+            .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(view_controls(id, total_panes, pane.is_pinned, is_maximized))
@@ -541,9 +582,11 @@ impl Application for App {
                     .map(|t| {
                         let price_now = self.data.prices.get(t).unwrap_or(&0.0);
                         let ticker = t.split("USDT").next().unwrap();
-                        let handle = svg::Handle::from_path(
-                            format!("{}/assets/logos/{}.svg", env!("CARGO_MANIFEST_DIR"), ticker)
-                        );
+                        let handle = svg::Handle::from_path(format!(
+                            "{}/assets/logos/{}.svg",
+                            env!("CARGO_MANIFEST_DIR"),
+                            ticker
+                        ));
 
                         let svg = svg(handle)
                             .width(Length::Fixed(16.0))
@@ -559,8 +602,31 @@ impl Application for App {
             button("Settings")
                 .padding(8)
                 .style(iced::theme::Button::Text)
+                .on_press(Message::SetSettingsView)
         ]
         .align_items(iced::Alignment::Center);
+
+        let api_key_input = text_input("API Key", &self.api_key)
+            .secure(true)
+            .width(Length::Fill)
+            .on_input(Message::SettingsApiKeyChanged);
+        let api_secret_key_input = text_input("API Secret Key", &self.api_secret_key)
+            .secure(true)
+            .width(Length::Fill)
+            .on_input(Message::SettingsApiSecretChanged);
+
+        let settings = column![
+            row![text("API Key:").width(Length::Fixed(100.0)), api_key_input].spacing(10),
+            row![
+                text("API Secret Key:").width(Length::Fixed(100.0)),
+                api_secret_key_input,
+            ]
+            .spacing(10),
+        ]
+        .spacing(10)
+        .width(Length::Fill)
+        .align_items(iced::Alignment::Center);
+
         let message_log: Element<_> = if self.data.prices.is_empty() {
             container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
                 .width(Length::Fill)
@@ -569,10 +635,24 @@ impl Application for App {
                 .center_y()
                 .into()
         } else {
-            column![container(column![header, pane_grid].spacing(8))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .padding(10),]
+            column![container(
+                column![
+                    header,
+                    if self.current_view == ViewState::Dashboard {
+                        container(pane_grid)
+                    } else {
+                        container(
+                            column![settings]
+                                .width(Length::Fill)
+                                .height(Length::Fill)
+                        )
+                    }
+                ]
+                .spacing(8)
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .padding(10),]
             .into()
         };
 

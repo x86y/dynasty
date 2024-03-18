@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{column, row, scrollable, Column, Container, Rule},
+    widget::{column, row, scrollable, Column, Container},
     Element, Length,
 };
 

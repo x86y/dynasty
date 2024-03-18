@@ -6,7 +6,9 @@ impl button::StyleSheet for BetterBtn {
     type Style = iced::Theme;
     fn active(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(0.3, 0.3, 0.3, 0.3))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.3,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {
@@ -20,7 +22,9 @@ impl button::StyleSheet for BetterBtn {
 
     fn pressed(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(0.3, 0.3, 0.3, 0.3))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.3,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {
@@ -39,7 +43,12 @@ impl button::StyleSheet for GreenBtn {
     type Style = iced::Theme;
     fn active(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(0.0, 1.0, 0.0, 1.0))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                50.0 / 255.0,
+                217.0 / 255.0,
+                147.0 / 255.0,
+                1.0,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {
@@ -53,7 +62,9 @@ impl button::StyleSheet for GreenBtn {
 
     fn pressed(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(0.3, 0.3, 0.3, 0.3))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.3,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {
@@ -72,7 +83,12 @@ impl button::StyleSheet for RedBtn {
     type Style = iced::Theme;
     fn active(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(1.0, 0.0, 0.0, 1.0))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                1.0,
+                112.0 / 255.0,
+                126.0 / 255.0,
+                1.0,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {
@@ -86,7 +102,9 @@ impl button::StyleSheet for RedBtn {
 
     fn pressed(&self, _: &Self::Style) -> button::Appearance {
         button::Appearance {
-            background: Some(iced::Background::Color(Color::from_rgba(0.3, 0.3, 0.3, 0.3))),
+            background: Some(iced::Background::Color(Color::from_rgba(
+                0.3, 0.3, 0.3, 0.3,
+            ))),
             text_color: Color::WHITE,
             shadow_offset: iced::Vector { x: 1.0, y: 1.0 },
             border: iced::Border {

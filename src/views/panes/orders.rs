@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use binance::rest_model::{Order, OrderType};
 
-use crate::{theme::h2c, views::components::scrollbar::ScrollbarStyle, Message};
+use crate::{theme::h2c, Message};
 use iced::{
     widget::{column, container, row, scrollable, text, Column, Space},
     Element, Font, Length,
@@ -41,13 +41,12 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
         tb("Status").width(Length::Fixed(100.0)),
         tb("PNL").width(Length::Fixed(100.0))
     ]
-    .padding(12)
+    .padding([0, 12])
     .width(Length::Fill);
 
     let rows: Vec<Element<_>> = os
         .iter()
-        .enumerate()
-        .map(|(i, b)| {
+        .map(|b| {
             let time_t = {
                 let dt: chrono::DateTime<chrono::Utc> =
                     chrono::TimeZone::timestamp_opt(&chrono::Utc, (b.time / 1000) as i64, 0)
@@ -94,14 +93,14 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 ]
                 .width(Length::Fill),
             )
-            .padding(4)
+            .padding([2, 4])
             .into()
         })
         .collect();
 
     column![
         header,
-        scrollable(Column::with_children(rows).padding(8)).style(ScrollbarStyle::theme())
+        scrollable(Column::with_children(rows).padding(8)) //.style(ScrollbarStyle::theme())
     ]
     .into()
 }

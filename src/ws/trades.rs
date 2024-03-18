@@ -1,10 +1,8 @@
 use binance::ws_model::TradesEvent;
 use iced::futures::FutureExt;
 use iced::subscription::{self, Subscription};
-use iced_futures::futures;
 
 use binance::{websockets::*, ws_model::WebsocketEvent};
-use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -53,6 +51,3 @@ pub fn connect(token: String) -> Subscription<Event> {
 pub enum Event {
     MessageReceived(TradesEvent),
 }
-
-#[derive(Debug, Clone)]
-pub struct Connection(mpsc::Sender<Event>);

@@ -1,4 +1,4 @@
-use crate::views::components::better_btn::{BetterBtn, GreenBtn, RedBtn};
+use crate::views::components::better_btn::{GreenBtn, RedBtn};
 use crate::views::components::input::Inp;
 use iced::{
     widget::{button, column, container, row, text, text_input, Space},

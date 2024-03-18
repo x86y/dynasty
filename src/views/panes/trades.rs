@@ -6,7 +6,7 @@ use iced::{
     Color, Element, Length,
 };
 
-use crate::{theme::h2c, views::components::scrollbar::ScrollbarStyle, Message};
+use crate::{theme::h2c, Message};
 
 use super::orders::{t, tb};
 
@@ -38,9 +38,8 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                     .width(Length::Fill)
                 })
                 .map(Element::from),
-        ))
-        .style(ScrollbarStyle::theme())
+        )) //    .style(ScrollbarStyle::theme())
     ]
-    .padding(12)
+    .padding([2, 12])
     .into()
 }

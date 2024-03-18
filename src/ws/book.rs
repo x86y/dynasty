@@ -1,9 +1,7 @@
-use binance::{websockets::*, ws_model::WebsocketEventUntag};
-use futures::channel::mpsc;
+use binance::websockets::*;
 use futures::sink::SinkExt;
 use iced::futures::FutureExt;
 use iced::subscription::{self, Subscription};
-use iced_futures::futures;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -32,44 +30,42 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
 
             let mut web_socket: WebSockets<'_, binance::ws_model::DepthOrderBookEvent> =
                 WebSockets::new(|events: binance::ws_model::DepthOrderBookEvent| {
-                    if let binance::ws_model::DepthOrderBookEvent {
-                        event_time: du,
+                    let binance::ws_model::DepthOrderBookEvent {
+                        event_time: _,
                         symbol,
-                        first_update_id,
-                        final_update_id,
+                        first_update_id: _,
+                        final_update_id: _,
                         bids,
                         asks,
-                    } = events
-                    {
-                        let mut b: BTreeMap<String, f64> = BTreeMap::new();
-                        let mut a: BTreeMap<String, f64> = BTreeMap::new();
+                    } = events;
+                    let mut b: BTreeMap<String, f64> = BTreeMap::new();
+                    let mut a: BTreeMap<String, f64> = BTreeMap::new();
 
-                        for bid in bids {
-                            let price = bid.price;
-                            let quantity = bid.qty;
-                            if quantity == 0.0 {
-                                b.remove(&price.to_string());
-                            } else {
-                                b.insert(price.to_string(), quantity);
-                            }
+                    for bid in bids {
+                        let price = bid.price;
+                        let quantity = bid.qty;
+                        if quantity == 0.0 {
+                            b.remove(&price.to_string());
+                        } else {
+                            b.insert(price.to_string(), quantity);
                         }
+                    }
 
-                        for ask in asks {
-                            let price = ask.price;
-                            let quantity = ask.qty;
-                            if quantity == 0.0 {
-                                a.remove(&price.to_string());
-                            } else {
-                                a.insert(price.to_string(), quantity);
-                            }
+                    for ask in asks {
+                        let price = ask.price;
+                        let quantity = ask.qty;
+                        if quantity == 0.0 {
+                            a.remove(&price.to_string());
+                        } else {
+                            a.insert(price.to_string(), quantity);
                         }
+                    }
 
-                        let _ = s.send(OrderBookDetails {
-                            sym: symbol,
-                            bids: b,
-                            asks: a,
-                        });
-                    };
+                    let _ = s.send(OrderBookDetails {
+                        sym: symbol,
+                        bids: b,
+                        asks: a,
+                    });
                     Ok(())
                 });
 
@@ -97,6 +93,3 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
 pub enum BookEvent {
     MessageReceived(OrderBookDetails),
 }
-
-#[derive(Debug, Clone)]
-pub struct Connection(mpsc::Sender<OrderBookDetails>);

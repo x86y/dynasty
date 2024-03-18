@@ -59,7 +59,7 @@ impl From<usize> for PaneType {
 impl ToString for PaneType {
     fn to_string(&self) -> String {
         match self {
-            PaneType::Prices => "Prices",
+            PaneType::Prices => "Watchlist",
             PaneType::Book => "Book",
             PaneType::Trades => "Trades",
             PaneType::Market => "Market",

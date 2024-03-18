@@ -1,10 +1,10 @@
+use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::{theme::h2c, Message};
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
 };
 use std::collections::HashMap;
-use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WatchlistFilter {
@@ -64,10 +64,30 @@ pub fn watchlist_view<'a>(
 
     column![
         row![
-            filter_button!(text("\u{F588}").font(Font::with_name("bootstrap-icons")), WatchlistFilter::Favorites, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)),
-            filter_button!("BTC", WatchlistFilter::Btc, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Btc)),
-            filter_button!("ETH", WatchlistFilter::Eth, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Eth)),
-            filter_button!("ALTS", WatchlistFilter::Alts, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Alts)),
+            filter_button!(
+                text("\u{F588}").font(Font::with_name("bootstrap-icons")),
+                WatchlistFilter::Favorites,
+                filter,
+                Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)
+            ),
+            filter_button!(
+                "BTC",
+                WatchlistFilter::Btc,
+                filter,
+                Message::ApplyWatchlistFilter(WatchlistFilter::Btc)
+            ),
+            filter_button!(
+                "ETH",
+                WatchlistFilter::Eth,
+                filter,
+                Message::ApplyWatchlistFilter(WatchlistFilter::Eth)
+            ),
+            filter_button!(
+                "ALTS",
+                WatchlistFilter::Alts,
+                filter,
+                Message::ApplyWatchlistFilter(WatchlistFilter::Alts)
+            ),
             text_input("type to filter", search)
                 .on_input(Message::WatchlistFilterInput)
                 .style(iced::theme::TextInput::Custom(Box::new(Inp {})))

@@ -6,9 +6,7 @@ use futures::FutureExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::api::PUB;
-
-pub fn connect() -> Subscription<WsUpdate> {
+pub fn connect(public: String) -> Subscription<WsUpdate> {
     struct Connect;
 
     subscription::channel(
@@ -16,7 +14,7 @@ pub fn connect() -> Subscription<WsUpdate> {
         100,
         |mut output| async move {
             let keep_running = AtomicBool::new(true);
-            let user_stream: UserStream = Binance::new(PUB.clone(), None);
+            let user_stream: UserStream = Binance::new(Some(public), None);
             let (s, mut r): (
                 UnboundedSender<WebsocketEvent>,
                 UnboundedReceiver<WebsocketEvent>,

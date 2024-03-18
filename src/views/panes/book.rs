@@ -12,13 +12,12 @@ use super::orders::{t, tb};
 pub fn book_view(
     book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
 ) -> Element<'_, Message> {
-    let header =
-        row![
-            tb("Price").width(Length::FillPortion(1)),
-            tb("Amount").width(Length::FillPortion(1)),
-            tb("Total").width(Length::FillPortion(1)),
-        ]
-        .spacing(10);
+    let header = row![
+        tb("Price").width(Length::FillPortion(1)),
+        tb("Amount").width(Length::FillPortion(1)),
+        tb("Total").width(Length::FillPortion(1)),
+    ]
+    .spacing(10);
 
     let ask_rows = Column::with_children(
         book.1

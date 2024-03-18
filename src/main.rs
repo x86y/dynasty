@@ -1,10 +1,15 @@
 mod api;
+mod config;
 mod theme;
 mod views;
 mod ws;
 
+use binance::api::Binance;
 use binance::rest_model::OrderStatus;
 use binance::ws_model::TradesEvent;
+use config::Config;
+use config::LoadError;
+use config::SaveError;
 use iced::font;
 use iced::widget::button;
 use iced::widget::responsive;
@@ -29,7 +34,6 @@ use ws::prices;
 use ws::trades;
 use ws::user;
 
-use api::trade_spot;
 use binance::rest_model::{Balance, Order};
 use iced::executor;
 use iced::widget::{column, container, row, text};
@@ -71,8 +75,7 @@ struct App {
     filter_string: String,
     data: AppData,
     current_view: ViewState,
-    api_key: String,
-    api_secret_key: String,
+    config: Config,
 }
 
 #[derive(PartialEq)]
@@ -93,6 +96,9 @@ struct AppData {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    SaveConfig(String, String),
+    ConfigLoaded(Result<Config, LoadError>),
+    Saved(Result<(), SaveError>),
     SettingsApiKeyChanged(String),
     SettingsApiSecretChanged(String),
     SetDashboardView,
@@ -197,16 +203,10 @@ impl Application for App {
                 pair_submitted: true,
                 data: Default::default(),
                 current_view: ViewState::Dashboard,
-                api_key: env::var_os("DYN_PUB")
-                    .map(|s| s.into_string().unwrap())
-                    .unwrap(),
-                api_secret_key: env::var_os("DYN_SEC")
-                    .map(|s| s.into_string().unwrap())
-                    .unwrap(),
+                config: Default::default(),
             },
             Command::batch(vec![
-                Command::perform(api::orders_history(), Message::OrdersRecieved),
-                Command::perform(api::balances(), Message::BalancesRecieved),
+                Command::perform(Config::load(), Message::ConfigLoaded),
                 font::load(include_bytes!("../fonts/icons.ttf").as_slice())
                     .map(Message::FontsLoaded),
             ]),
@@ -219,12 +219,40 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::Saved(_) => Command::none(),
+            Message::SaveConfig(pub_k, sec_k) => Command::perform(
+                Config {
+                    api_key: pub_k,
+                    api_secret_key: sec_k,
+                }
+                .save(),
+                Message::Saved,
+            ),
+            Message::ConfigLoaded(c) => {
+                self.config = c.unwrap_or_default();
+                Command::batch(vec![
+                    Command::perform(
+                        api::orders_history(
+                            self.config.api_key.clone(),
+                            self.config.api_secret_key.clone(),
+                        ),
+                        Message::OrdersRecieved,
+                    ),
+                    Command::perform(
+                        api::balances(
+                            self.config.api_key.clone(),
+                            self.config.api_secret_key.clone(),
+                        ),
+                        Message::BalancesRecieved,
+                    ),
+                ])
+            }
             Message::SettingsApiKeyChanged(value) => {
-                self.api_key = value;
+                self.config.api_key = value;
                 Command::none()
             }
             Message::SettingsApiSecretChanged(value) => {
-                self.api_secret_key = value;
+                self.config.api_secret_key = value;
                 Command::none()
             }
             Message::SetSettingsView => {
@@ -330,7 +358,9 @@ impl Application for App {
                 Command::perform(async {}, Message::MarketPairSet2)
             }
             Message::BuyPressed => Command::perform(
-                trade_spot(
+                api::trade_spot(
+                    self.config.api_key.clone(),
+                    self.config.api_secret_key.clone(),
                     self.new_pair.clone(),
                     self.new_price.clone().parse().unwrap(),
                     self.new_amt.parse().unwrap(),
@@ -342,7 +372,9 @@ impl Application for App {
                 },
             ),
             Message::SellPressed => Command::perform(
-                trade_spot(
+                api::trade_spot(
+                    self.config.api_key.clone(),
+                    self.config.api_secret_key.clone(),
                     self.new_pair.clone(),
                     self.new_price.clone().parse().unwrap(),
                     self.new_amt.parse().unwrap(),
@@ -503,7 +535,7 @@ impl Application for App {
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             prices::connect().map(Message::PriceEcho),
-            user::connect().map(Message::UserEcho),
+            user::connect(self.config.api_key.clone()).map(Message::UserEcho),
             if self.pair_submitted {
                 trades::connect(self.new_pair.to_lowercase()).map(Message::TradeEcho)
             } else {
@@ -606,26 +638,34 @@ impl Application for App {
         ]
         .align_items(iced::Alignment::Center);
 
-        let api_key_input = text_input("API Key", &self.api_key)
+        let api_key_input = text_input("API Key", &self.config.api_key)
             .secure(true)
             .width(Length::Fill)
             .on_input(Message::SettingsApiKeyChanged);
-        let api_secret_key_input = text_input("API Secret Key", &self.api_secret_key)
+        let api_secret_key_input = text_input("API Secret Key", &self.config.api_secret_key)
             .secure(true)
             .width(Length::Fill)
             .on_input(Message::SettingsApiSecretChanged);
 
-        let settings = column![
-            row![text("API Key:").width(Length::Fixed(100.0)), api_key_input].spacing(10),
-            row![
-                text("API Secret Key:").width(Length::Fixed(100.0)),
-                api_secret_key_input,
+        let settings = container(
+            column![
+                row![text("API Key:").width(Length::Fixed(100.0)), api_key_input].spacing(10),
+                row![
+                    text("API Secret Key:").width(Length::Fixed(100.0)),
+                    api_secret_key_input,
+                ]
+                .spacing(10),
+                button("SAVE!").on_press(Message::SaveConfig(
+                    self.config.api_key.clone(),
+                    self.config.api_secret_key.clone()
+                )),
             ]
-            .spacing(10),
-        ]
-        .spacing(10)
-        .width(Length::Fill)
-        .align_items(iced::Alignment::Center);
+            .spacing(10)
+            .width(Length::Fill)
+            .align_items(iced::Alignment::Center),
+        )
+        .center_x()
+        .center_y();
 
         let message_log: Element<_> = if self.data.prices.is_empty() {
             container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
@@ -641,11 +681,7 @@ impl Application for App {
                     if self.current_view == ViewState::Dashboard {
                         container(pane_grid)
                     } else {
-                        container(
-                            column![settings]
-                                .width(Length::Fill)
-                                .height(Length::Fill)
-                        )
+                        container(column![settings].width(Length::Fill).height(Length::Fill))
                     }
                 ]
                 .spacing(8)

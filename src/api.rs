@@ -1,21 +1,12 @@
-use std::env;
-
 use binance::account::Account;
 use binance::api::Binance;
 use binance::errors::Error;
 use binance::rest_model::{Balance, Order, OrderSide, Transaction};
 use binance::wallet::Wallet;
 use futures::future::join_all;
-use lazy_static::lazy_static;
 
-lazy_static! {
-    pub static ref PUB: Option<String> = env::var_os("DYN_PUB").map(|s| s.into_string().unwrap());
-    static ref SEC: Option<String> = env::var_os("DYN_SEC").map(|s| s.into_string().unwrap());
-    static ref B: Account = Binance::new(PUB.clone(), SEC.clone());
-    static ref W: Wallet = Binance::new(PUB.clone(), SEC.clone());
-}
-
-pub async fn orders_history() -> Vec<Order> {
+pub async fn orders_history(public: String, secret: String) -> Vec<Order> {
+    let b: Account = Binance::new(Some(public), Some(secret));
     let now = chrono::offset::Local::now();
     let ago = now
         .checked_sub_signed(chrono::Duration::try_weeks(8).unwrap())
@@ -29,7 +20,7 @@ pub async fn orders_history() -> Vec<Order> {
         "SYNUSDT",
     ];
     let mut os: Vec<Order> = join_all(assets.iter().map(|a: &&str| {
-        B.get_all_orders(binance::account::OrdersQuery {
+        b.get_all_orders(binance::account::OrdersQuery {
             symbol: a.to_string(),
             order_id: None,
             start_time: Some(ago.timestamp_millis() as u64),
@@ -48,12 +39,15 @@ pub async fn orders_history() -> Vec<Order> {
 }
 
 pub async fn trade_spot(
+    public: String,
+    secret: String,
     pair: String,
     price: f64,
     amt: f64,
     side: OrderSide,
 ) -> Result<Transaction, Error> {
-    B.place_order(binance::account::OrderRequest {
+    let b: Account = Binance::new(Some(public), Some(secret));
+    b.place_order(binance::account::OrderRequest {
         symbol: pair,
         side,
         order_type: binance::rest_model::OrderType::Limit,
@@ -70,9 +64,10 @@ pub async fn trade_spot(
     .await
 }
 
-pub async fn balances() -> Vec<Balance> {
+pub async fn balances(public: String, secret: String) -> Vec<Balance> {
+    let b: Account = Binance::new(Some(public), Some(secret));
     let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
-    join_all(assets.iter().map(|a| B.get_balance(a.to_string())))
+    join_all(assets.iter().map(|a| b.get_balance(a.to_string())))
         .await
         .into_iter()
         .flatten()

@@ -4,15 +4,53 @@ use iced::{
     Element, Font, Length,
 };
 use std::collections::HashMap;
-
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WatchlistFilter {
     Favorites,
     Eth,
     Btc,
     Alts,
+}
+
+macro_rules! filter_button {
+    ($label:expr, $filter:expr, $current_filter:expr, $message:expr) => {
+        button($label)
+            .padding(8)
+            .style(if $filter == $current_filter {
+                iced::theme::Button::Custom(Box::new(BetterBtn {}))
+            } else {
+                iced::theme::Button::Text
+            })
+            .on_press($message)
+    };
+}
+
+fn asset_button<'a>(n: &str, p: f32) -> Element<'a, Message> {
+    container(row![
+        button(
+            text(n)
+                .font(iced::Font {
+                    weight: iced::font::Weight::Bold,
+                    ..Default::default()
+                })
+                .size(14)
+                .style(h2c("EFE1D1").unwrap())
+        )
+        .on_press(Message::AssetSelected(n.to_string()))
+        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+        Space::new(Length::Fill, 1.0),
+        button(
+            text(format!("{p} "))
+                .size(14)
+                .style(h2c("B7BDB76").unwrap())
+        )
+        .on_press(Message::AssetSelected(n.to_string()))
+        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+    ])
+    .width(Length::Fill)
+    .into()
 }
 
 pub fn watchlist_view<'a>(
@@ -26,22 +64,10 @@ pub fn watchlist_view<'a>(
 
     column![
         row![
-            button(text("\u{F588}").font(Font::with_name("bootstrap-icons")))
-                .padding(8)
-                .style(iced::theme::Button::Custom(Box::new(BetterBtn {})))
-                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)),
-            button("BTC")
-                .padding(8)
-                .style(iced::theme::Button::Text)
-                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Btc)),
-            button("ETH")
-                .padding(8)
-                .style(iced::theme::Button::Text)
-                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Eth)),
-            button("ALTS")
-                .padding(8)
-                .style(iced::theme::Button::Text)
-                .on_press(Message::ApplyWatchlistFilter(WatchlistFilter::Alts)),
+            filter_button!(text("\u{F588}").font(Font::with_name("bootstrap-icons")), WatchlistFilter::Favorites, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Favorites)),
+            filter_button!("BTC", WatchlistFilter::Btc, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Btc)),
+            filter_button!("ETH", WatchlistFilter::Eth, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Eth)),
+            filter_button!("ALTS", WatchlistFilter::Alts, filter, Message::ApplyWatchlistFilter(WatchlistFilter::Alts)),
             text_input("type to filter", search)
                 .on_input(Message::WatchlistFilterInput)
                 .style(iced::theme::TextInput::Custom(Box::new(Inp {})))
@@ -64,34 +90,11 @@ pub fn watchlist_view<'a>(
                             .then_some((i.0, i.1))
                         }
                     })
-                    .map(|(n, p)| {
-                        container(row![
-                            button(
-                                text(n)
-                                    .font(iced::Font {
-                                        weight: iced::font::Weight::Bold,
-                                        ..Default::default()
-                                    })
-                                    .size(14)
-                                    .style(h2c("EFE1D1").unwrap())
-                            )
-                            .on_press(Message::AssetSelected(n.to_string()))
-                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
-                            Space::new(Length::Fill, 1.0),
-                            button(
-                                text(format!["{p} "])
-                                    .size(14)
-                                    .style(h2c("B7BDB76").unwrap())
-                            )
-                            .on_press(Message::AssetSelected(n.to_string()))
-                            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
-                        ])
-                        .width(Length::Fill)
-                    })
+                    .map(|(n, p)| asset_button(n, *p))
                     .map(Element::from)
             )
             .padding(8)
-        ) //.style(ScrollbarStyle::theme())
+        )
     ]
     .align_items(iced::Alignment::Start)
     .into()

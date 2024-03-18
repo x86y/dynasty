@@ -1,10 +1,10 @@
 name: Release
 on:
-workflow_dispatch:
-  inputs:
-    tag:
-      description: "Specify tag to create"
-      required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Specify tag to create"
+        required: true
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

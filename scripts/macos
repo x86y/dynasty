@@ -1,10 +1,12 @@
 #!/bin/bash
+# taken from https://github.com/squidowl/halloy/blob/main/scripts/build-macos.sh
+# credits to Halloy
 
 TARGET="dynasty"
 ASSETS_DIR="assets"
 RELEASE_DIR="target/release"
 APP_NAME="Dynasty.app"
-APP_TEMPLATE="$ASSETS_DIR/macos/$APP_NAME"
+APP_TEMPLATE="$ASSETS_DIR/$APP_NAME"
 APP_TEMPLATE_PLIST="$APP_TEMPLATE/Contents/Info.plist"
 APP_DIR="$RELEASE_DIR/macos"
 APP_BINARY="$RELEASE_DIR/$TARGET"

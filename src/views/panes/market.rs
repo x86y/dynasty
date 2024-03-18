@@ -1,11 +1,14 @@
 use crate::views::components::better_btn::{GreenBtn, RedBtn};
 use crate::views::components::input::Inp;
+use iced::Font;
 use iced::{
     widget::{button, column, container, row, text, text_input, Space},
     Alignment, Element, Length,
 };
 
 use crate::Message;
+
+use super::orders::t;
 
 macro_rules! bbtn {
     ($e: expr) => {
@@ -58,15 +61,29 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
             .spacing(4.0)
             .width(350.0),
             row![
-                button("BUY")
-                    .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                    .padding(8)
-                    .on_press(Message::BuyPressed),
+                button(
+                    t("Buy")
+                        .font(Font {
+                            weight: iced::font::Weight::Bold,
+                            ..Default::default()
+                        })
+                        .size(12)
+                )
+                .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                .padding(8)
+                .on_press(Message::BuyPressed),
                 Space::new(5.0, 0.0),
-                button("Sell")
-                    .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
-                    .padding(8)
-                    .on_press(Message::SellPressed)
+                button(
+                    t("Sell")
+                        .font(Font {
+                            weight: iced::font::Weight::Bold,
+                            ..Default::default()
+                        })
+                        .size(12)
+                )
+                .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
+                .padding(8)
+                .on_press(Message::SellPressed)
             ],
             Space::new(Length::Fill, 1.0)
         ]

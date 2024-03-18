@@ -4,7 +4,6 @@ mod theme;
 mod views;
 mod ws;
 
-use binance::api::Binance;
 use binance::rest_model::OrderStatus;
 use binance::ws_model::TradesEvent;
 use config::Config;
@@ -23,6 +22,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
+use views::panes::orders::tb;
 use views::panes::style;
 use views::panes::view_controls;
 use views::panes::Pane;
@@ -219,7 +219,10 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Saved(_) => Command::none(),
+            Message::Saved(_) => {
+                self.current_view = ViewState::Dashboard;
+                Command::none()
+            }
             Message::SaveConfig(pub_k, sec_k) => Command::perform(
                 Config {
                     api_key: pub_k,
@@ -561,7 +564,7 @@ impl Application for App {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
+        let dashboard_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
             let title = row![text(pane.id.to_string()).style(if is_focused {
@@ -590,7 +593,7 @@ impl Application for App {
                 PaneType::Book => book_view(&self.data.book),
                 PaneType::Trades => trades_view(&self.data.trades),
                 PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
-                PaneType::Balances => balances_view(&self.data.balances, &self.data.prices),
+                PaneType::Balances => balances_view(&self.data.balances),
                 PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
             }))
             .title_bar(title_bar)
@@ -607,36 +610,47 @@ impl Application for App {
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
-        let header = row![
-            Row::with_children(
-                self.watchlist_favorites
-                    .iter()
-                    .map(|t| {
-                        let price_now = self.data.prices.get(t).unwrap_or(&0.0);
-                        let ticker = t.split("USDT").next().unwrap();
-                        let handle = svg::Handle::from_path(format!(
-                            "{}/assets/logos/{}.svg",
-                            env!("CARGO_MANIFEST_DIR"),
-                            ticker
-                        ));
+        let header = container(
+            row![
+                Row::with_children(
+                    self.watchlist_favorites
+                        .iter()
+                        .map(|t| {
+                            let price_now = self.data.prices.get(t).unwrap_or(&0.0);
+                            let ticker = t.split("USDT").next().unwrap();
+                            let handle = svg::Handle::from_path(format!(
+                                "{}/assets/logos/{}.svg",
+                                env!("CARGO_MANIFEST_DIR"),
+                                ticker
+                            ));
 
-                        let svg = svg(handle)
-                            .width(Length::Fixed(16.0))
-                            .height(Length::Fixed(16.0));
-                        return row![svg, text(format!("{:.2}", price_now))]
-                            .spacing(4)
-                            .align_items(iced::Alignment::Center);
-                    })
-                    .map(Element::from)
-            )
-            .spacing(12),
-            Space::new(Length::Fill, 1),
-            button("Settings")
-                .padding(8)
-                .style(iced::theme::Button::Text)
-                .on_press(Message::SetSettingsView)
-        ]
-        .align_items(iced::Alignment::Center);
+                            let svg = svg(handle)
+                                .width(Length::Fixed(16.0))
+                                .height(Length::Fixed(16.0));
+                            return row![svg, text(format!("{:.2}", price_now)).size(14)]
+                                .spacing(4)
+                                .align_items(iced::Alignment::Center);
+                        })
+                        .map(Element::from)
+                )
+                .spacing(12),
+                Space::new(Length::Fill, 1),
+                button(text("Settings").size(14))
+                    .padding(8)
+                    .style(iced::theme::Button::Text)
+                    .on_press(Message::SetSettingsView)
+            ]
+            .align_items(iced::Alignment::Center),
+        )
+        .padding([0, 16])
+        .style(container::Appearance {
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border {
+                radius: 16.0.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
 
         let api_key_input = text_input("API Key", &self.config.api_key)
             .secure(true)
@@ -655,15 +669,25 @@ impl Application for App {
                     api_secret_key_input,
                 ]
                 .spacing(10),
-                button("SAVE!").on_press(Message::SaveConfig(
+                button(tb("Save")).on_press(Message::SaveConfig(
                     self.config.api_key.clone(),
                     self.config.api_secret_key.clone()
                 )),
             ]
             .spacing(10)
+            .padding(20)
             .width(Length::Fill)
+            .height(Length::Fill)
             .align_items(iced::Alignment::Center),
         )
+        .style(container::Appearance {
+            background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
+            border: iced::Border {
+                radius: 16.0.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .center_x()
         .center_y();
 
@@ -678,10 +702,13 @@ impl Application for App {
             column![container(
                 column![
                     header,
-                    if self.current_view == ViewState::Dashboard {
-                        container(pane_grid)
+                    if self.current_view == ViewState::Dashboard
+                        && !self.config.api_key.is_empty()
+                        && !self.config.api_secret_key.is_empty()
+                    {
+                        container(dashboard_grid)
                     } else {
-                        container(column![settings].width(Length::Fill).height(Length::Fill))
+                        container(settings)
                     }
                 ]
                 .spacing(8)

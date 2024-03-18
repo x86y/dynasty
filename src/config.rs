@@ -64,7 +64,7 @@ impl Config {
                 .await
                 .map_err(|_| SaveError::Write)?;
         }
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        //tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         Ok(())
     }
 }

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use binance::rest_model::Balance;
 use iced::{
@@ -10,7 +9,7 @@ use crate::{theme::h2c, Message};
 
 use crate::views::components::unstyled_btn::UnstyledBtn;
 
-pub fn balances_view<'a>(bs: &[Balance], ps: &'a HashMap<String, f32>) -> Element<'a, Message> {
+pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
     scrollable(
         Column::with_children(
             bs.iter()

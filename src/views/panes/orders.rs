@@ -94,14 +94,14 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 ]
                 .width(Length::Fill),
             )
-            .padding(12)
+            .padding(4)
             .into()
         })
         .collect();
 
     column![
         header,
-        scrollable(Column::with_children(rows)).style(ScrollbarStyle::theme())
+        scrollable(Column::with_children(rows).padding(8)).style(ScrollbarStyle::theme())
     ]
     .into()
 }

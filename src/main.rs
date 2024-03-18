@@ -1,9 +1,9 @@
-#![feature(async_closure)]
 mod api;
 mod theme;
 mod views;
 mod ws;
 
+use binance::rest_model::OrderStatus;
 use binance::ws_model::TradesEvent;
 use iced::font;
 use iced::widget::button;
@@ -157,7 +157,7 @@ impl Application for App {
                 v![
                     0.5,
                     h![0.5, pane![Market], pane![Trades]],
-                    v![0.75, pane![Book], pane![Balances]]
+                    v![0.6, pane![Book], pane![Balances]]
                 ]
             ],
             pane![Orders]
@@ -374,29 +374,43 @@ impl Application for App {
                         }
                     }
                     binance::ws_model::WebsocketEvent::OrderUpdate(o) => {
-                        self.data.orders.insert(
-                            0,
-                            Order {
-                                symbol: o.symbol,
-                                order_id: o.order_id,
-                                order_list_id: o.order_list_id as i32,
-                                client_order_id: o.client_order_id.unwrap(),
-                                price: o.price,
-                                orig_qty: o.qty,
-                                executed_qty: o.qty_last_executed,
-                                cummulative_quote_qty: o.qty,
-                                status: o.current_order_status,
-                                time_in_force: o.time_in_force,
-                                order_type: o.order_type,
-                                side: o.side,
-                                stop_price: o.stop_price,
-                                iceberg_qty: o.iceberg_qty,
-                                time: o.event_time,
-                                update_time: o.trade_order_time,
-                                is_working: false,
-                                orig_quote_order_qty: o.qty,
-                            },
-                        );
+                        let existing_order = self.data.orders.iter_mut().find(|order| {
+                            // order.client_order_id == o.order_id&&
+                            order.symbol == o.symbol
+                                && order.side == o.side
+                                && order.status == OrderStatus::PartiallyFilled
+                        });
+
+                        if let Some(order) = existing_order {
+                            // Update the existing order with the new values
+                            order.executed_qty += o.qty_last_executed;
+                            order.cummulative_quote_qty += o.qty;
+                            order.update_time = o.trade_order_time;
+                        } else {
+                            self.data.orders.insert(
+                                0,
+                                Order {
+                                    symbol: o.symbol,
+                                    order_id: o.order_id,
+                                    order_list_id: o.order_list_id as i32,
+                                    client_order_id: o.client_order_id.unwrap(),
+                                    price: o.price,
+                                    orig_qty: o.qty,
+                                    executed_qty: o.qty_last_executed,
+                                    cummulative_quote_qty: o.qty,
+                                    status: o.current_order_status,
+                                    time_in_force: o.time_in_force,
+                                    order_type: o.order_type,
+                                    side: o.side,
+                                    stop_price: o.stop_price,
+                                    iceberg_qty: o.iceberg_qty,
+                                    time: o.event_time,
+                                    update_time: o.trade_order_time,
+                                    is_working: false,
+                                    orig_quote_order_qty: o.qty,
+                                },
+                            );
+                        }
                     }
                     binance::ws_model::WebsocketEvent::BalanceUpdate(_p) => {
                         // not needed imo?

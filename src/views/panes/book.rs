@@ -63,16 +63,22 @@ pub fn book_view(
             .map(Element::from),
     );
 
-    let content =
-        column![
-            header,
-            ask_rows,
-            t(format!("${}", book.1.iter().next_back().unwrap().0)),
-            bid_rows,
-        ]
-        .padding(12)
-        .spacing(10)
-        .max_width(500);
+    let content = column![
+        header,
+        ask_rows,
+        t(format!(
+            "${}",
+            book.1
+                .iter()
+                .next_back()
+                .unwrap_or((&String::new(), &0.0))
+                .0
+        )),
+        bid_rows,
+    ]
+    .padding(12)
+    .spacing(10)
+    .max_width(500);
 
     Container::new(scrollable(content)).into()
 }

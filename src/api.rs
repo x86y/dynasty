@@ -17,39 +17,32 @@ lazy_static! {
 
 pub async fn orders_history() -> Vec<Order> {
     let now = chrono::offset::Local::now();
-    let ago = now.checked_sub_signed(chrono::Duration::weeks(8)).unwrap();
-    let assets =
-        [
-            "LINKUSDT",
-            "UNIUSDT",
-            "1INCHUSDT",
-            "OPUSDT",
-            "ARBUSDT",
-            "SYNUSDT",
-        ];
-    let mut os: Vec<Order> =
-        join_all(assets.iter().map(async move |a| {
-            match B
-                .get_all_orders(binance::account::OrdersQuery {
-                    symbol: a.to_string(),
-                    order_id: None,
-                    start_time: Some(ago.timestamp_millis() as u64),
-                    end_time: None,
-                    limit: None,
-                    recv_window: None,
-                })
-                .await
-            {
-                Ok(r) => r,
-                Err(_e) => {
-                    vec![]
-                }
-            }
-        }))
-        .await
-        .into_iter()
-        .flatten()
-        .collect();
+    let ago = now
+        .checked_sub_signed(chrono::Duration::try_weeks(8).unwrap())
+        .unwrap();
+    let assets = [
+        "LINKUSDT",
+        "UNIUSDT",
+        "1INCHUSDT",
+        "OPUSDT",
+        "ARBUSDT",
+        "SYNUSDT",
+    ];
+    let mut os: Vec<Order> = join_all(assets.iter().map(|a: &&str| {
+        B.get_all_orders(binance::account::OrdersQuery {
+            symbol: a.to_string(),
+            order_id: None,
+            start_time: Some(ago.timestamp_millis() as u64),
+            end_time: None,
+            limit: None,
+            recv_window: None,
+        })
+    }))
+    .await
+    .into_iter()
+    .flatten()
+    .flatten()
+    .collect();
     os.sort_by(|o, n| n.time.cmp(&o.time));
     os
 }
@@ -79,22 +72,9 @@ pub async fn trade_spot(
 
 pub async fn balances() -> Vec<Balance> {
     let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
-    join_all(
-        assets
-            .iter()
-            .map(async move |a| match B.get_balance(a.to_string()).await {
-                Ok(r) => r,
-                Err(e) => {
-                    println!("Binance Error: {e}");
-                    Balance {
-                        asset: a.to_string(),
-                        free: 0.0,
-                        locked: 0.0,
-                    }
-                }
-            }),
-    )
-    .await
-    .into_iter()
-    .collect()
+    join_all(assets.iter().map(|a| B.get_balance(a.to_string())))
+        .await
+        .into_iter()
+        .flatten()
+        .collect()
 }

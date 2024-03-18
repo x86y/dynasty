@@ -52,6 +52,6 @@ pub fn balances_view<'a>(bs: &[Balance], ps: &'a HashMap<String, f32>) -> Elemen
                 .width(Length::Fill)
             })
             .map(Element::from),
-    ))
+    ).padding(8))
     .into()
 }

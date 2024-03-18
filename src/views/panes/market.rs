@@ -60,11 +60,13 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
             row![
                 button("BUY")
                     .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                    .padding(8),
+                    .padding(8)
+                    .on_press(Message::BuyPressed),
                 Space::new(5.0, 0.0),
                 button("Sell")
                     .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
                     .padding(8)
+                    .on_press(Message::SellPressed)
             ],
             Space::new(Length::Fill, 1.0)
         ]

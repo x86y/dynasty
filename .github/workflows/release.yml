@@ -1,5 +1,11 @@
 name: Release
-on: [push]
+on:
+workflow_dispatch:
+  inputs:
+    tag:
+      description: "Specify tag to create"
+      required: true
+
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   CARGO_TERM_COLOR: always

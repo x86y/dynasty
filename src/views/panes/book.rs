@@ -20,7 +20,7 @@ pub fn book_view(
     .spacing(10);
 
     let ask_rows = Column::with_children(
-        book.1
+        book.2
             .iter()
             .take(9)
             .map(|(price, quantity)| {
@@ -41,7 +41,7 @@ pub fn book_view(
     );
 
     let bid_rows = Column::with_children(
-        book.2
+        book.1
             .iter()
             .rev()
             .take(9)

@@ -4,6 +4,7 @@ pub mod market;
 pub mod orders;
 pub mod trades;
 pub mod watchlist;
+pub mod calculator;
 
 use iced::{
     theme,
@@ -48,6 +49,7 @@ pub enum PaneType {
     Market,
     Balances,
     Orders,
+    Calculator,
 }
 
 impl From<usize> for PaneType {
@@ -65,6 +67,7 @@ impl ToString for PaneType {
             PaneType::Market => "Market",
             PaneType::Balances => "Balances",
             PaneType::Orders => "Orders",
+            PaneType::Calculator => "Calculator",
         }
         .to_string()
     }

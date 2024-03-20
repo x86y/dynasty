@@ -13,6 +13,7 @@ use iced::font;
 use iced::widget::button;
 use iced::widget::responsive;
 use iced::widget::svg;
+use iced::widget::text_editor;
 use iced::widget::text_input;
 use iced::widget::Row;
 use iced::widget::Space;
@@ -22,6 +23,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
+use views::panes::calculator::calculator_view;
 use views::panes::orders::tb;
 use views::panes::style;
 use views::panes::view_controls;
@@ -58,6 +60,7 @@ pub fn main() -> iced::Result {
             ..Default::default()
         },
         default_font: Font::with_name("SF Mono"),
+        antialiasing: true,
         ..Default::default()
     })
 }
@@ -74,6 +77,8 @@ struct App {
     filter: WatchlistFilter,
     filter_string: String,
     data: AppData,
+    calculator_content: iced::widget::text_editor::Content,
+    calculator_editing: bool,
     current_view: ViewState,
     config: Config,
 }
@@ -96,6 +101,8 @@ struct AppData {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    CalcToggle,
+    CalcAction(text_editor::Action),
     SaveConfig(String, String),
     ConfigLoaded(Result<Config, LoadError>),
     Saved(Result<(), SaveError>),
@@ -177,7 +184,11 @@ impl Application for App {
                 pane![Prices],
                 v![
                     0.5,
-                    h![0.5, pane![Market], pane![Trades]],
+                    h![
+                        0.5,
+                        pane![Market],
+                        v![0.5, pane![Trades], pane![Calculator]]
+                    ],
                     v![0.6, pane![Book], pane![Balances]]
                 ]
             ],
@@ -204,6 +215,8 @@ impl Application for App {
                 data: Default::default(),
                 current_view: ViewState::Dashboard,
                 config: Default::default(),
+                calculator_content: iced::widget::text_editor::Content::new(),
+                calculator_editing: true,
             },
             Command::batch(vec![
                 Command::perform(Config::load(), Message::ConfigLoaded),
@@ -219,6 +232,14 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::CalcToggle => {
+                self.calculator_editing = !self.calculator_editing;
+                Command::none()
+            },
+            Message::CalcAction(action) => {
+                self.calculator_content.perform(action);
+                Command::none()
+            }
             Message::Saved(_) => {
                 self.current_view = ViewState::Dashboard;
                 Command::none()
@@ -595,6 +616,7 @@ impl Application for App {
                 PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
                 PaneType::Balances => balances_view(&self.data.balances),
                 PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
+                PaneType::Calculator => calculator_view(&self.calculator_content, self.calculator_editing, &self.data.prices),
             }))
             .title_bar(title_bar)
             .style(if is_focused {

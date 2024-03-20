@@ -22,6 +22,7 @@ pub fn book_view(
     let ask_rows = Column::with_children(
         book.2
             .iter()
+            .rev()
             .take(9)
             .map(|(price, quantity)| {
                 row![
@@ -77,7 +78,7 @@ pub fn book_view(
             weight: iced::font::Weight::Bold,
             ..Default::default()
         }),
-        bid_rows,
+        bid_rows
     ]
     .padding([2, 12])
     .spacing(10)

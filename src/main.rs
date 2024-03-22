@@ -7,8 +7,6 @@ mod ws;
 use binance::rest_model::OrderStatus;
 use binance::ws_model::TradesEvent;
 use config::Config;
-use config::LoadError;
-use config::SaveError;
 use iced::font;
 use iced::widget::button;
 use iced::widget::responsive;
@@ -104,8 +102,7 @@ pub enum Message {
     CalcToggle,
     CalcAction(text_editor::Action),
     SaveConfig(String, String),
-    ConfigLoaded(Result<Config, LoadError>),
-    Saved(Result<(), SaveError>),
+    ConfigUpdated(Result<Config, ()>),
     SettingsApiKeyChanged(String),
     SettingsApiSecretChanged(String),
     SetDashboardView,
@@ -177,6 +174,8 @@ impl Application for App {
     type Executor = executor::Default;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        let config = Config::load().unwrap_or_default();
+
         let panes = pane_grid::State::with_configuration(h![
             0.7,
             v![
@@ -219,7 +218,7 @@ impl Application for App {
                 calculator_editing: true,
             },
             Command::batch(vec![
-                Command::perform(Config::load(), Message::ConfigLoaded),
+                Command::perform(async { Ok(config) }, Message::ConfigUpdated),
                 font::load(include_bytes!("../fonts/icons.ttf").as_slice())
                     .map(Message::FontsLoaded),
             ]),
@@ -235,25 +234,27 @@ impl Application for App {
             Message::CalcToggle => {
                 self.calculator_editing = !self.calculator_editing;
                 Command::none()
-            },
+            }
             Message::CalcAction(action) => {
                 self.calculator_content.perform(action);
                 Command::none()
             }
-            Message::Saved(_) => {
-                self.current_view = ViewState::Dashboard;
-                Command::none()
-            }
             Message::SaveConfig(pub_k, sec_k) => Command::perform(
-                Config {
-                    api_key: pub_k,
-                    api_secret_key: sec_k,
-                }
-                .save(),
-                Message::Saved,
+                async {
+                    let config = Config {
+                        api_key: pub_k,
+                        api_secret_key: sec_k,
+                    };
+                    config.save().map_err(|_| ())?;
+
+                    Ok(config)
+                },
+                Message::ConfigUpdated,
             ),
-            Message::ConfigLoaded(c) => {
-                self.config = c.unwrap_or_default();
+            Message::ConfigUpdated(c) => {
+                self.config = c.expect("TODO: bad config popup/message");
+
+                self.current_view = ViewState::Dashboard;
                 Command::batch(vec![
                     Command::perform(
                         api::orders_history(
@@ -616,7 +617,11 @@ impl Application for App {
                 PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
                 PaneType::Balances => balances_view(&self.data.balances),
                 PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
-                PaneType::Calculator => calculator_view(&self.calculator_content, self.calculator_editing, &self.data.prices),
+                PaneType::Calculator => calculator_view(
+                    &self.calculator_content,
+                    self.calculator_editing,
+                    &self.data.prices,
+                ),
             }))
             .title_bar(title_bar)
             .style(if is_focused {

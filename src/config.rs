@@ -1,3 +1,5 @@
+use std::fs;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -33,39 +35,18 @@ impl Config {
         path
     }
 
-    pub async fn load() -> Result<Config, LoadError> {
-        use tokio::fs::File;
-        use tokio::io::AsyncReadExt;
-
-        let mut contents = String::new();
-        let mut file = File::open(Self::path())
-            .await
-            .map_err(|_| LoadError::File)?;
-        file.read_to_string(&mut contents)
-            .await
-            .map_err(|_| LoadError::File)?;
+    pub fn load() -> Result<Config, LoadError> {
+        let contents = fs::read_to_string(Self::path()).map_err(|_| LoadError::File)?;
         serde_json::from_str(&contents).map_err(|_| LoadError::Format)
     }
 
-    pub async fn save(self) -> Result<(), SaveError> {
-        use tokio::fs::File;
-        use tokio::io::AsyncWriteExt;
-
+    pub fn save(&self) -> Result<(), SaveError> {
         let json = serde_json::to_string_pretty(&self).map_err(|_| SaveError::Format)?;
         let path = Self::path();
         if let Some(dir) = path.parent() {
-            tokio::fs::create_dir_all(dir)
-                .await
-                .map_err(|_| SaveError::File)?;
+            fs::create_dir_all(dir).map_err(|_| SaveError::File)?;
         }
-        {
-            let mut file = File::create(path).await.map_err(|_| SaveError::File)?;
-            file.write_all(json.as_bytes())
-                .await
-                .map_err(|_| SaveError::Write)?;
-        }
-        //tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-        Ok(())
+        fs::write(path, json.as_bytes()).map_err(|_| SaveError::Write)
     }
 }
 
@@ -77,7 +58,7 @@ impl Config {
         window.local_storage().ok()?
     }
 
-    async fn load() -> Result<Config, LoadError> {
+    fn load() -> Result<Config, LoadError> {
         let storage = Self::storage().ok_or(LoadError::File)?;
 
         let contents = storage
@@ -88,7 +69,7 @@ impl Config {
         serde_json::from_str(&contents).map_err(|_| LoadError::Format)
     }
 
-    async fn save(self) -> Result<(), SaveError> {
+    fn save(self) -> Result<(), SaveError> {
         let storage = Self::storage().ok_or(SaveError::File)?;
 
         let json = serde_json::to_string_pretty(&self).map_err(|_| SaveError::Format)?;
@@ -96,8 +77,6 @@ impl Config {
         storage
             .set_item("state", &json)
             .map_err(|_| SaveError::Write)?;
-
-        let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
 
         Ok(())
     }

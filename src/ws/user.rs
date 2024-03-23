@@ -31,22 +31,21 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
                         });
                     loop {
                         match web_socket.connect(&listen_key).await {
-                            Ok(_) => {
-                                loop {
-                                    futures::select! {
-                                        recv = web_socket.event_loop(&keep_running).fuse() => {
-                                            if recv.is_err() {
-                                                break;
-                                            }
-                                        },
-                                        recv2 = r.recv().fuse() => {
-                                            if let Some(i) = recv2 {
-                                                output.send(WsUpdate::UpdateReceived(i)).await.unwrap();
-                                            }
+                            Ok(_) => loop {
+                                futures::select! {
+                                    recv = web_socket.event_loop(&keep_running).fuse() => {
+                                        if recv.is_err() {
+                                            eprintln!("User Stream error: {:?}", recv.unwrap_err());
+                                            break;
                                         }
-                                    };
-                                }
-                            }
+                                    },
+                                    recv2 = r.recv().fuse() => {
+                                        if let Some(i) = recv2 {
+                                            output.send(WsUpdate::UpdateReceived(i)).await.unwrap();
+                                        }
+                                    }
+                                };
+                            },
                             Err(e) => {
                                 eprintln!("WebSocket connection error: {:?}", e);
                                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;

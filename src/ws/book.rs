@@ -75,6 +75,7 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
                         futures::select! {
                             recv = web_socket.event_loop(&keep_running).fuse() => {
                                 if recv.is_err() {
+                                    eprintln!("Orderbook stream error: {:?}", recv.unwrap_err());
                                     break;
                                 }
                             },

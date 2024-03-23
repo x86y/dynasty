@@ -33,13 +33,15 @@ pub fn connect(token: String) -> Subscription<Event> {
                         futures::select! {
                             recv = web_socket.event_loop(&keep_running).fuse() => {
                                 if recv.is_err() {
+                                    eprintln!("Book Ticker error: {:?}", recv.unwrap_err());
                                     break;
                                 }
                             },
                             recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
                                     output.send(Event::MessageReceived(i)).await.unwrap();
-                                }                    }
+                                }
+                            }
                         };
                     },
                     Err(e) => {

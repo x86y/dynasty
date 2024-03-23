@@ -43,22 +43,21 @@ pub fn connect() -> Subscription<Event> {
 
             loop {
                 match web_socket.connect(book_ticker).await {
-                    Ok(_) => {
-                        loop {
-                            futures::select! {
-                                recv = web_socket.event_loop(&keep_running).fuse() => {
-                                    if recv.is_err() {
-                                        break;
-                                    }
-                                },
-                                recv2 = r.recv().fuse() => {
-                                    if let Some(i) = recv2 {
-                                        output.send(Event::MessageReceived(i)).await.unwrap();
-                                    }
+                    Ok(_) => loop {
+                        futures::select! {
+                            recv = web_socket.event_loop(&keep_running).fuse() => {
+                                if recv.is_err() {
+                                    eprintln!("Prices Stream error: {:?}", recv.unwrap_err());
+                                    break;
                                 }
-                            };
-                        }
-                    }
+                            },
+                            recv2 = r.recv().fuse() => {
+                                if let Some(i) = recv2 {
+                                    output.send(Event::MessageReceived(i)).await.unwrap();
+                                }
+                            }
+                        };
+                    },
                     Err(e) => {
                         // WebSocket connection error, wait before retrying
                         eprintln!("WebSocket connection error: {:?}", e);

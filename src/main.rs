@@ -104,7 +104,11 @@ struct AppData {
 pub enum Message {
     CalcToggle,
     CalcAction(text_editor::Action),
+    // fetch personal data with api key
+    FetchData(()),
+    // write config from settings to disk and memory
     SaveConfig,
+    // config update happened
     ConfigUpdated(Result<Config, ()>),
     SettingsApiKeyChanged(String),
     SettingsApiSecretChanged(String),
@@ -223,10 +227,11 @@ impl Application for App {
                 calculator_content: iced::widget::text_editor::Content::new(),
                 calculator_editing: true,
             },
-            Command::batch(vec![font::load(
-                include_bytes!("../fonts/icons.ttf").as_slice(),
-            )
-            .map(Message::FontsLoaded)]),
+            Command::batch(vec![
+                Command::perform(async {}, Message::FetchData),
+                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
+                    .map(Message::FontsLoaded),
+            ]),
         )
     }
 
@@ -244,7 +249,25 @@ impl Application for App {
                 self.calculator_content.perform(action);
                 Command::none()
             }
+            Message::FetchData(_) => Command::batch(vec![
+                Command::perform(
+                    api::orders_history(
+                        self.config.api_key.clone(),
+                        self.config.api_secret_key.clone(),
+                    ),
+                    Message::OrdersRecieved,
+                ),
+                Command::perform(
+                    api::balances(
+                        self.config.api_key.clone(),
+                        self.config.api_secret_key.clone(),
+                    ),
+                    Message::BalancesRecieved,
+                ),
+            ]),
             Message::SaveConfig => {
+                self.current_view = ViewState::Dashboard;
+
                 let new_config = self.new_config.clone();
 
                 Command::perform(
@@ -259,23 +282,7 @@ impl Application for App {
             Message::ConfigUpdated(c) => {
                 self.config = c.expect("TODO: bad config popup/message");
 
-                self.current_view = ViewState::Dashboard;
-                Command::batch(vec![
-                    Command::perform(
-                        api::orders_history(
-                            self.config.api_key.clone(),
-                            self.config.api_secret_key.clone(),
-                        ),
-                        Message::OrdersRecieved,
-                    ),
-                    Command::perform(
-                        api::balances(
-                            self.config.api_key.clone(),
-                            self.config.api_secret_key.clone(),
-                        ),
-                        Message::BalancesRecieved,
-                    ),
-                ])
+                Command::perform(async {}, Message::FetchData)
             }
             Message::SettingsApiKeyChanged(value) => {
                 self.new_config.api_key = value;

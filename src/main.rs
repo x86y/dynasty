@@ -229,8 +229,11 @@ impl Application for App {
             },
             Command::batch(vec![
                 Command::perform(async {}, Message::FetchData),
-                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
-                    .map(Message::FontsLoaded),
+                font::load(
+                    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/fonts/icons.ttf"))
+                        .as_slice(),
+                )
+                .map(Message::FontsLoaded),
             ]),
         )
     }

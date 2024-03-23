@@ -1,10 +1,10 @@
 pub mod balances;
 pub mod book;
+pub mod calculator;
 pub mod market;
 pub mod orders;
 pub mod trades;
 pub mod watchlist;
-pub mod calculator;
 
 use iced::{
     theme,
@@ -94,14 +94,14 @@ pub fn view_controls<'a>(
         let toggle = {
             let (content, message) = if is_maximized {
                 (
-                    text('\u{f149}'.to_string())
+                    text('\u{F3DE}')
                         .font(Font::with_name("bootstrap-icons"))
                         .line_height(LineHeight::Relative(1.1)),
                     Message::Restore,
                 )
             } else {
                 (
-                    text('\u{f14a}'.to_string())
+                    text('\u{F3DF}')
                         .font(Font::with_name("bootstrap-icons"))
                         .line_height(LineHeight::Relative(1.1)),
                     Message::Maximize(pane),
@@ -117,7 +117,7 @@ pub fn view_controls<'a>(
     }
 
     let mut close = button(
-        text('\u{f659}'.to_string())
+        text('\u{F62A}')
             .font(Font::with_name("bootstrap-icons"))
             .line_height(LineHeight::Relative(1.1))
             .size(14),

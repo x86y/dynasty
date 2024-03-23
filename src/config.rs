@@ -27,7 +27,7 @@ impl Config {
         let mut path = if let Some(project_dirs) =
             directories_next::ProjectDirs::from("rs", "x86y", "Dynasty")
         {
-            project_dirs.data_dir().into()
+            project_dirs.config_dir().into()
         } else {
             std::env::current_dir().unwrap_or_default()
         };

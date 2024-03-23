@@ -2,7 +2,6 @@ use binance::account::Account;
 use binance::api::Binance;
 use binance::errors::Error;
 use binance::rest_model::{Balance, Order, OrderSide, Transaction};
-use binance::wallet::Wallet;
 use futures::future::join_all;
 
 pub async fn orders_history(public: String, secret: String) -> Vec<Order> {

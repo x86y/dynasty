@@ -42,19 +42,28 @@ pub fn connect() -> Subscription<Event> {
                 });
 
             loop {
-                web_socket.connect(book_ticker).await.unwrap();
-                loop {
-                    futures::select! {
-                        _recv = web_socket.event_loop(&keep_running).fuse() => continue ,
-                        recv2 = r.recv().fuse() => {
-                                if let Some(i) = recv2 {
-                                    output
-                                        .send(Event::MessageReceived(i))
-                                        .await
-                                        .unwrap();
-                                };
-                         }
-                    };
+                match web_socket.connect(book_ticker).await {
+                    Ok(_) => {
+                        loop {
+                            futures::select! {
+                                recv = web_socket.event_loop(&keep_running).fuse() => {
+                                    if recv.is_err() {
+                                        break;
+                                    }
+                                },
+                                recv2 = r.recv().fuse() => {
+                                    if let Some(i) = recv2 {
+                                        output.send(Event::MessageReceived(i)).await.unwrap();
+                                    }
+                                }
+                            };
+                        }
+                    }
+                    Err(e) => {
+                        // WebSocket connection error, wait before retrying
+                        eprintln!("WebSocket connection error: {:?}", e);
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    }
                 }
             }
         },

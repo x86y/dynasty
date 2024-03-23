@@ -48,7 +48,7 @@ use views::panes::watchlist::WatchlistFilter;
 
 use iced::widget::pane_grid::{self, PaneGrid};
 
-pub fn main() -> iced::Result {
+fn main() -> iced::Result {
     App::run(Settings {
         window: iced::window::Settings {
             size: iced::Size {
@@ -78,7 +78,10 @@ struct App {
     calculator_content: iced::widget::text_editor::Content,
     calculator_editing: bool,
     current_view: ViewState,
+    // current config
     config: Config,
+    // settings config version
+    new_config: Config,
 }
 
 #[derive(PartialEq)]
@@ -101,7 +104,7 @@ struct AppData {
 pub enum Message {
     CalcToggle,
     CalcAction(text_editor::Action),
-    SaveConfig(String, String),
+    SaveConfig,
     ConfigUpdated(Result<Config, ()>),
     SettingsApiKeyChanged(String),
     SettingsApiSecretChanged(String),
@@ -174,7 +177,9 @@ impl Application for App {
     type Executor = executor::Default;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        let config = Config::load().unwrap_or_default();
+        let config = Config::load()
+            .expect("unable to load config")
+            .unwrap_or_default();
 
         let panes = pane_grid::State::with_configuration(h![
             0.7,
@@ -213,15 +218,15 @@ impl Application for App {
                 pair_submitted: true,
                 data: Default::default(),
                 current_view: ViewState::Dashboard,
-                config: Default::default(),
+                config: config.clone(),
+                new_config: config,
                 calculator_content: iced::widget::text_editor::Content::new(),
                 calculator_editing: true,
             },
-            Command::batch(vec![
-                Command::perform(async { Ok(config) }, Message::ConfigUpdated),
-                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
-                    .map(Message::FontsLoaded),
-            ]),
+            Command::batch(vec![font::load(
+                include_bytes!("../fonts/icons.ttf").as_slice(),
+            )
+            .map(Message::FontsLoaded)]),
         )
     }
 
@@ -239,18 +244,18 @@ impl Application for App {
                 self.calculator_content.perform(action);
                 Command::none()
             }
-            Message::SaveConfig(pub_k, sec_k) => Command::perform(
-                async {
-                    let config = Config {
-                        api_key: pub_k,
-                        api_secret_key: sec_k,
-                    };
-                    config.save().map_err(|_| ())?;
+            Message::SaveConfig => {
+                let new_config = self.new_config.clone();
 
-                    Ok(config)
-                },
-                Message::ConfigUpdated,
-            ),
+                Command::perform(
+                    async {
+                        new_config.save().map_err(|_| ())?;
+
+                        Ok(new_config)
+                    },
+                    Message::ConfigUpdated,
+                )
+            }
             Message::ConfigUpdated(c) => {
                 self.config = c.expect("TODO: bad config popup/message");
 
@@ -273,11 +278,11 @@ impl Application for App {
                 ])
             }
             Message::SettingsApiKeyChanged(value) => {
-                self.config.api_key = value;
+                self.new_config.api_key = value;
                 Command::none()
             }
             Message::SettingsApiSecretChanged(value) => {
-                self.config.api_secret_key = value;
+                self.new_config.api_secret_key = value;
                 Command::none()
             }
             Message::SetSettingsView => {
@@ -679,11 +684,11 @@ impl Application for App {
             ..Default::default()
         });
 
-        let api_key_input = text_input("API Key", &self.config.api_key)
+        let api_key_input = text_input("API Key", &self.new_config.api_key)
             .secure(true)
             .width(Length::Fill)
             .on_input(Message::SettingsApiKeyChanged);
-        let api_secret_key_input = text_input("API Secret Key", &self.config.api_secret_key)
+        let api_secret_key_input = text_input("API Secret Key", &self.new_config.api_secret_key)
             .secure(true)
             .width(Length::Fill)
             .on_input(Message::SettingsApiSecretChanged);
@@ -696,10 +701,7 @@ impl Application for App {
                     api_secret_key_input,
                 ]
                 .spacing(10),
-                button(tb("Save")).on_press(Message::SaveConfig(
-                    self.config.api_key.clone(),
-                    self.config.api_secret_key.clone()
-                )),
+                button(tb("Save")).on_press(Message::SaveConfig),
             ]
             .spacing(10)
             .padding(20)

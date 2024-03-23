@@ -1,24 +1,23 @@
-use std::fs;
+use std::{fs, io};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
-    pub api_key: String,
-    pub api_secret_key: String,
+    pub(crate) api_key: String,
+    pub(crate) api_secret_key: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum LoadError {
-    File,
-    Format,
+    IO(io::Error),
+    Format(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum SaveError {
-    File,
-    Write,
-    Format,
+    File(io::Error),
+    Write(io::Error),
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -35,18 +34,27 @@ impl Config {
         path
     }
 
-    pub fn load() -> Result<Config, LoadError> {
-        let contents = fs::read_to_string(Self::path()).map_err(|_| LoadError::File)?;
-        serde_json::from_str(&contents).map_err(|_| LoadError::Format)
+    pub(crate) fn load() -> Result<Option<Config>, LoadError> {
+        let contents = match fs::read_to_string(Self::path()) {
+            Ok(contents) => Ok(contents),
+            Err(err) => {
+                if matches!(err.kind(), io::ErrorKind::NotFound) {
+                    return Ok(None);
+                }
+                Err(LoadError::IO(err))
+            }
+        }?;
+
+        serde_json::from_str(&contents).map_err(|err| LoadError::Format(err.to_string()))
     }
 
-    pub fn save(&self) -> Result<(), SaveError> {
-        let json = serde_json::to_string_pretty(&self).map_err(|_| SaveError::Format)?;
+    pub(crate) fn save(&self) -> Result<(), SaveError> {
+        let json = serde_json::to_string_pretty(&self).expect("config serializer is valid");
         let path = Self::path();
         if let Some(dir) = path.parent() {
-            fs::create_dir_all(dir).map_err(|_| SaveError::File)?;
+            fs::create_dir_all(dir).map_err(SaveError::File)?;
         }
-        fs::write(path, json.as_bytes()).map_err(|_| SaveError::Write)
+        fs::write(path, json.as_bytes()).map_err(SaveError::Write)
     }
 }
 
@@ -58,25 +66,23 @@ impl Config {
         window.local_storage().ok()?
     }
 
-    fn load() -> Result<Config, LoadError> {
+    pub(crate) fn load() -> Result<Option<Config>, LoadError> {
         let storage = Self::storage().ok_or(LoadError::File)?;
 
         let contents = storage
             .get_item("state")
-            .map_err(|_| LoadError::File)?
+            .map_err(LoadError::File)?
             .ok_or(LoadError::File)?;
 
-        serde_json::from_str(&contents).map_err(|_| LoadError::Format)
+        Some(serde_json::from_str(&contents).map_err(|_| LoadError::Format))
     }
 
-    fn save(self) -> Result<(), SaveError> {
+    pub(crate) fn save(self) -> Result<(), SaveError> {
         let storage = Self::storage().ok_or(SaveError::File)?;
 
-        let json = serde_json::to_string_pretty(&self).map_err(|_| SaveError::Format)?;
+        let json = serde_json::to_string_pretty(&self).expect("config serializer is valid");
 
-        storage
-            .set_item("state", &json)
-            .map_err(|_| SaveError::Write)?;
+        storage.set_item("state", &json).map_err(SaveError::Write)?;
 
         Ok(())
     }

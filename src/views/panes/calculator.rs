@@ -7,7 +7,24 @@ use iced::{
     },
     Element, Font, Length,
 };
-use meval::{Context, Expr};
+use meval::Context;
+
+#[cfg(not(feature = "k"))]
+fn e(line: &str, ctx: &Context) -> String {
+    use meval::Expr;
+    format!(
+        "{}",
+        line.parse::<Expr>()
+            .unwrap()
+            .eval_with_context(ctx)
+            .unwrap_or_default()
+    )
+}
+#[cfg(feature = "k")]
+fn e(line: &str, _ctx: &Context) -> String {
+    use ngnk::K0;
+    K0(line.to_string(), vec![]).to_string()
+}
 
 pub fn calculator_view<'a>(
     content: &'a Content,
@@ -19,14 +36,7 @@ pub fn calculator_view<'a>(
             column![
                 text_editor::TextEditor::new(content)
                     .height(Length::Fill)
-                    .on_action(Message::CalcAction), // .style(|_theme, _status| text_editor::Appearance {
-                //     border: iced::Border {
-                //         width: 0.0,
-                //         radius: 0.0.into(),
-                //         color: Default::default()
-                //     },
-                //     background: iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07)),
-                // })
+                    .on_action(Message::CalcAction),
                 container(
                     button(text("\u{F4F5}").font(Font::with_name("bootstrap-icons")))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
@@ -42,14 +52,7 @@ pub fn calculator_view<'a>(
                 content
                     .text()
                     .lines()
-                    .map(|line| {
-                        text(
-                            line.parse::<Expr>()
-                                .unwrap()
-                                .eval_with_context(ctx)
-                                .unwrap_or_default(),
-                        )
-                    })
+                    .map(|line| { text(e(line, ctx)) })
                     .map(Element::from)
             ),
             Space::new(Length::Fill, Length::Fill),

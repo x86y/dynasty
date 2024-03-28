@@ -3,6 +3,10 @@ name = "dynasty"
 version = "0.1.0"
 edition = "2021"
 description = "Desktop terminal for cryptocurrency exchanges"
+[package.metadata.bundle]
+name = "Dynasty"
+identifier = "io.github.me.dynasty"
+icon = ["assets/dynasty.icns"]
 
 [dependencies]
 binance-rs-async = { version = "1.3.2", default_features = false, features = ["rustls-tls", "wallet_api"] }
@@ -13,23 +17,14 @@ iced_futures = "0.12.0"
 meval = "0.2.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
+async-tungstenite = { version = "0.25", features = ["tokio-rustls-webpki-roots"]}
+tokio = { version = "1.32.0", default-features = false, features=["sync"]}
+ngnk = { version = "*", optional = true }
 
-[dependencies.async-tungstenite]
-version = "0.23"
-features = ["tokio-rustls-webpki-roots"]
-
-[dependencies.tokio]
-version = "1.32.0"
-default-features = false
-features = ["sync"]
+[features]
+k = ["dep:ngnk"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 directories-next = "2.0"
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3", features = ["Window", "Storage"] }
-
-[package.metadata.bundle]
-name = "Dynasty"
-identifier = "io.github.me.dynasty"
-icon = ["assets/dynasty.icns"]

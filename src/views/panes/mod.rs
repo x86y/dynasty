@@ -107,9 +107,8 @@ pub fn view_controls<'a>(
                     Message::Maximize(pane),
                 )
             };
-            button(content.size(14))
+            button(content.size(22))
                 .style(theme::Button::Secondary)
-                .padding(3)
                 .on_press(message)
         };
 
@@ -118,9 +117,8 @@ pub fn view_controls<'a>(
 
     let mut close = button(
         text('\u{F62A}')
-            .font(Font::with_name("bootstrap-icons"))
-            .line_height(LineHeight::Relative(1.1))
-            .size(14),
+            .size(22)
+            .font(Font::with_name("bootstrap-icons")),
     )
     .style(theme::Button::Destructive)
     .padding(3);

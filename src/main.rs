@@ -16,11 +16,14 @@ use iced::widget::text_input;
 use iced::widget::Row;
 use iced::widget::Space;
 use iced::Font;
+use meval::Context;
 use pane_grid::Configuration;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
+use std::time;
+use std::time::Duration;
 use views::panes::calculator::calculator_view;
 use views::panes::orders::tb;
 use views::panes::style;
@@ -52,9 +55,20 @@ fn main() -> iced::Result {
     App::run(Settings {
         window: iced::window::Settings {
             size: iced::Size {
-                width: 800.0,
-                height: 800.0,
+                width: 1920.0,
+                height: 1080.0,
             },
+            min_size: Some(iced::Size {
+                width: 1280.0,
+                height: 720.0,
+            }),
+            icon: Some(
+                iced::window::icon::from_file_data(
+                    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/dynasty.png")),
+                    Some(iced::advanced::graphics::image::image_rs::ImageFormat::Png),
+                )
+                .unwrap(),
+            ),
             ..Default::default()
         },
         default_font: Font::with_name("SF Mono"),
@@ -68,20 +82,24 @@ struct App {
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
     watchlist_favorites: Vec<String>,
+    filter: WatchlistFilter,
+    filter_string: String,
     new_price: String,
     new_amt: String,
     new_pair: String,
     pair_submitted: bool,
-    filter: WatchlistFilter,
-    filter_string: String,
     data: AppData,
-    calculator_content: iced::widget::text_editor::Content,
-    calculator_editing: bool,
+    calculator: Calculator,
     current_view: ViewState,
-    // current config
     config: Config,
-    // settings config version
     new_config: Config,
+    errors: Vec<String>,
+}
+
+struct Calculator {
+    content: iced::widget::text_editor::Content,
+    editing: bool,
+    ctx: Context<'static>,
 }
 
 #[derive(PartialEq)]
@@ -102,6 +120,7 @@ struct AppData {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    DispatchErr(String),
     CalcToggle,
     CalcAction(text_editor::Action),
     // fetch personal data with api key
@@ -136,6 +155,7 @@ pub enum Message {
     SellPressed,
     PriceInc(f64),
     QtySet(f64),
+    CustomPoller(time::Instant),
     PriceEcho(prices::Event),
     TradeEcho(trades::Event),
     BookEcho(book::BookEvent),
@@ -224,8 +244,12 @@ impl Application for App {
                 current_view: ViewState::Dashboard,
                 config: config.clone(),
                 new_config: config,
-                calculator_content: iced::widget::text_editor::Content::new(),
-                calculator_editing: true,
+                calculator: Calculator {
+                    content: iced::widget::text_editor::Content::new(),
+                    editing: true,
+                    ctx: Context::empty(),
+                },
+                errors: vec![],
             },
             Command::batch(vec![
                 Command::perform(async {}, Message::FetchData),
@@ -244,12 +268,31 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::CustomPoller(_) => {
+                for (key, value) in self.data.prices.iter() {
+                    if let Some(name) = key.split("USDT").next() {
+                        self.calculator.ctx.var(name, *value as f64);
+                    }
+                }
+                for (i, trade) in self.data.orders.iter().enumerate() {
+                    let price_now = *self.data.prices.get(&trade.symbol).unwrap_or(&0.0) as f64;
+                    let price = trade.price;
+                    let qty = trade.executed_qty;
+                    let pnl_value = if trade.side == binance::rest_model::OrderSide::Buy {
+                        qty * (price_now - price)
+                    } else {
+                        qty * (price - price_now)
+                    };
+                    self.calculator.ctx.var(format!("t{i}"), pnl_value);
+                }
+                Command::none()
+            }
             Message::CalcToggle => {
-                self.calculator_editing = !self.calculator_editing;
+                self.calculator.editing = !self.calculator.editing;
                 Command::none()
             }
             Message::CalcAction(action) => {
-                self.calculator_content.perform(action);
+                self.calculator.content.perform(action);
                 Command::none()
             }
             Message::FetchData(_) => Command::batch(vec![
@@ -569,11 +612,16 @@ impl Application for App {
                 self.filter_string = wfi;
                 Command::none()
             }
+            Message::DispatchErr(s) => {
+                self.errors.push(s);
+                Command::none()
+            }
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
+            iced::time::every(Duration::from_millis(1000)).map(Message::CustomPoller),
             prices::connect().map(Message::PriceEcho),
             user::connect(self.config.api_key.clone()).map(Message::UserEcho),
             if self.pair_submitted {
@@ -633,9 +681,9 @@ impl Application for App {
                 PaneType::Balances => balances_view(&self.data.balances),
                 PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
                 PaneType::Calculator => calculator_view(
-                    &self.calculator_content,
-                    self.calculator_editing,
-                    &self.data.prices,
+                    &self.calculator.content,
+                    self.calculator.editing,
+                    &self.calculator.ctx,
                 ),
             }))
             .title_bar(title_bar)
@@ -694,6 +742,27 @@ impl Application for App {
             ..Default::default()
         });
 
+        let err_header = container(
+            row![
+                Row::with_children(self.errors.last().map(text).map(Element::from)).spacing(12),
+                Space::new(Length::Fill, 1),
+                button(text("X").size(14))
+                    .padding(8)
+                    .style(iced::theme::Button::Text)
+                    .on_press(Message::SetSettingsView)
+            ]
+            .align_items(iced::Alignment::Center),
+        )
+        .padding([0, 16])
+        .style(container::Appearance {
+            background: Some(iced::Background::Color(Color::from_rgb(0.99, 0.03, 0.03))),
+            border: iced::Border {
+                radius: 16.0.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
         let api_key_input = text_input("API Key", &self.new_config.api_key)
             .secure(true)
             .width(Length::Fill)
@@ -740,7 +809,11 @@ impl Application for App {
         } else {
             column![container(
                 column![
-                    header,
+                    if self.errors.is_empty() {
+                        header
+                    } else {
+                        err_header
+                    },
                     if self.current_view == ViewState::Dashboard
                         && !self.config.api_key.is_empty()
                         && !self.config.api_secret_key.is_empty()

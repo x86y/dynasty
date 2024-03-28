@@ -59,9 +59,7 @@ pub fn connect() -> Subscription<Event> {
                         };
                     },
                     Err(e) => {
-                        // WebSocket connection error, wait before retrying
                         eprintln!("WebSocket connection error: {:?}", e);
-                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     }
                 }
             }

@@ -25,6 +25,11 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                     } else {
                         Color::from_rgb(0.0, 1.0, 0.0)
                     };
+
+                    let timestamp = b.trade_order_time as i64;
+                    let dt = chrono::DateTime::from_timestamp(timestamp / 1000, 0).unwrap();
+                    let time_str = dt.format("%H:%M:%S").to_string();
+
                     container(row![
                         t(format!("{:.2}", b.price.parse::<f32>().unwrap()))
                             .style(c)
@@ -32,14 +37,14 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                         t(format!("{:.2} ", b.qty.parse::<f32>().unwrap()))
                             .width(Length::Fill)
                             .style(h2c("B7BDB7").unwrap()),
-                        t(b.trade_order_time)
+                        t(time_str)
                             .style(h2c("B7BDB7").unwrap())
                             .width(Length::Fill),
                     ])
                     .width(Length::Fill)
                 })
                 .map(Element::from),
-        )) //    .style(ScrollbarStyle::theme())
+        )) // .style(ScrollbarStyle::theme())
     ]
     .padding([2, 4])
     .into()

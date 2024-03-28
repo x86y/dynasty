@@ -42,13 +42,17 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
                                     recv2 = r.recv().fuse() => {
                                         if let Some(i) = recv2 {
                                             output.send(WsUpdate::UpdateReceived(i)).await.unwrap();
+                                        } else {
+                                            eprintln!("User Stream error");
+                                            break;
                                         }
-                                    }
+                                    },
                                 };
                             },
                             Err(e) => {
                                 eprintln!("WebSocket connection error: {:?}", e);
                                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                                break;
                             }
                         }
                     }

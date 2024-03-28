@@ -40,13 +40,14 @@ pub fn connect(token: String) -> Subscription<Event> {
                             recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
                                     output.send(Event::MessageReceived(i)).await.unwrap();
+                                } else {
+                                    break
                                 }
                             }
                         };
                     },
                     Err(e) => {
                         eprintln!("WebSocket connection error: {:?}", e);
-                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     }
                 }
             }

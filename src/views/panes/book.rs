@@ -1,13 +1,13 @@
+use super::orders::{t, tb};
+
+use crate::{theme::h2c, views::panes::Message};
+
 use std::collections::BTreeMap;
 
 use iced::{
     widget::{column, row, scrollable, Column, Container},
     Element, Length,
 };
-
-use crate::{theme::h2c, Message};
-
-use super::orders::{t, tb};
 
 pub fn book_view(
     book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),

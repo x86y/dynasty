@@ -25,6 +25,7 @@ use std::env;
 use std::time;
 use std::time::Duration;
 use views::panes::calculator::calculator_view;
+use views::panes::calculator::e;
 use views::panes::orders::tb;
 use views::panes::style;
 use views::panes::view_controls;
@@ -50,6 +51,9 @@ use views::panes::watchlist::watchlist_view;
 use views::panes::watchlist::WatchlistFilter;
 
 use iced::widget::pane_grid::{self, PaneGrid};
+
+#[cfg(feature = "k")]
+use ngnk::K0;
 
 fn main() -> iced::Result {
     App::run(Settings {
@@ -99,6 +103,7 @@ struct App {
 struct Calculator {
     content: iced::widget::text_editor::Content,
     editing: bool,
+    eval_results: Vec<String>,
     ctx: Context<'static>,
 }
 
@@ -248,11 +253,20 @@ impl Application for App {
                     content: iced::widget::text_editor::Content::new(),
                     editing: true,
                     ctx: Context::empty(),
+                    eval_results: vec![],
                 },
                 errors: vec![],
             },
             Command::batch(vec![
-                Command::perform(async {}, Message::FetchData),
+                Command::perform(
+                    async {
+                        #[cfg(feature = "k")]
+                        use ngnk::kinit;
+                        #[cfg(feature = "k")]
+                        kinit();
+                    },
+                    Message::FetchData,
+                ),
                 font::load(
                     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/fonts/icons.ttf"))
                         .as_slice(),
@@ -269,11 +283,38 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::CustomPoller(_) => {
-                for (key, value) in self.data.prices.iter() {
+                let mut r: String = String::new();
+                for (n, (key, _i)) in self.data.prices.iter().enumerate() {
                     if let Some(name) = key.split("USDT").next() {
-                        self.calculator.ctx.var(name, *value as f64);
+                        if !name.is_empty() && n <= 250 {
+                            r.push_str(&format!("`\"{name}\""));
+                        }
                     }
                 }
+                r.push('!');
+                for (n, (key, value)) in self.data.prices.iter().enumerate() {
+                    if let Some(name) = key.split("USDT").next() {
+                        self.calculator.ctx.var(name, *value as f64);
+                        let f: String = name
+                            .chars()
+                            .filter(|c| c.is_alphabetic())
+                            .collect::<String>()
+                            .split_whitespace()
+                            .map(|s| s.to_string())
+                            .collect();
+                        if !f.is_empty() && n <= 250 {
+                            r.push_str(&format!("{value} "));
+                        }
+                    }
+                }
+                #[cfg(feature = "k")]
+                K0(format!("b:{r}"), vec![]);
+
+                let mut out = String::new();
+                for (i, _) in self.data.orders.iter().enumerate() {
+                    out.push_str(&format!("`t{i}",));
+                }
+                out.push('!');
                 for (i, trade) in self.data.orders.iter().enumerate() {
                     let price_now = *self.data.prices.get(&trade.symbol).unwrap_or(&0.0) as f64;
                     let price = trade.price;
@@ -284,10 +325,29 @@ impl Application for App {
                         qty * (price - price_now)
                     };
                     self.calculator.ctx.var(format!("t{i}"), pnl_value);
+                    out.push_str(&format!("{pnl_value} ",));
+                }
+                #[cfg(feature = "k")]
+                K0(format!("d:{out}"), vec![]);
+                if !self.calculator.editing {
+                    self.calculator.eval_results = self
+                        .calculator
+                        .content
+                        .text()
+                        .lines()
+                        .map(|l| e(l, &self.calculator.ctx))
+                        .collect();
                 }
                 Command::none()
             }
             Message::CalcToggle => {
+                self.calculator.eval_results = self
+                    .calculator
+                    .content
+                    .text()
+                    .lines()
+                    .map(|l| e(l, &self.calculator.ctx))
+                    .collect();
                 self.calculator.editing = !self.calculator.editing;
                 Command::none()
             }
@@ -682,8 +742,8 @@ impl Application for App {
                 PaneType::Orders => orders_view(&self.data.orders, &self.data.prices),
                 PaneType::Calculator => calculator_view(
                     &self.calculator.content,
+                    &self.calculator.eval_results,
                     self.calculator.editing,
-                    &self.calculator.ctx,
                 ),
             }))
             .title_bar(title_bar)

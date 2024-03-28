@@ -1,12 +1,12 @@
+use crate::theme::h2c;
+use crate::views::components::unstyled_btn::UnstyledBtn;
+use crate::views::panes::Message;
+
 use binance::rest_model::Balance;
 use iced::{
     widget::{button, container, row, scrollable, svg, text, Column, Space},
     Element, Length,
 };
-
-use crate::{theme::h2c, Message};
-
-use crate::views::components::unstyled_btn::UnstyledBtn;
 
 pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
     scrollable(

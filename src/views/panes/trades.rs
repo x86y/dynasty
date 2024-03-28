@@ -1,3 +1,8 @@
+use super::orders::{t, tb};
+
+use crate::theme::h2c;
+use crate::views::panes::Message;
+
 use std::collections::VecDeque;
 
 use binance::ws_model::TradesEvent;
@@ -5,10 +10,6 @@ use iced::{
     widget::{column, container, row, scrollable, Column},
     Color, Element, Length,
 };
-
-use crate::{theme::h2c, Message};
-
-use super::orders::{t, tb};
 
 pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
     column![

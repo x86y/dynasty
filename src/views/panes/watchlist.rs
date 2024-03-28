@@ -1,5 +1,5 @@
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
-use crate::{theme::h2c, Message};
+use crate::{message::Message, theme::h2c};
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,

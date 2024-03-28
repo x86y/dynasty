@@ -1,10 +1,13 @@
-pub mod balances;
-pub mod book;
-pub mod calculator;
-pub mod market;
-pub mod orders;
-pub mod trades;
-pub mod watchlist;
+pub(crate) mod balances;
+pub(crate) mod book;
+pub(crate) mod calculator;
+pub(crate) mod market;
+pub(crate) mod orders;
+pub(crate) mod settings;
+pub(crate) mod trades;
+pub(crate) mod watchlist;
+
+use crate::message::Message;
 
 use iced::{
     theme,
@@ -12,8 +15,6 @@ use iced::{
     Color, Element, Font,
 };
 use iced_futures::core::text::LineHeight;
-
-use crate::Message;
 
 /* pub fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     use keyboard::KeyCode;

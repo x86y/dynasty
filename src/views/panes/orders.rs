@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use binance::rest_model::{Order, OrderType};
+use crate::{message::Message, theme::h2c};
 
-use crate::{theme::h2c, Message};
+use binance::rest_model::{Order, OrderType};
 use iced::{
     widget::{column, container, row, scrollable, text, Column, Space},
     Element, Font, Length,

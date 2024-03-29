@@ -34,7 +34,7 @@ impl SettingsPane {
                 let new_config = self.new_config.clone();
 
                 Command::batch([
-                    Command::perform(async {}, |_| Message::UI(UI::GoToDashboard)),
+                    Command::perform(async {}, |_| UI::GoToDashboard.into()),
                     Command::perform(
                         async {
                             new_config.save().map_err(|_| ())?;
@@ -74,7 +74,7 @@ impl SettingsPane {
                     api_secret_key_input,
                 ]
                 .spacing(10),
-                button(tb("Save")).on_press(Message::Settings(SettingsMessage::SaveConfig)),
+                button(tb("Save")).on_press(SettingsMessage::SaveConfig.into()),
             ]
             .spacing(10)
             .padding(20)

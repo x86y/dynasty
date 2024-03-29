@@ -66,7 +66,7 @@ impl CalculatorPane {
                     r.push_str(&format!("`\"{name}\""));
                 }
                 r.push('!');
-                for (key, value) in data.prices.iter().take(250) {
+                for (i, (key, value)) in data.prices.iter().enumerate() {
                     let name = key.strip_suffix("USDT").unwrap_or(key);
                     if name.is_empty() {
                         continue;
@@ -75,7 +75,7 @@ impl CalculatorPane {
                     self.ctx.var(name, *value as f64);
                     let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
 
-                    if !f.is_empty() {
+                    if !f.is_empty() && i <= 250 {
                         r.push_str(&format!("{value} "));
                     }
                 }
@@ -83,7 +83,7 @@ impl CalculatorPane {
                 K0(format!("b:{r}"), Vec::new());
 
                 let mut out = String::new();
-                for (i, _) in data.orders.iter().enumerate() {
+                for i in 0..data.orders.len() {
                     out.push_str(&format!("`t{i}",));
                 }
                 out.push('!');

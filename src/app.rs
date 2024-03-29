@@ -153,15 +153,7 @@ impl Application for App {
                 chart: ChartPane::new(),
             },
             Command::batch([
-                Command::perform(
-                    async {
-                        #[cfg(feature = "k")]
-                        use ngnk::kinit;
-                        #[cfg(feature = "k")]
-                        kinit();
-                    },
-                    |_| Message::FetchData,
-                ),
+                Command::perform(async {}, |_| Message::FetchData),
                 font::load(
                     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/fonts/icons.ttf"))
                         .as_slice(),

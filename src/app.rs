@@ -336,14 +336,13 @@ impl Application for App {
             Message::PriceEcho(msg) => {
                 match msg {
                     prices::Event::MessageReceived(m) => {
+                        if m.name == self.new_pair {
+                            self.chart.update_data(m.price.into());
+                        }
                         self.data.prices.insert(m.name.clone(), m.price);
                     }
                 };
-                if m.name == self.new_pair.into() {
-                    Command::perform(async {}, self.chart.update(m.price))
-                } else {
-                    Command::none()
-                }
+                Command::none()
             }
             Message::BookEcho(msg) => {
                 match msg {

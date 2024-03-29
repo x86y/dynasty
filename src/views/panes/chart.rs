@@ -58,8 +58,11 @@ impl Chart<Message> for ChartPane {
         chart
             .draw_series(
                 AreaSeries::new(
-                    self.data.iter().enumerate().map(|(x, y)| ((*y as f32), x)),
-                    0,
+                    self.data
+                        .iter()
+                        .enumerate()
+                        .map(|(x, y)| ((x as f32), (*y as f32))),
+                    0.0,
                     LINE_COLOR,
                 )
                 .border_style(ShapeStyle::from(LINE_COLOR).stroke_width(1)),
@@ -74,8 +77,10 @@ impl ChartPane {
     }
 
     pub(crate) fn update(&mut self, message: f64) -> Command<Message> {
-        self.data.push(m.price);
         Command::none()
+    }
+    pub(crate) fn update_data(&mut self, new_p: f64) {
+        self.data.push(new_p);
     }
 
     pub(crate) fn view(&self) -> Container<'_, Message> {

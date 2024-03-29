@@ -67,15 +67,10 @@ impl CalculatorPane {
                 }
                 r.push('!');
                 for (key, value) in data.prices.iter().take(250) {
-                    let name = match key.strip_suffix("USDT") {
-                        Some(name) => {
-                            if name.is_empty() {
-                                continue;
-                            }
-                            name
-                        }
-                        None => key,
-                    };
+                    let name = key.strip_suffix("USDT").unwrap_or(key);
+                    if name.is_empty() {
+                        continue;
+                    }
 
                     self.ctx.var(name, *value as f64);
                     let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();

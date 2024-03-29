@@ -1,5 +1,3 @@
-use std::time;
-
 use crate::{
     config::Config,
     views::panes::{
@@ -28,6 +26,8 @@ pub(crate) enum UI {
 #[derive(Debug, Clone)]
 pub(crate) enum Message {
     UI(UI),
+    // manually triggered at interval
+    Tick,
     DispatchErr(String),
     // fetch personal data with api key
     FetchData,
@@ -55,7 +55,6 @@ pub(crate) enum Message {
     SellPressed,
     PriceInc(f64),
     QtySet(f64),
-    CustomPoller(time::Instant),
     PriceEcho(prices::Event),
     TradeEcho(trades::Event),
     BookEcho(book::BookEvent),
@@ -68,4 +67,22 @@ pub(crate) enum Message {
     FontsLoaded(Result<(), iced::font::Error>),
     Calculator(CalculatorMessage),
     Settings(SettingsMessage),
+}
+
+impl From<UI> for Message {
+    fn from(value: UI) -> Self {
+        Self::UI(value)
+    }
+}
+
+impl From<CalculatorMessage> for Message {
+    fn from(value: CalculatorMessage) -> Self {
+        Self::Calculator(value)
+    }
+}
+
+impl From<SettingsMessage> for Message {
+    fn from(value: SettingsMessage) -> Self {
+        Self::Settings(value)
+    }
 }

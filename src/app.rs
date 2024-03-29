@@ -4,6 +4,7 @@ use crate::message::Message;
 use crate::message::Screen;
 use crate::views::panes::balances::balances_view;
 use crate::views::panes::book::book_view;
+use crate::views::panes::calculator::CalculatorMessage;
 use crate::views::panes::calculator::CalculatorPane;
 use crate::views::panes::market::market_view;
 use crate::views::panes::orders::orders_view;
@@ -43,9 +44,6 @@ use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 use pane_grid::Configuration;
 
-#[cfg(feature = "k")]
-use ngnk::K0;
-
 pub(crate) struct App {
     panes: pane_grid::State<Pane>,
     panes_created: usize,
@@ -57,21 +55,21 @@ pub(crate) struct App {
     new_amt: String,
     new_pair: String,
     pair_submitted: bool,
-    data: AppData,
-    calculator: CalculatorPane,
+    pub(crate) data: AppData,
     current_screen: Screen,
     config: Config,
     errors: Vec<String>,
+    calculator: CalculatorPane,
     settings: SettingsPane,
 }
 
-#[derive(Default)]
-struct AppData {
-    prices: HashMap<String, f32>,
+#[derive(Default, Debug, Clone)]
+pub(crate) struct AppData {
+    pub(crate) prices: HashMap<String, f32>,
     book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     trades: VecDeque<TradesEvent>,
     balances: Vec<Balance>,
-    orders: Vec<Order>,
+    pub(crate) orders: Vec<Order>,
     quote: String,
 }
 
@@ -175,58 +173,7 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::CustomPoller(_) => {
-                let mut r: String = String::new();
-                for (n, (key, _i)) in self.data.prices.iter().enumerate() {
-                    if let Some(name) = key.split("USDT").next() {
-                        if !name.is_empty() && n <= 250 {
-                            r.push_str(&format!("`\"{name}\""));
-                        }
-                    }
-                }
-                r.push('!');
-                for (n, (key, value)) in self.data.prices.iter().enumerate() {
-                    if let Some(name) = key.split("USDT").next() {
-                        self.calculator.ctx.var(name, *value as f64);
-                        let f: String = name
-                            .chars()
-                            .filter(|c| c.is_alphabetic())
-                            .collect::<String>()
-                            .split_whitespace()
-                            .map(|s| s.to_string())
-                            .collect();
-                        if !f.is_empty() && n <= 250 {
-                            r.push_str(&format!("{value} "));
-                        }
-                    }
-                }
-                #[cfg(feature = "k")]
-                K0(format!("b:{r}"), vec![]);
-
-                let mut out = String::new();
-                for (i, _) in self.data.orders.iter().enumerate() {
-                    out.push_str(&format!("`t{i}",));
-                }
-                out.push('!');
-                for (i, trade) in self.data.orders.iter().enumerate() {
-                    let price_now = *self.data.prices.get(&trade.symbol).unwrap_or(&0.0) as f64;
-                    let price = trade.price;
-                    let qty = trade.executed_qty;
-                    let pnl_value = if trade.side == binance::rest_model::OrderSide::Buy {
-                        qty * (price_now - price)
-                    } else {
-                        qty * (price - price_now)
-                    };
-                    self.calculator.ctx.var(format!("t{i}"), pnl_value);
-                    out.push_str(&format!("{pnl_value} ",));
-                }
-                #[cfg(feature = "k")]
-                K0(format!("d:{out}"), vec![]);
-                if !self.calculator.is_editing {
-                    self.calculator.run();
-                }
-                Command::none()
-            }
+            Message::Tick => Command::perform(async {}, |_| CalculatorMessage::Tick.into()),
             Message::FetchData => Command::batch([
                 Command::perform(
                     api::orders_history(
@@ -528,14 +475,14 @@ impl Application for App {
                 };
                 Command::none()
             }
-            Message::Calculator(msg) => self.calculator.update(msg),
+            Message::Calculator(msg) => self.calculator.update(&self.data, msg),
             Message::Settings(msg) => self.settings.update(msg),
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
-            iced::time::every(Duration::from_millis(1000)).map(Message::CustomPoller),
+            iced::time::every(Duration::from_millis(1000)).map(|_| Message::Tick),
             prices::connect().map(Message::PriceEcho),
             user::connect(self.config.api_key.clone()).map(Message::UserEcho),
             if self.pair_submitted {

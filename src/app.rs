@@ -72,6 +72,7 @@ pub(crate) struct AppData {
     trades: VecDeque<TradesEvent>,
     balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
+    pub(crate) chart_data: Vec<f64>,
     quote: String,
 }
 
@@ -338,7 +339,11 @@ impl Application for App {
                         self.data.prices.insert(m.name.clone(), m.price);
                     }
                 };
-                Command::none()
+                if m.name == self.new_pair.into() {
+                    Command::perform(async {}, self.chart.update(m.price))
+                } else {
+                    Command::none()
+                }
             }
             Message::BookEcho(msg) => {
                 match msg {

@@ -1,6 +1,5 @@
 use crate::{config::Config, message::Message};
 use plotters::style::colors;
-use plotters::style::Color;
 use plotters::style::IntoFont;
 use plotters::{
     coord::{types::RangedCoordf32, ReverseCoordTranslate},
@@ -16,7 +15,9 @@ use iced::{
 #[derive(Debug, Clone)]
 pub(crate) enum ChartMessage {}
 
-pub struct ChartPane {}
+pub struct ChartPane {
+    data: Vec<f64>,
+}
 
 impl Chart<Message> for ChartPane {
     type State = ();
@@ -57,20 +58,8 @@ impl Chart<Message> for ChartPane {
         chart
             .draw_series(
                 AreaSeries::new(
-                    vec![
-                        (1.0, 1.0),
-                        (2.0, 2.0),
-                        (3.0, 3.0),
-                        (4.0, 4.0),
-                        (5.0, 5.0),
-                        (6.0, 6.0),
-                        (7.0, 7.0),
-                        (8.0, 8.0),
-                        (9.0, 9.0),
-                    ]
-                    .iter()
-                    .map(|x| (x.0, x.1)),
-                    0.0,
+                    self.data.iter().enumerate().map(|(x, y)| ((*y as f32), x)),
+                    0,
                     LINE_COLOR,
                 )
                 .border_style(ShapeStyle::from(LINE_COLOR).stroke_width(1)),
@@ -81,10 +70,11 @@ impl Chart<Message> for ChartPane {
 
 impl ChartPane {
     pub(crate) fn new() -> Self {
-        Self {}
+        Self { data: vec![] }
     }
 
-    pub(crate) fn update(&mut self, message: ChartMessage) -> Command<Message> {
+    pub(crate) fn update(&mut self, message: f64) -> Command<Message> {
+        self.data.push(m.price);
         Command::none()
     }
 

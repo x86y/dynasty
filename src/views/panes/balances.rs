@@ -13,7 +13,8 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
         Column::with_children(
             bs.iter()
                 .map(|b| {
-                    let ticker = &b.asset.split("USDT").next().unwrap();
+                    let asset = &b.asset;
+                    let ticker = asset.strip_suffix("USDT").unwrap_or(asset).to_lowercase();
                     let handle = svg::Handle::from_path(format!(
                         "{}/assets/logos/{}.svg",
                         env!("CARGO_MANIFEST_DIR"),

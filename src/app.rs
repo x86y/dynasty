@@ -572,7 +572,7 @@ impl Application for App {
                         .iter()
                         .map(|t| {
                             let price_now = self.data.prices.get(t).unwrap_or(&0.0);
-                            let ticker = t.split("USDT").next().unwrap();
+                            let ticker = t.strip_suffix("USDT").unwrap_or(t).to_lowercase();
                             let handle = svg::Handle::from_path(format!(
                                 "{}/assets/logos/{}.svg",
                                 env!("CARGO_MANIFEST_DIR"),

@@ -14,17 +14,20 @@ chrono = "0.4.31"
 futures = "0.3.28"
 iced = { version = "0.12.0", features = ["tokio", "debug", "lazy", "svg", "image", "advanced", "canvas"] }
 iced_futures = "0.12.0"
-meval = "0.2.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 async-tungstenite = { version = "0.25", features = ["tokio-rustls-webpki-roots"]}
 tokio = { version = "1.32.0", default-features = false, features=["sync"]}
 ngnk = { version = "*", optional = true }
+meval = { version = "0.2.0", optional = true }
 plotters = "0.3.5"
 plotters-iced = "0.10.0"
 
 [features]
-k = ["dep:ngnk"]
+default = ["calculator_meval"]
+
+calculator_k = ["dep:ngnk"]
+calculator_meval = ["dep:meval"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 directories-next = "2.0"

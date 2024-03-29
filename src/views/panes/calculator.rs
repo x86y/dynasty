@@ -1,5 +1,11 @@
+#[cfg(not(any(feature = "calculator_meval", feature = "calculator_k")))]
+compile_error!("no calculator backend selected");
+
+use std::collections::HashMap;
+
 use crate::{app::AppData, message::Message, theme::h2c, views::components::better_btn::GreenBtn};
 
+use binance::rest_model::Order;
 use iced::{
     widget::{
         button, column, container, text,
@@ -8,17 +14,18 @@ use iced::{
     },
     Command, Element, Font, Length,
 };
-use meval::Context;
 
-#[cfg(feature = "k")]
-use ngnk::{iK, K0};
+#[cfg(feature = "calculator_k")]
+use calc_k::Calculator;
+
+#[cfg(all(feature = "calculator_meval", not(feature = "calculator_k")))]
+use calc_meval::Calculator;
 
 pub(crate) struct CalculatorPane {
     calculator: Calculator,
     content: iced::widget::text_editor::Content,
     is_editing: bool,
     eval_results: Vec<String>,
-    ctx: Context<'static>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,10 +38,9 @@ pub(crate) enum CalculatorMessage {
 impl CalculatorPane {
     pub(crate) fn new() -> Self {
         Self {
-            calculator: Calculator {},
+            calculator: Calculator::new(),
             content: Content::new(),
             is_editing: true,
-            ctx: Context::empty(),
             eval_results: Vec::new(),
         }
     }
@@ -44,7 +50,7 @@ impl CalculatorPane {
             .content
             .text()
             .lines()
-            .map(|l| self.calculator.eval(l, &self.ctx))
+            .map(|l| self.calculator.eval(l))
             .collect();
     }
 
@@ -55,55 +61,12 @@ impl CalculatorPane {
     ) -> Command<Message> {
         match message {
             CalculatorMessage::Tick => {
-                let mut r: String = String::new();
+                self.calculator.update_context(&data.prices, &data.orders);
 
-                for key in data.prices.keys().take(250) {
-                    let name = key.strip_suffix("USDT").unwrap_or(key);
-                    if name.is_empty() {
-                        continue;
-                    }
-
-                    r.push_str(&format!("`\"{name}\""));
-                }
-                r.push('!');
-                for (i, (key, value)) in data.prices.iter().enumerate() {
-                    let name = key.strip_suffix("USDT").unwrap_or(key);
-                    if name.is_empty() {
-                        continue;
-                    }
-
-                    self.ctx.var(name, *value as f64);
-                    let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
-
-                    if !f.is_empty() && i <= 250 {
-                        r.push_str(&format!("{value} "));
-                    }
-                }
-                // #[cfg(feature = "k")]
-                // K0(format!("b:{r}"), Vec::new());
-
-                let mut out = String::new();
-                for i in 0..data.orders.len() {
-                    out.push_str(&format!("`t{i}",));
-                }
-                out.push('!');
-                for (i, trade) in data.orders.iter().enumerate() {
-                    let price_now = *data.prices.get(&trade.symbol).unwrap_or(&0.0) as f64;
-                    let price = trade.price;
-                    let qty = trade.executed_qty;
-                    let pnl_value = if trade.side == binance::rest_model::OrderSide::Buy {
-                        qty * (price_now - price)
-                    } else {
-                        qty * (price - price_now)
-                    };
-                    self.ctx.var(format!("t{i}"), pnl_value);
-                    out.push_str(&format!("{pnl_value} "));
-                }
-                #[cfg(feature = "k")]
-                K0(format!("d:{out}"), Vec::new());
                 if !self.is_editing {
                     self.run();
                 }
+
                 Command::none()
             }
             CalculatorMessage::Toggle => {
@@ -165,23 +128,120 @@ impl CalculatorPane {
     }
 }
 
-struct Calculator {}
+pub(crate) fn order_value(order: &Order, prices: &HashMap<String, f32>) -> f64 {
+    let price_now = *prices.get(&order.symbol).unwrap_or(&0.0) as f64;
+    let price = order.price;
+    let qty = order.executed_qty;
+    if order.side == binance::rest_model::OrderSide::Buy {
+        qty * (price_now - price)
+    } else {
+        qty * (price - price_now)
+    }
+}
 
-impl Calculator {
-    #[cfg(not(feature = "k"))]
-    pub(crate) fn eval(&self, line: &str, ctx: &Context) -> String {
-        use meval::Expr;
-        format!(
-            "{}",
+#[cfg(feature = "calculator_k")]
+mod calc_k {
+    use crate::views::panes::calculator::order_value;
+
+    use std::collections::HashMap;
+
+    use binance::rest_model::Order;
+    use ngnk::{iK, kinit, K0};
+
+    pub(crate) struct Calculator {}
+
+    impl Calculator {
+        pub(crate) fn new() -> Self {
+            kinit();
+
+            Self {}
+        }
+
+        pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
+            let mut r: String = String::new();
+
+            for key in prices.keys().take(250) {
+                let name = key.strip_suffix("USDT").unwrap_or(key);
+                if name.is_empty() {
+                    continue;
+                }
+
+                r.push_str(&format!("`\"{name}\""));
+            }
+            r.push('!');
+            for (key, value) in prices.iter().take(250) {
+                let name = key.strip_suffix("USDT").unwrap_or(key);
+                if name.is_empty() {
+                    continue;
+                }
+
+                let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
+
+                if !f.is_empty() {
+                    r.push_str(&format!("{value} "));
+                }
+            }
+            K0(format!("b:{r}"), Vec::new());
+
+            let mut out = String::new();
+            for i in 0..orders.len() {
+                out.push_str(&format!("`t{i}",));
+            }
+            out.push('!');
+            for trade in orders.iter() {
+                out.push_str(&format!("{} ", order_value(trade, prices)));
+            }
+            K0(format!("d:{out}"), Vec::new());
+        }
+
+        pub(crate) fn eval(&self, line: &str) -> String {
+            //format!("{:?}", CK(K0(line.to_string(), vec![])))
+            format!("{:?}", iK(K0(line.to_string(), vec![])))
+        }
+    }
+}
+
+#[cfg(feature = "calculator_meval")]
+mod calc_meval {
+    use crate::views::panes::calculator::order_value;
+
+    use std::collections::HashMap;
+
+    use binance::rest_model::Order;
+    use meval::{Context, Expr};
+
+    pub(crate) struct Calculator {
+        ctx: Context<'static>,
+    }
+
+    impl Calculator {
+        pub(crate) fn new() -> Self {
+            Self {
+                ctx: Context::empty(),
+            }
+        }
+
+        pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
+            for (key, value) in prices.iter() {
+                let name = key.strip_suffix("USDT").unwrap_or(key);
+                if name.is_empty() {
+                    continue;
+                }
+
+                self.ctx.var(name, *value as f64);
+            }
+
+            for (i, trade) in orders.iter().enumerate() {
+                self.ctx.var(format!("t{i}"), order_value(trade, prices));
+            }
+        }
+
+        pub(crate) fn eval(&self, line: &str) -> String {
             line.parse::<Expr>()
                 .unwrap()
-                .eval_with_context(ctx)
+                .eval_with_context(&self.ctx)
                 .unwrap_or_default()
-        )
-    }
-    #[cfg(feature = "k")]
-    pub(crate) fn eval(&self, line: &str, _ctx: &Context) -> String {
-        //format!("{:?}", CK(K0(line.to_string(), vec![])))
-        format!("{:?}", iK(K0(line.to_string(), vec![])))
+                .to_string()
+        }
     }
 }

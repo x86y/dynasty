@@ -26,7 +26,6 @@ pub(crate) enum UI {
 #[derive(Debug, Clone)]
 pub(crate) enum Message {
     UI(UI),
-    UpdateChart(f64),
     // manually triggered at interval
     Tick,
     DispatchErr(String),

@@ -16,7 +16,7 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
             bs.iter()
                 .map(|b| {
                     let asset = &b.asset;
-                    let ticker = asset.strip_suffix("USDT").unwrap_or(asset).to_lowercase();
+                    let ticker = asset.strip_suffix("USDT").unwrap_or(asset);
                     let handle = match svg_logos::LOGOS.get(&ticker) {
                         Some(bytes) => svg::Handle::from_memory(*bytes),
                         // this silently fails

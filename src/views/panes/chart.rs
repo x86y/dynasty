@@ -29,9 +29,9 @@ impl Chart<Message> for ChartPane {
         });
 
         let mut chart = builder
-            .x_label_area_size(28_i32)
-            .y_label_area_size(28_i32)
-            .margin(20_i32)
+            .x_label_area_size(0_i32)
+            .y_label_area_size(0_i32)
+            .margin(0_i32)
             .build_cartesian_2d(0..self.data.len(), min..max)
             .expect("Failed to build chart");
 
@@ -44,7 +44,7 @@ impl Chart<Message> for ChartPane {
                 ShapeStyle::from(plotters::style::colors::full_palette::GREY_500).stroke_width(0),
             )
             .y_max_light_lines(2)
-            .y_labels(6)
+            .y_labels(2)
             .y_label_style(
                 ("monospace", 12)
                     .into_font()

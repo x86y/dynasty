@@ -79,8 +79,8 @@ impl CalculatorPane {
                         r.push_str(&format!("{value} "));
                     }
                 }
-                #[cfg(feature = "k")]
-                K0(format!("b:{r}"), Vec::new());
+                // #[cfg(feature = "k")]
+                // K0(format!("b:{r}"), Vec::new());
 
                 let mut out = String::new();
                 for i in 0..data.orders.len() {

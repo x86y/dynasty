@@ -1,15 +1,12 @@
 use crate::{config::Config, message::Message};
+use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
-use plotters::{
-    coord::{types::RangedCoordf32, ReverseCoordTranslate},
-    prelude::*,
-};
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 
 use iced::{
-    widget::{container, text, Container},
-    Command, Length,
+    widget::{container, Container},
+    Command,
 };
 
 #[derive(Debug, Clone)]
@@ -27,11 +24,15 @@ impl Chart<Message> for ChartPane {
         const HOVER_COLOR: RGBColor = colors::YELLOW;
         const PREVIEW_COLOR: RGBColor = colors::GREEN;
 
+        let (min, max) = self.data.iter().fold((f32::MAX, f32::MIN), |acc, &x| {
+            (acc.0.min(x as f32), acc.1.max(x as f32))
+        });
+
         let mut chart = builder
             .x_label_area_size(28_i32)
             .y_label_area_size(28_i32)
             .margin(20_i32)
-            .build_cartesian_2d(0_f32..10_f32, 0_f32..10_f32)
+            .build_cartesian_2d(0..self.data.len(), min..max)
             .expect("Failed to build chart");
 
         chart
@@ -57,15 +58,10 @@ impl Chart<Message> for ChartPane {
 
         chart
             .draw_series(
-                AreaSeries::new(
-                    self.data
-                        .iter()
-                        .enumerate()
-                        .map(|(x, y)| ((x as f32), (*y as f32))),
-                    0.0,
+                LineSeries::new(
+                    self.data.iter().enumerate().map(|(x, y)| (x, (*y as f32))),
                     LINE_COLOR,
                 )
-                .border_style(ShapeStyle::from(LINE_COLOR).stroke_width(1)),
             )
             .expect("failed to draw chart data");
     }

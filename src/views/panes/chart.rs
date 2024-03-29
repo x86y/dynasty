@@ -22,7 +22,7 @@ impl Chart<Message> for ChartPane {
     type State = ();
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         const POINT_COLOR: RGBColor = colors::WHITE;
-        const LINE_COLOR: RGBColor = colors::WHITE;
+        const LINE_COLOR: RGBColor = colors::RED;
         const HOVER_COLOR: RGBColor = colors::YELLOW;
         const PREVIEW_COLOR: RGBColor = colors::GREEN;
 
@@ -30,41 +30,52 @@ impl Chart<Message> for ChartPane {
             .x_label_area_size(28_i32)
             .y_label_area_size(28_i32)
             .margin(20_i32)
-            .build_cartesian_2d(0_f32..100_f32, 0_f32..100_f32)
+            .build_cartesian_2d(0_f32..10_f32, 0_f32..10_f32)
             .expect("Failed to build chart");
 
         chart
             .configure_mesh()
-            .bold_line_style(colors::WHITE.mix(0.1))
-            .light_line_style(colors::WHITE.mix(0.05))
-            .axis_style(ShapeStyle::from(colors::TRANSPARENT).stroke_width(0))
-            .y_labels(10)
+            .disable_mesh()
+            .bold_line_style(plotters::style::colors::full_palette::GREY_600)
+            .light_line_style(plotters::style::colors::full_palette::GREY_800)
+            .axis_style(
+                ShapeStyle::from(plotters::style::colors::full_palette::GREY_500).stroke_width(0),
+            )
+            .y_max_light_lines(2)
+            .y_labels(6)
             .y_label_style(
-                ("sans-serif", 15)
+                ("monospace", 12)
                     .into_font()
-                    .color(&colors::BLACK.mix(0.65))
+                    .color(&plotters::style::colors::WHITE)
                     .transform(FontTransform::Rotate90),
             )
-            .y_label_formatter(&|y| format!("{}", y))
+            .x_max_light_lines(30)
+            .x_labels(3)
             .draw()
-            .expect("Failed to draw chart mesh");
+            .unwrap();
 
-        /* chart
-        .draw_series(
-            vec![&(1.0, 1.0), &(2.0, 2.0), &(3.0, 3.0)]
-                .iter()
-                .map(|p| Circle::new(*p, 5_i32, POINT_COLOR.filled())),
-        )
-        .expect("Failed to draw points"); */
-
-        for line in vec![(1.0, 1.0), (2.0, 2.0), (3.0, 3.0)].iter() {
-            chart
-                .draw_series(LineSeries::new(
-                    vec![(line.0, line.1)].into_iter(),
-                    LINE_COLOR.filled(),
-                ))
-                .expect("Failed to draw line");
-        }
+        chart
+            .draw_series(
+                AreaSeries::new(
+                    vec![
+                        (1.0, 1.0),
+                        (2.0, 2.0),
+                        (3.0, 3.0),
+                        (4.0, 4.0),
+                        (5.0, 5.0),
+                        (6.0, 6.0),
+                        (7.0, 7.0),
+                        (8.0, 8.0),
+                        (9.0, 9.0),
+                    ]
+                    .iter()
+                    .map(|x| (x.0, x.1)),
+                    0.0,
+                    LINE_COLOR,
+                )
+                .border_style(ShapeStyle::from(LINE_COLOR).stroke_width(1)),
+            )
+            .expect("failed to draw chart data");
     }
 }
 
@@ -78,22 +89,19 @@ impl ChartPane {
     }
 
     pub(crate) fn view(&self) -> Container<'_, Message> {
-        container(
-            ChartWidget::new(self)
-                .width(Length::Fixed(200.0))
-                .height(Length::Fixed(200.0)),
-        )
-        .style(container::Appearance {
-            background: Some(iced::Background::Color(iced::Color::from_rgb(
-                0.07, 0.07, 0.07,
-            ))),
-            border: iced::Border {
-                radius: 16.0.into(),
+        container(ChartWidget::new(self))
+            .style(container::Appearance {
+                background: Some(iced::Background::Color(iced::Color::from_rgb(
+                    0.07, 0.07, 0.07,
+                ))),
+                border: iced::Border {
+                    radius: 16.0.into(),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .center_x()
-        .center_y()
+            })
+            .padding(2)
+            .center_x()
+            .center_y()
     }
 }

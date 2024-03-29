@@ -1,7 +1,7 @@
 use binance::account::Account;
 use binance::api::Binance;
 use binance::errors::Error;
-use binance::rest_model::{Balance, Order, OrderSide, Transaction};
+use binance::rest_model::{Balance, Order, OrderSide, OrderStatus, Transaction};
 use futures::future::join_all;
 
 pub async fn orders_history(public: String, secret: String) -> Vec<Order> {
@@ -32,6 +32,7 @@ pub async fn orders_history(public: String, secret: String) -> Vec<Order> {
     .into_iter()
     .flatten()
     .flatten()
+    .filter(|o| matches!(o.status, OrderStatus::Filled | OrderStatus::PartiallyFilled))
     .collect();
     os.sort_by(|o, n| n.time.cmp(&o.time));
     os

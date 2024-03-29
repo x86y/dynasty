@@ -1,6 +1,8 @@
-use crate::theme::h2c;
-use crate::views::components::unstyled_btn::UnstyledBtn;
-use crate::views::panes::Message;
+use crate::{
+    svg_logos,
+    theme::h2c,
+    views::{components::unstyled_btn::UnstyledBtn, panes::Message},
+};
 
 use binance::rest_model::Balance;
 use iced::{
@@ -15,11 +17,11 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
                 .map(|b| {
                     let asset = &b.asset;
                     let ticker = asset.strip_suffix("USDT").unwrap_or(asset).to_lowercase();
-                    let handle = svg::Handle::from_path(format!(
-                        "{}/assets/logos/{}.svg",
-                        env!("CARGO_MANIFEST_DIR"),
-                        ticker
-                    ));
+                    let handle = match svg_logos::LOGOS.get(&ticker) {
+                        Some(bytes) => svg::Handle::from_memory(*bytes),
+                        // this silently fails
+                        None => svg::Handle::from_path("NONEXISTENT"),
+                    };
 
                     let svg = svg(handle)
                         .width(Length::Fixed(16.0))

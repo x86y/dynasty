@@ -2,6 +2,7 @@ use crate::api;
 use crate::config::Config;
 use crate::message::Message;
 use crate::message::Screen;
+use crate::svg_logos;
 use crate::views::panes::balances::balances_view;
 use crate::views::panes::book::book_view;
 use crate::views::panes::calculator::CalculatorMessage;
@@ -572,12 +573,12 @@ impl Application for App {
                         .iter()
                         .map(|t| {
                             let price_now = self.data.prices.get(t).unwrap_or(&0.0);
-                            let ticker = t.strip_suffix("USDT").unwrap_or(t).to_lowercase();
-                            let handle = svg::Handle::from_path(format!(
-                                "{}/assets/logos/{}.svg",
-                                env!("CARGO_MANIFEST_DIR"),
-                                ticker
-                            ));
+                            let ticker = t.strip_suffix("USDT").unwrap_or(t);
+                            let handle = match svg_logos::LOGOS.get(ticker) {
+                                Some(bytes) => svg::Handle::from_memory(*bytes),
+                                // this silently fails
+                                None => svg::Handle::from_path("NONEXISTENT"),
+                            };
 
                             let svg = svg(handle)
                                 .width(Length::Fixed(16.0))

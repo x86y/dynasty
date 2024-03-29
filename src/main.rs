@@ -2,6 +2,7 @@ mod api;
 mod app;
 mod config;
 mod message;
+mod svg_logos;
 mod theme;
 mod views;
 mod ws;

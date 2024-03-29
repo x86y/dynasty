@@ -6,6 +6,7 @@ use crate::views::panes::balances::balances_view;
 use crate::views::panes::book::book_view;
 use crate::views::panes::calculator::CalculatorMessage;
 use crate::views::panes::calculator::CalculatorPane;
+use crate::views::panes::chart::ChartPane;
 use crate::views::panes::market::market_view;
 use crate::views::panes::orders::orders_view;
 use crate::views::panes::settings::SettingsPane;
@@ -59,6 +60,7 @@ pub(crate) struct App {
     current_screen: Screen,
     config: Config,
     errors: Vec<String>,
+    chart: ChartPane,
     calculator: CalculatorPane,
     settings: SettingsPane,
 }
@@ -110,7 +112,7 @@ impl Application for App {
             0.7,
             v![
                 0.25,
-                pane![Prices],
+                h![0.6, pane![Prices], pane![Chart]],
                 v![
                     0.5,
                     h![
@@ -147,6 +149,7 @@ impl Application for App {
                 errors: vec![],
                 calculator: CalculatorPane::new(),
                 settings: SettingsPane::new(config),
+                chart: ChartPane::new(),
             },
             Command::batch([
                 Command::perform(
@@ -536,6 +539,7 @@ impl Application for App {
                     self.filter,
                     &self.filter_string,
                 ),
+                PaneType::Chart => self.chart.view().into(),
                 PaneType::Book => book_view(&self.data.book),
                 PaneType::Trades => trades_view(&self.data.trades),
                 PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),

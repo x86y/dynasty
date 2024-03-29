@@ -1,6 +1,7 @@
 pub(crate) mod balances;
 pub(crate) mod book;
 pub(crate) mod calculator;
+pub(crate) mod chart;
 pub(crate) mod market;
 pub(crate) mod orders;
 pub(crate) mod settings;
@@ -51,6 +52,7 @@ pub enum PaneType {
     Balances,
     Orders,
     Calculator,
+    Chart,
 }
 
 impl From<usize> for PaneType {
@@ -69,6 +71,7 @@ impl ToString for PaneType {
             PaneType::Balances => "Balances",
             PaneType::Orders => "Orders",
             PaneType::Calculator => "Calculator",
+            PaneType::Chart => "Chart",
         }
         .to_string()
     }

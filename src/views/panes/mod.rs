@@ -121,8 +121,8 @@ pub fn view_controls<'a>(
             .size(12)
             .font(Font::with_name("bootstrap-icons")),
     )
-    .height(20)
-    .width(20)
+    .height(14)
+    .width(14)
     .style(theme::Button::Destructive);
 
     if total_panes > 1 && !is_pinned {

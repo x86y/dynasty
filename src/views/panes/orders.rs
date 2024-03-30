@@ -59,10 +59,15 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
             }
             .width(Length::Fixed(100.0));
             let base = b.symbol.strip_suffix("USDT").unwrap_or(&b.symbol);
-            let price_t = t(b.price).width(Length::Fixed(100.0));
+            let norm_price = if b.order_type != OrderType::Market {
+                b.price
+            } else {
+                b.cummulative_quote_qty / b.executed_qty
+            };
+            let price_t = t(norm_price).width(Length::Fixed(100.0));
             let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
             let executed_base =
-                t(format!("{:.0} USDT", b.executed_qty * b.price)).width(Length::Fixed(100.0));
+                t(format!("{:.0} USDT", b.executed_qty * norm_price)).width(Length::Fixed(100.0));
             let side_t = t(format!("{:?}", &b.side))
                 .width(Length::Fixed(100.0))
                 .style(
@@ -77,17 +82,12 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
             let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
 
             let pnl = {
-                let price = if b.order_type != OrderType::Market {
-                    b.price
-                } else {
-                    b.cummulative_quote_qty / b.executed_qty
-                };
                 let pnl_value = match b.side {
                     binance::rest_model::OrderSide::Buy => {
-                        b.executed_qty * (*price_now as f64 - price)
+                        b.executed_qty * (*price_now as f64 - norm_price)
                     }
                     binance::rest_model::OrderSide::Sell => {
-                        b.executed_qty * (price - *price_now as f64)
+                        b.executed_qty * (norm_price - *price_now as f64)
                     }
                 };
                 t(format!("{:.0}$", pnl_value))

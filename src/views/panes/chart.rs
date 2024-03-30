@@ -20,7 +20,7 @@ impl Chart<Message> for ChartPane {
     type State = ();
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         const POINT_COLOR: RGBColor = colors::WHITE;
-        const LINE_COLOR: RGBColor = colors::RED;
+        const LINE_COLOR: RGBColor = colors::GREEN;
         const HOVER_COLOR: RGBColor = colors::YELLOW;
         const PREVIEW_COLOR: RGBColor = colors::GREEN;
 
@@ -38,8 +38,8 @@ impl Chart<Message> for ChartPane {
         chart
             .configure_mesh()
             .disable_mesh()
-            .bold_line_style(plotters::style::colors::full_palette::GREY_600)
-            .light_line_style(plotters::style::colors::full_palette::GREY_800)
+            .bold_line_style(plotters::style::colors::full_palette::GREY_600.stroke_width(3))
+            .light_line_style(plotters::style::colors::full_palette::GREY_800.stroke_width(3))
             .axis_style(
                 ShapeStyle::from(plotters::style::colors::full_palette::GREY_500).stroke_width(0),
             )

@@ -12,7 +12,7 @@ use iced::{
         text_editor::{self, Content},
         Column, Space,
     },
-    Command, Element, Font, Length,
+    Alignment, Command, Element, Font, Length,
 };
 
 #[cfg(feature = "calculator_k")]
@@ -96,32 +96,36 @@ impl CalculatorPane {
                     )
                     .padding(2)
                 ]
+                .align_items(Alignment::Center)
                 .spacing(10),
             )
         } else {
-            container(column![
-                Column::with_children(
-                    self.content
-                        .text()
-                        .lines()
-                        .zip(&self.eval_results)
-                        .map(|(s, e)| column![
-                            text(s)
-                                .font(iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..Default::default()
-                                })
-                                .size(14)
-                                .style(h2c("EFE1D1").unwrap()),
-                            text(e).size(12).style(h2c("EEEEEE").unwrap()),
-                        ])
-                        .map(Element::from)
-                ),
-                Space::new(Length::Fill, Length::Fill),
-                button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
-                    .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                    .on_press(CalculatorMessage::Toggle.into())
-            ])
+            container(
+                column![
+                    Column::with_children(
+                        self.content
+                            .text()
+                            .lines()
+                            .zip(&self.eval_results)
+                            .map(|(s, e)| column![
+                                text(s)
+                                    .font(iced::Font {
+                                        weight: iced::font::Weight::Bold,
+                                        ..Default::default()
+                                    })
+                                    .size(14)
+                                    .style(h2c("EFE1D1").unwrap()),
+                                text(e).size(12).style(h2c("EEEEEE").unwrap()),
+                            ])
+                            .map(Element::from)
+                    ),
+                    Space::new(Length::Fill, Length::Fill),
+                    button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
+                        .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                        .on_press(CalculatorMessage::Toggle.into())
+                ]
+                .align_items(Alignment::Center),
+            )
         }
         .padding(10)
         .into()

@@ -167,7 +167,6 @@ pub mod style {
         let palette = theme.extended_palette();
 
         container::Appearance {
-            text_color: Some(palette.primary.strong.text),
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
             border: iced::Border {
                 radius: 16.0.into(),

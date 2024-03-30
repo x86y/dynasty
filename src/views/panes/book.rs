@@ -15,7 +15,7 @@ pub fn book_view(
     let header = row![
         tb("Price").width(Length::FillPortion(1)),
         tb("Amount").width(Length::FillPortion(1)),
-        tb("Total").width(Length::FillPortion(1)),
+        tb("Total")
     ]
     .spacing(10);
 

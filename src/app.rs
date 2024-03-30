@@ -39,6 +39,7 @@ use iced::font;
 use iced::widget::button;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::responsive;
+use iced::widget::scrollable;
 use iced::widget::svg;
 use iced::widget::Row;
 use iced::widget::Space;
@@ -111,21 +112,17 @@ impl Application for App {
 
     fn new(config: Self::Flags) -> (Self, Command<Message>) {
         let panes = pane_grid::State::with_configuration(h![
-            0.7,
+            0.65,
             v![
-                0.25,
-                h![0.6, pane![Prices], pane![Chart]],
+                0.15,
+                h![0.6, pane![Prices], pane![Balances]],
                 v![
                     0.5,
-                    h![
-                        0.5,
-                        pane![Market],
-                        v![0.5, pane![Trades], pane![Calculator]]
-                    ],
-                    v![0.6, pane![Book], pane![Balances]]
+                    pane![Chart],
+                    v![0.6, h![0.33, pane![Market], pane![Book]], pane![Trades]]
                 ]
             ],
-            pane![Orders]
+            v![0.7, pane![Orders], pane![Calculator]]
         ]);
 
         (
@@ -513,21 +510,10 @@ impl Application for App {
         let dashboard_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
-            let title = row![text(pane.id.to_string()).style(if is_focused {
-                PANE_ID_COLOR_FOCUSED
-            } else {
-                PANE_ID_COLOR_UNFOCUSED
-            })]
-            .spacing(5);
-
+            let title = row![text(pane.id.to_string())].spacing(5);
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(view_controls(id, total_panes, pane.is_pinned, is_maximized))
-                .padding(16)
-                .style(if is_focused {
-                    style::title_bar_focused
-                } else {
-                    style::title_bar_active
-                });
+                .padding(16);
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
                 PaneType::Prices => watchlist_view(
@@ -629,7 +615,7 @@ impl Application for App {
                 .center_y()
                 .into()
         } else {
-            column![container(
+            scrollable(column![container(
                 column![
                     if self.errors.is_empty() {
                         header
@@ -648,8 +634,8 @@ impl Application for App {
                 .spacing(8)
             )
             .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10),]
+            .height(1000.0)
+            .padding(10),])
             .into()
         };
 

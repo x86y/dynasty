@@ -16,7 +16,7 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
         row![
             tb("Price").width(Length::Fill),
             tb("Amount").width(Length::Fill),
-            tb("Time").width(Length::Fill)
+            tb("Time")
         ],
         scrollable(Column::with_children(
             bs.iter()

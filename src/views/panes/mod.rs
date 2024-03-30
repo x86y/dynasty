@@ -8,14 +8,13 @@ pub(crate) mod settings;
 pub(crate) mod trades;
 pub(crate) mod watchlist;
 
-use crate::message::Message;
+use crate::{message::Message, theme::h2c};
 
 use iced::{
     theme,
     widget::{button, pane_grid, row, text},
     Color, Element, Font,
 };
-use iced_futures::core::text::LineHeight;
 
 /* pub fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     use keyboard::KeyCode;
@@ -98,20 +97,18 @@ pub fn view_controls<'a>(
         let toggle = {
             let (content, message) = if is_maximized {
                 (
-                    text('\u{F3DE}')
-                        .font(Font::with_name("bootstrap-icons"))
-                        .line_height(LineHeight::Relative(1.1)),
+                    text('\u{F3DE}').font(Font::with_name("bootstrap-icons")),
                     Message::Restore,
                 )
             } else {
                 (
-                    text('\u{F3DF}')
-                        .font(Font::with_name("bootstrap-icons"))
-                        .line_height(LineHeight::Relative(1.1)),
+                    text('\u{F3DF}').font(Font::with_name("bootstrap-icons")),
                     Message::Maximize(pane),
                 )
             };
-            button(content.size(22))
+            button(content.size(12).style(h2c("FFFFFF").unwrap()))
+                .height(14)
+                .width(14)
                 .style(theme::Button::Secondary)
                 .on_press(message)
         };
@@ -121,17 +118,18 @@ pub fn view_controls<'a>(
 
     let mut close = button(
         text('\u{F62A}')
-            .size(22)
+            .size(12)
             .font(Font::with_name("bootstrap-icons")),
     )
-    .style(theme::Button::Destructive)
-    .padding(3);
+    .height(20)
+    .width(20)
+    .style(theme::Button::Destructive);
 
     if total_panes > 1 && !is_pinned {
         close = close.on_press(Message::Close(pane));
     }
 
-    row.push(close).height(20).into()
+    row.push(close).into()
 }
 
 pub const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
@@ -164,7 +162,7 @@ pub mod style {
     }
 
     pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
-        let palette = theme.extended_palette();
+        let _palette = theme.extended_palette();
 
         container::Appearance {
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),

@@ -66,18 +66,14 @@ pub fn book_view(
     let content = column![
         header,
         ask_rows,
-        t(format!(
+        tb(format!(
             "${}",
             book.1
                 .iter()
                 .next_back()
                 .unwrap_or((&String::new(), &0.0))
                 .0
-        ))
-        .font(iced::Font {
-            weight: iced::font::Weight::Bold,
-            ..Default::default()
-        }),
+        )),
         bid_rows
     ]
     .padding([2, 12])

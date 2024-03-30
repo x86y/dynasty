@@ -21,6 +21,8 @@ use calc_k::Calculator;
 #[cfg(all(feature = "calculator_meval", not(feature = "calculator_k")))]
 use calc_meval::Calculator;
 
+use super::orders::tb;
+
 pub(crate) struct CalculatorPane {
     calculator: Calculator,
     content: iced::widget::text_editor::Content,
@@ -108,13 +110,7 @@ impl CalculatorPane {
                             .lines()
                             .zip(&self.eval_results)
                             .map(|(s, e)| column![
-                                text(s)
-                                    .font(iced::Font {
-                                        weight: iced::font::Weight::Bold,
-                                        ..Default::default()
-                                    })
-                                    .size(14)
-                                    .style(h2c("EFE1D1").unwrap()),
+                                tb(s).size(14).style(h2c("EFE1D1").unwrap()),
                                 text(e).size(12).style(h2c("EEEEEE").unwrap()),
                             ])
                             .map(Element::from)

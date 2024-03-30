@@ -1,4 +1,4 @@
-use super::orders::t;
+use super::orders::tb;
 
 use crate::views::{
     components::{
@@ -8,7 +8,6 @@ use crate::views::{
     panes::Message,
 };
 
-use iced::Font;
 use iced::{
     widget::{button, column, container, row, text, text_input, Space},
     Alignment, Element, Length,
@@ -65,29 +64,15 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
             .spacing(4.0)
             .width(300.0),
             row![
-                button(
-                    t("Buy")
-                        .font(Font {
-                            weight: iced::font::Weight::Bold,
-                            ..Default::default()
-                        })
-                        .size(12)
-                )
-                .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                .padding(8)
-                .on_press(Message::BuyPressed),
+                button(tb("Buy").size(12))
+                    .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                    .padding(8)
+                    .on_press(Message::BuyPressed),
                 Space::new(5.0, 0.0),
-                button(
-                    t("Sell")
-                        .font(Font {
-                            weight: iced::font::Weight::Bold,
-                            ..Default::default()
-                        })
-                        .size(12)
-                )
-                .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
-                .padding(8)
-                .on_press(Message::SellPressed)
+                button(tb("Sell").size(12))
+                    .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
+                    .padding(8)
+                    .on_press(Message::SellPressed)
             ],
             Space::new(Length::Fill, 1.0)
         ]

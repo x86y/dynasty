@@ -18,8 +18,7 @@ use crate::views::panes::watchlist::watchlist_view;
 use crate::views::panes::watchlist::WatchlistFilter;
 use crate::views::panes::Pane;
 use crate::views::panes::PaneType;
-use crate::views::panes::PANE_ID_COLOR_FOCUSED;
-use crate::views::panes::PANE_ID_COLOR_UNFOCUSED;
+
 use crate::ws::book;
 use crate::ws::prices;
 use crate::ws::trades;
@@ -153,8 +152,27 @@ impl Application for App {
             Command::batch([
                 Command::perform(async {}, |_| Message::FetchData),
                 font::load(
-                    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/fonts/icons.ttf"))
-                        .as_slice(),
+                    include_bytes!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/assets/fonts/icons.ttf"
+                    ))
+                    .as_slice(),
+                )
+                .map(Message::FontsLoaded),
+                font::load(
+                    include_bytes!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/assets/fonts/iosevka.ttf"
+                    ))
+                    .as_slice(),
+                )
+                .map(Message::FontsLoaded),
+                font::load(
+                    include_bytes!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/assets/fonts/iosevkab.ttc"
+                    ))
+                    .as_slice(),
                 )
                 .map(Message::FontsLoaded),
             ]),
@@ -513,7 +531,7 @@ impl Application for App {
             let title = row![text(pane.id.to_string())].spacing(5);
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(view_controls(id, total_panes, pane.is_pinned, is_maximized))
-                .padding(16);
+                .padding([8, 12]);
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
                 PaneType::Prices => watchlist_view(

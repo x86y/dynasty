@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{message::Message, theme::h2c};
 
-use binance::rest_model::{Order, OrderType};
+use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
     widget::{column, container, row, scrollable, text, Column, Space},
     Element, Font, Length,
@@ -16,30 +16,28 @@ macro_rules! fill {
 macro_rules! filled { ($($rs:expr),+) => { row![$($rs, fill![]),+] }; }
 
 pub fn t<'a>(s: impl ToString) -> iced::widget::Text<'a> {
-    text(s)
-        .font(Font::with_name("SF Mono"))
-        .size(14)
-        .style(h2c("EEEEEE").unwrap())
+    text(s).size(14).style(h2c("EEEEEE").unwrap())
 }
 pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
     t(s).font(Font {
+        family: iced::font::Family::Name("Iosevka"),
         weight: iced::font::Weight::Bold,
         ..Default::default()
     })
-    .size(12)
+    .size(14)
     .style(h2c("808080").unwrap())
 }
 
 pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a, Message> {
     let header = filled![
-        tb("Time").width(Length::Fixed(150.0)),
         tb("Symbol").width(Length::Fixed(100.0)),
         tb("Price").width(Length::Fixed(100.0)),
-        tb("Ex.Qty").width(Length::Fixed(100.0)),
-        tb("Ex.Base").width(Length::Fixed(100.0)),
+        tb("Size").width(Length::Fixed(100.0)),
+        tb("X-Size").width(Length::Fixed(100.0)),
         tb("Side").width(Length::Fixed(100.0)),
         tb("Status").width(Length::Fixed(100.0)),
-        tb("PNL").width(Length::Fixed(100.0))
+        tb("PNL").width(Length::Fixed(100.0)),
+        tb("Time").width(Length::Fixed(150.0))
     ]
     .padding([0, 12])
     .width(Length::Fill);
@@ -54,12 +52,27 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 let formatted_time = dt.format("%m-%d %H:%M").to_string();
                 t(formatted_time).width(Length::Fixed(150.0))
             };
-            let symbol_t = t(&b.symbol).width(Length::Fixed(100.0));
+
+            let symbol_t = {
+                let s = &b.symbol;
+                tb(s).style(h2c("11EE11").unwrap())
+            }
+            .width(Length::Fixed(100.0));
+            let base = b.symbol.strip_suffix("USDT").unwrap_or(&b.symbol);
             let price_t = t(b.price).width(Length::Fixed(100.0));
-            let executed_t = t(b.executed_qty).width(Length::Fixed(100.0));
+            let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
             let executed_base =
-                t(format!("{:.0}", b.executed_qty * b.price)).width(Length::Fixed(100.0));
-            let side_t = t(format!("{:?}", &b.side)).width(Length::Fixed(100.0));
+                t(format!("{:.0} USDT", b.executed_qty * b.price)).width(Length::Fixed(100.0));
+            let side_t = t(format!("{:?}", &b.side))
+                .width(Length::Fixed(100.0))
+                .style(
+                    if b.side == OrderSide::Buy {
+                        h2c("11EE11")
+                    } else {
+                        h2c("EE1111")
+                    }
+                    .unwrap(),
+                );
             let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
             let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
 
@@ -77,19 +90,28 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                         b.executed_qty * (price - *price_now as f64)
                     }
                 };
-                t(format!("{:.0}$", pnl_value)).width(Length::Fixed(100.0))
+                t(format!("{:.0}$", pnl_value))
+                    .width(Length::Fixed(100.0))
+                    .style(
+                        if pnl_value >= 0.0 {
+                            h2c("11EE11")
+                        } else {
+                            h2c("EE1111")
+                        }
+                        .unwrap(),
+                    )
             };
 
             container(
                 filled![
-                    time_t,
                     symbol_t,
                     price_t,
                     executed_t,
                     executed_base,
                     side_t,
                     status_t,
-                    pnl
+                    pnl,
+                    time_t
                 ]
                 .width(Length::Fill),
             )

@@ -39,7 +39,11 @@ fn main() -> iced::Result {
             ),
             ..Default::default()
         },
-        default_font: Font::with_name("SF Mono"),
+        default_font: Font {
+            family: iced::font::Family::Name("Iosevka"),
+            weight: iced::font::Weight::Normal,
+            ..Default::default()
+        },
         antialiasing: true,
         flags: config,
         ..Default::default()

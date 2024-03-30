@@ -1,4 +1,4 @@
-use crate::{config::Config, message::Message};
+use crate::message::Message;
 use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
@@ -57,12 +57,10 @@ impl Chart<Message> for ChartPane {
             .unwrap();
 
         chart
-            .draw_series(
-                LineSeries::new(
-                    self.data.iter().enumerate().map(|(x, y)| (x, (*y as f32))),
-                    LINE_COLOR,
-                )
-            )
+            .draw_series(LineSeries::new(
+                self.data.iter().enumerate().map(|(x, y)| (x, (*y as f32))),
+                LINE_COLOR,
+            ))
             .expect("failed to draw chart data");
     }
 }
@@ -72,7 +70,7 @@ impl ChartPane {
         Self { data: vec![] }
     }
 
-    pub(crate) fn update(&mut self, message: f64) -> Command<Message> {
+    pub(crate) fn update(&mut self, _message: f64) -> Command<Message> {
         Command::none()
     }
     pub(crate) fn update_data(&mut self, new_p: f64) {

@@ -6,6 +6,8 @@ use iced::{
 };
 use std::collections::HashMap;
 
+use super::orders::tb;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WatchlistFilter {
     Favorites,
@@ -29,17 +31,9 @@ macro_rules! filter_button {
 
 fn asset_button<'a>(n: &str, p: f32) -> Element<'a, Message> {
     container(row![
-        button(
-            text(n)
-                .font(iced::Font {
-                    weight: iced::font::Weight::Bold,
-                    ..Default::default()
-                })
-                .size(14)
-                .style(h2c("EFE1D1").unwrap())
-        )
-        .on_press(Message::AssetSelected(n.to_string()))
-        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+        button(tb(n).size(14).style(h2c("EFE1D1").unwrap()))
+            .on_press(Message::AssetSelected(n.to_string()))
+            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
         Space::new(Length::Fill, 1.0),
         button(
             text(format!("{p} "))

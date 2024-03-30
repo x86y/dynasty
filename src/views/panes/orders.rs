@@ -64,7 +64,7 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
             } else {
                 b.cummulative_quote_qty / b.executed_qty
             };
-            let price_t = t(norm_price).width(Length::Fixed(100.0));
+            let price_t = t(format!("{norm_price:.3}")).width(Length::Fixed(100.0));
             let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
             let executed_base =
                 t(format!("{:.0} USDT", b.executed_qty * norm_price)).width(Length::Fixed(100.0));

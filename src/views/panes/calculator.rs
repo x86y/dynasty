@@ -110,8 +110,8 @@ impl CalculatorPane {
                             .lines()
                             .zip(&self.eval_results)
                             .map(|(s, e)| column![
-                                tb(s).size(14).style(h2c("EFE1D1").unwrap()),
-                                text(e).size(12).style(h2c("EEEEEE").unwrap()),
+                                tb(s).size(18).style(h2c("EFE1D1").unwrap()),
+                                text(e).size(18).style(h2c("EEEEEE").unwrap()),
                             ])
                             .map(Element::from)
                     ),

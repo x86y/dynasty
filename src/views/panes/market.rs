@@ -64,12 +64,12 @@ pub fn market_view<'a>(quote: &str, amt: &str, pair: &str) -> Element<'a, Messag
             .spacing(4.0)
             .width(300.0),
             row![
-                button(tb("Buy").size(12))
+                button(tb("Buy").style(iced::Color::WHITE).size(12))
                     .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
                     .padding(8)
                     .on_press(Message::BuyPressed),
                 Space::new(5.0, 0.0),
-                button(tb("Sell").size(12))
+                button(tb("Sell").style(iced::Color::WHITE).size(12))
                     .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
                     .padding(8)
                     .on_press(Message::SellPressed)

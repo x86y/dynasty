@@ -118,7 +118,7 @@ impl Application for App {
                 v![
                     0.5,
                     pane![Chart],
-                    v![0.6, h![0.33, pane![Market], pane![Book]], pane![Trades]]
+                    v![0.6, h![0.33, pane![Market], pane![Trades]], pane![Book]]
                 ]
             ],
             v![0.7, pane![Orders], pane![Calculator]]

@@ -16,7 +16,7 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
         row![
             tb("Price").width(Length::Fill),
             tb("Amount").width(Length::Fill),
-            tb("Time")
+            tb("Time").width(Length::Fill)
         ],
         scrollable(Column::with_children(
             bs.iter()
@@ -47,6 +47,6 @@ pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
                 .map(Element::from),
         )) // .style(ScrollbarStyle::theme())
     ]
-    .padding([2, 4])
+    .padding([2, 12])
     .into()
 }

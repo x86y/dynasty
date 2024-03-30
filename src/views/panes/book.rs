@@ -13,9 +13,9 @@ pub fn book_view(
     book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
 ) -> Element<'_, Message> {
     let header = row![
-        tb("Price").width(Length::FillPortion(1)),
-        tb("Amount").width(Length::FillPortion(1)),
-        tb("Total")
+        tb("Price").width(Length::Fill),
+        tb("Amount").width(Length::Fill),
+        tb("Total").width(Length::Fill)
     ]
     .spacing(10);
 
@@ -23,7 +23,7 @@ pub fn book_view(
         book.2
             .iter()
             .rev()
-            .take(9)
+            .take(12)
             .map(|(price, quantity)| {
                 row![
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
@@ -73,7 +73,7 @@ pub fn book_view(
                 .next_back()
                 .unwrap_or((&String::new(), &0.0))
                 .0
-        )),
+        )).style(iced::Color::WHITE),
         bid_rows
     ]
     .padding([2, 12])

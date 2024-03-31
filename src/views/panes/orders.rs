@@ -4,7 +4,7 @@ use crate::{api::split_symbol, message::Message, theme::h2c};
 
 use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
-    widget::{column, container, row, scrollable, text, Column, Space},
+    widget::{column, container, row, text, Column, Space},
     Element, Font, Length,
 };
 

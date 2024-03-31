@@ -5,7 +5,7 @@ use crate::{theme::h2c, views::panes::Message};
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{column, row, scrollable, Column, Container},
+    widget::{column, row, Column, Container},
     Element, Length,
 };
 

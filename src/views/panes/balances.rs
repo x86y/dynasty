@@ -6,7 +6,7 @@ use crate::{
 
 use binance::rest_model::Balance;
 use iced::{
-    widget::{button, container, row, scrollable, svg, text, Column, Space},
+    widget::{button, container, row, svg, text, Column, Space},
     Element, Length,
 };
 

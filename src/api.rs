@@ -86,11 +86,9 @@ pub fn split_symbol(symbol: &str) -> Option<(String, String)> {
     let quote_assets_regex = format!("({})", quote_assets.join("|"));
     let regex = Regex::new(&format!(r"^(.+)({})$", quote_assets_regex)).unwrap();
 
-    if let Some(captures) = regex.captures(symbol) {
-        Some((captures[1].into(), captures[2].into()))
-    } else {
-        None
-    }
+    regex
+        .captures(symbol)
+        .map(|captures| (captures[1].into(), captures[2].into()))
 }
 
 #[cfg(test)]

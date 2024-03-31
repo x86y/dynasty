@@ -902,6 +902,7 @@ dependencies = [
  "phf_codegen",
  "plotters",
  "plotters-iced",
+ "regex",
  "serde",
  "serde_json",
  "tokio",

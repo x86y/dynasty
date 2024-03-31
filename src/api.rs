@@ -73,3 +73,98 @@ pub async fn balances(public: String, secret: String) -> Vec<Balance> {
         .flatten()
         .collect()
 }
+
+use regex::Regex;
+
+pub fn split_symbol(symbol: &str) -> Option<(String, String)> {
+    let quote_assets = vec![
+        "BTC", "ETH", "USDT", "BNB", "TUSD", "PAX", "USDC", "XRP", "USDS", "TRX", "BUSD", "NGN",
+        "RUB", "TRY", "EUR", "ZAR", "BKRW", "IDRT", "GBP", "UAH", "BIDR", "AUD", "DAI", "BRL",
+        "BVND", "VAI", "USDP", "DOGE", "UST", "DOT", "PLN", "RON", "ARS",
+    ];
+
+    let quote_assets_regex = format!("({})", quote_assets.join("|"));
+    let regex = Regex::new(&format!(r"^(.+)({})$", quote_assets_regex)).unwrap();
+
+    if let Some(captures) = regex.captures(symbol) {
+        Some((captures[1].into(), captures[2].into()))
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_symbol;
+
+    #[test]
+    fn split_base_qty() {
+        let test_cases = vec![
+            "BTCUSDT",
+            "ETHBTC",
+            "XRPUSDC",
+            "LTCETH",
+            "BNBTUSD",
+            "TRXBUSD",
+            "ZRXUSDT",
+            "INVALIDMARKET",
+            "BTCUSDC",
+            "ETHUSDT",
+            "BNBETH",
+            "XRPBTC",
+            "LTCUSDT",
+            "DOTUSDT",
+            "DOGEUSDT",
+            "USDTUSD",
+            "BTCTUSD",
+            "BTCPAX",
+            "BTCUSDS",
+            "BTCNGN",
+            "BTCRUB",
+            "BTCTRY",
+            "BTCEUR",
+            "BTCZAR",
+            "BTCBKRW",
+            "BTCIDRT",
+            "ETHGBP",
+            "ETHUAH",
+            "ETHBIDR",
+            "ETHAUD",
+            "ETHDAI",
+            "ETHBRL",
+            "ETHBVND",
+            "USDTDAI",
+            "USDCUSDT",
+            "USDTBRL",
+            "BNBBUSD",
+            "BTCBRL",
+            "BTCVAI",
+            "BUSDUSDT",
+            "BTCUSDP",
+            "BTCDOT",
+            "ETHUST",
+            "BTCUST",
+            "BTCPLN",
+            "BTCRON",
+            "BTCARS",
+        ];
+
+        for symbol in test_cases {
+            match split_symbol(symbol) {
+                Some((base, quote)) => {
+                    assert_eq!(
+                        format!("{}{}", base, quote),
+                        symbol,
+                        "Split symbol should recombine to the original symbol"
+                    );
+                }
+                None => {
+                    assert_eq!(
+                        symbol, "INVALIDMARKET",
+                        "Invalid market symbol should be INVALIDMARKET"
+                    );
+                }
+            }
+        }
+    }
+}

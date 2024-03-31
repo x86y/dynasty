@@ -141,7 +141,7 @@ pub(crate) fn order_value(order: &Order, prices: &HashMap<String, f32>) -> f64 {
 
 #[cfg(feature = "calculator_k")]
 mod calc_k {
-    use crate::views::panes::calculator::order_value;
+    use crate::{api::split_symbol, views::panes::calculator::order_value};
 
     use std::collections::HashMap;
 
@@ -161,24 +161,18 @@ mod calc_k {
             let mut r: String = String::new();
 
             for key in prices.keys().take(250) {
-                let name = key.strip_suffix("USDT").unwrap_or(key);
-                if name.is_empty() {
-                    continue;
+                let (base, _) = split_symbol(key).unwrap();
+                if !base.is_empty() {
+                    r.push_str(&format!("`\"{base}\""));
                 }
-
-                r.push_str(&format!("`\"{name}\""));
             }
             r.push('!');
             for (key, value) in prices.iter().take(250) {
-                let name = key.strip_suffix("USDT").unwrap_or(key);
-                if name.is_empty() {
-                    continue;
-                }
-
-                let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
-
-                if !f.is_empty() {
-                    r.push_str(&format!("{value} "));
+                if let Some((base, _)) = split_symbol(key) {
+                    let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
+                    if !f.is_empty() {
+                        r.push_str(&format!("{f} "));
+                    }
                 }
             }
             K0(format!("b:{r}"), Vec::new());

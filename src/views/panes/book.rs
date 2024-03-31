@@ -73,12 +73,13 @@ pub fn book_view(
                 .next_back()
                 .unwrap_or((&String::new(), &0.0))
                 .0
-        )).style(iced::Color::WHITE),
+        ))
+        .style(iced::Color::WHITE),
         bid_rows
     ]
     .padding([2, 12])
     .spacing(10)
     .max_width(500);
 
-    Container::new(scrollable(content)).into()
+    Container::new(content).into()
 }

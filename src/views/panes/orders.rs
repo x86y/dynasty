@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{message::Message, theme::h2c};
+use crate::{api::split_symbol, message::Message, theme::h2c};
 
 use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
@@ -58,7 +58,7 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 tb(s).style(h2c("11EE11").unwrap())
             }
             .width(Length::Fixed(100.0));
-            let base = b.symbol.strip_suffix("USDT").unwrap_or(&b.symbol);
+            let (base, quote) = split_symbol(&b.symbol).unwrap();
             let norm_price = if b.order_type != OrderType::Market {
                 b.price
             } else {
@@ -66,8 +66,8 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
             };
             let price_t = t(format!("{norm_price:.3}")).width(Length::Fixed(100.0));
             let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
-            let executed_base =
-                t(format!("{:.0} USDT", b.executed_qty * norm_price)).width(Length::Fixed(100.0));
+            let executed_base = t(format!("{:.0} {quote}", b.executed_qty * norm_price))
+                .width(Length::Fixed(100.0));
             let side_t = t(format!("{:?}", &b.side))
                 .width(Length::Fixed(100.0))
                 .style(
@@ -120,9 +120,5 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
         })
         .collect();
 
-    column![
-        header,
-        scrollable(Column::with_children(rows).padding(8)) //.style(ScrollbarStyle::theme())
-    ]
-    .into()
+    column![header, Column::with_children(rows).padding(8)].into()
 }

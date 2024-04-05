@@ -1,88 +1,138 @@
+use std::fmt::Debug;
+use std::fmt::Display;
+
 use crate::{
     config::Config,
-    views::panes::{
-        calculator::CalculatorMessage, settings::SettingsMessage, watchlist::WatchlistFilter,
-    },
+    views::{dashboard::DashboardMessage, settings::SettingsMessage},
     ws::{book, prices, trades, user},
 };
 
 use binance::rest_model::{Balance, Order};
-use iced::widget::pane_grid;
 
-#[derive(PartialEq, Debug, Clone)]
-pub(crate) enum Screen {
-    Dashboard,
-    Settings,
+/// Converts Result Err variant into string, stores error source
+///
+/// Part of event system. Used to handle throwaway results
+#[derive(Debug, Clone)]
+pub(crate) enum MaybeError {
+    NoError { source: String },
+    Error { source: String, message: String },
 }
 
-#[derive(Debug, Clone)]
-pub(crate) enum UI {
-    GoToDashboard,
-    GoToSettings,
-    // there is a button that is shared between dashboard and settings
-    ToggleSettings,
+impl MaybeError {
+    pub(crate) fn new(source: String) -> Self {
+        Self::NoError { source }
+    }
+
+    fn into_source(self) -> String {
+        match self {
+            MaybeError::NoError { source } => source,
+            MaybeError::Error { source, .. } => source,
+        }
+    }
+
+    /// Throws away Ok and stores Err as `Display` string
+    pub(crate) fn maybe<T, E>(self, value: &Result<T, E>) -> Self
+    where
+        E: Display,
+    {
+        if let Err(err) = value {
+            Self::Error {
+                source: self.into_source(),
+                message: err.to_string(),
+            }
+        } else {
+            self
+        }
+    }
+
+    /// Throws away Ok and stores Err as `Debug` string
+    pub(crate) fn maybe_debug<T, E>(self, value: &Result<T, E>) -> Self
+    where
+        E: Debug,
+    {
+        if let Err(err) = value {
+            Self::Error {
+                source: self.into_source(),
+                message: format!("{err:?}"),
+            }
+        } else {
+            self
+        }
+    }
+}
+
+impl Display for MaybeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MaybeError::NoError { source } => write!(f, "{source}"),
+            MaybeError::Error { source, message } => write!(f, "{source}: {message}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum Message {
-    UI(UI),
-    // manually triggered at interval
+    /// Go to or from settings depending on where you are.
+    ///
+    /// You cannot close settings while config is invalid
+    ToggleSettings,
+
+    /// Manually triggered at interval
     Tick,
-    DispatchErr(String),
-    // fetch personal data with api key
+
+    /// Error source and message
+    DispatchErr((String, String)),
+
+    /// Fetch personal data with api key
     FetchData,
-    // config update happened
-    ConfigUpdated(Result<Config, ()>),
-    Split(pane_grid::Axis, pane_grid::Pane),
-    SplitFocused(pane_grid::Axis),
-    FocusAdjacent(pane_grid::Direction),
-    Clicked(pane_grid::Pane),
-    Dragged(pane_grid::DragEvent),
-    Resized(pane_grid::ResizeEvent),
-    Maximize(pane_grid::Pane),
-    Restore,
-    Close(pane_grid::Pane),
-    CloseFocused,
-    MarketQuoteChanged(String),
-    MarketAmtChanged(String),
-    MarketPairChanged(String),
-    WatchlistFilterInput(String),
-    MarketPairSet,
-    MarketPairSet2(()),
-    MarketPairUnset(()),
-    MarketPrice(prices::Event),
-    BuyPressed,
-    SellPressed,
-    PriceInc(f64),
-    QtySet(f64),
-    PriceEcho(prices::Event),
+
+    /// Config update happened
+    ConfigUpdated(Result<Config, String>),
+
+    /// Websocket trade event
     TradeEcho(trades::Event),
+
+    /// Websocket book event
     BookEcho(book::BookEvent),
+
+    /// Websocket user event
     UserEcho(user::WsUpdate),
+
+    /// Websocket price event
+    PriceEcho(prices::Event),
+
+    /// ??? ??? ???
     OrdersRecieved(Vec<Order>),
-    MarketChanged(String),
-    AssetSelected(String),
     BalancesRecieved(Vec<Balance>),
-    ApplyWatchlistFilter(WatchlistFilter),
-    FontsLoaded(Result<(), iced::font::Error>),
-    Calculator(CalculatorMessage),
+    MarketChanged(String),
+
+    /// Settings view events
     Settings(SettingsMessage),
+
+    /// Dashboard view events
+    Dashboard(DashboardMessage),
+
+    /// Does nothing
+    NoOp,
 }
 
-impl From<UI> for Message {
-    fn from(value: UI) -> Self {
-        Self::UI(value)
-    }
-}
-
-impl From<CalculatorMessage> for Message {
-    fn from(value: CalculatorMessage) -> Self {
-        Self::Calculator(value)
+impl From<MaybeError> for Message {
+    fn from(value: MaybeError) -> Self {
+        match value {
+            MaybeError::Error { source, message } => Self::DispatchErr((source, message)),
+            MaybeError::NoError { .. } => Self::NoOp,
+        }
     }
 }
 
 impl From<SettingsMessage> for Message {
     fn from(value: SettingsMessage) -> Self {
         Self::Settings(value)
+    }
+}
+
+impl From<DashboardMessage> for Message {
+    fn from(value: DashboardMessage) -> Self {
+        Self::Dashboard(value)
     }
 }

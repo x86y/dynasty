@@ -34,7 +34,6 @@ pub(crate) struct CalculatorPane {
 pub(crate) enum CalculatorMessage {
     Toggle,
     Action(text_editor::Action),
-    Tick,
 }
 
 impl CalculatorPane {
@@ -56,21 +55,8 @@ impl CalculatorPane {
             .collect();
     }
 
-    pub(crate) fn update(
-        &mut self,
-        data: &AppData,
-        message: CalculatorMessage,
-    ) -> Command<Message> {
+    pub(crate) fn update(&mut self, message: CalculatorMessage) -> Command<Message> {
         match message {
-            CalculatorMessage::Tick => {
-                self.calculator.update_context(&data.prices, &data.orders);
-
-                if !self.is_editing {
-                    self.run();
-                }
-
-                Command::none()
-            }
             CalculatorMessage::Toggle => {
                 self.run();
                 self.is_editing = !self.is_editing;
@@ -84,17 +70,25 @@ impl CalculatorPane {
         }
     }
 
+    pub(crate) fn tick(&mut self, data: &AppData) {
+        self.calculator.update_context(&data.prices, &data.orders);
+
+        if !self.is_editing {
+            self.run();
+        }
+    }
+
     pub(crate) fn view(&self) -> Element<'_, Message> {
         if self.is_editing {
             container(
                 column![
                     text_editor::TextEditor::new(&self.content)
                         .height(Length::Fill)
-                        .on_action(|a| Message::Calculator(CalculatorMessage::Action(a))),
+                        .on_action(|a| Message::Dashboard(CalculatorMessage::Action(a).into())),
                     container(
                         button(text("\u{F4F5}").font(Font::with_name("bootstrap-icons")))
                             .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                            .on_press(CalculatorMessage::Toggle.into())
+                            .on_press(Message::Dashboard(CalculatorMessage::Toggle.into()))
                     )
                     .padding(2)
                 ]
@@ -118,7 +112,7 @@ impl CalculatorPane {
                     Space::new(Length::Fill, Length::Fill),
                     button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                        .on_press(CalculatorMessage::Toggle.into())
+                        .on_press(Message::Dashboard(CalculatorMessage::Toggle.into()))
                 ]
                 .align_items(Alignment::Center),
             )

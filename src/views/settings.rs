@@ -1,29 +1,27 @@
-use crate::{
-    config::Config,
-    message::{Message, UI},
-};
+use crate::{config::Config, message::Message};
 
 use iced::{
     widget::{button, column, container, row, text, text_input, Container},
     Color, Command, Length,
 };
 
-use super::orders::tb;
+use super::panes::orders::tb;
 
-pub(crate) struct SettingsPane {
+pub(crate) struct SettingsView {
     new_config: Config,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum SettingsMessage {
-    // write config from settings to disk and memory
+    /// Write config from settings to disk and memory
     SaveConfig,
-    // on_input events
+
+    /// on_input events
     ApiKeyInput(String),
     ApiSecretInput(String),
 }
 
-impl SettingsPane {
+impl SettingsView {
     pub(crate) fn new(config: Config) -> Self {
         Self { new_config: config }
     }
@@ -33,17 +31,14 @@ impl SettingsPane {
             SettingsMessage::SaveConfig => {
                 let new_config = self.new_config.clone();
 
-                Command::batch([
-                    Command::perform(async {}, |_| UI::GoToDashboard.into()),
-                    Command::perform(
-                        async {
-                            new_config.save().map_err(|_| ())?;
+                Command::perform(
+                    async {
+                        new_config.save().map_err(|err| err.to_string())?;
 
-                            Ok(new_config)
-                        },
-                        Message::ConfigUpdated,
-                    ),
-                ])
+                        Ok(new_config)
+                    },
+                    Message::ConfigUpdated,
+                )
             }
             SettingsMessage::ApiKeyInput(value) => {
                 self.new_config.api_key = value;

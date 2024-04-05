@@ -1,7 +1,6 @@
 use super::orders::{t, tb};
 
-use crate::theme::h2c;
-use crate::views::panes::Message;
+use crate::{message::Message, theme::h2c};
 
 use std::collections::VecDeque;
 

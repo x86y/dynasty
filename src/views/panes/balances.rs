@@ -1,7 +1,8 @@
 use crate::{
+    message::Message,
     svg_logos,
     theme::h2c,
-    views::{components::unstyled_btn::UnstyledBtn, panes::Message},
+    views::{components::unstyled_btn::UnstyledBtn, dashboard::DashboardMessage},
 };
 
 use binance::rest_model::Balance;
@@ -32,7 +33,7 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
                         svg,
                         button(tb(&b.asset).size(14).style(h2c("B7BDB7").unwrap()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                            .on_press(Message::AssetSelected(b.asset.clone())),
+                            .on_press(DashboardMessage::AssetSelected(b.asset.clone()).into()),
                     ]
                     .spacing(4)
                     .align_items(iced::Alignment::Center),
@@ -43,7 +44,7 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
                             .style(h2c("B7BDB7").unwrap())
                     )
                     .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                    .on_press(Message::AssetSelected(b.asset.clone())),
+                    .on_press(DashboardMessage::AssetSelected(b.asset.clone()).into()),
                 ])
                 .width(Length::Fill)
             })

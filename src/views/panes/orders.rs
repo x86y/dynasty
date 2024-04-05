@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{api::split_symbol, message::Message, theme::h2c};
+use crate::{api::Client, message::Message, theme::h2c};
 
 use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
@@ -58,7 +58,7 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                 tb(s).style(h2c("11EE11").unwrap())
             }
             .width(Length::Fixed(100.0));
-            let (base, quote) = split_symbol(&b.symbol).unwrap();
+            let (base, quote) = Client::split_symbol(&b.symbol).unwrap();
             let norm_price = if b.order_type != OrderType::Market {
                 b.price
             } else {

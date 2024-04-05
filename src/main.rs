@@ -7,13 +7,11 @@ mod theme;
 mod views;
 mod ws;
 
-use crate::config::Config;
+use crate::{app::App, config::Config};
 
 use std::env;
 
-use app::App;
-use iced::Application;
-use iced::{Font, Settings};
+use iced::{Application, Font, Settings};
 
 fn main() -> iced::Result {
     let config = Config::load()

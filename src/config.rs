@@ -1,11 +1,31 @@
-use std::{fs, io};
+use std::{fmt::Display, fs, io};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+fn default_favorites() -> Vec<String> {
+    [
+        "BTCUSDT", "ETHUSDT", "LINKUSDT", "UNIUSDT", "ARBUSDT", "SYNUSDT", "OPUSDT",
+    ]
+    .into_iter()
+    .map(|s| s.to_owned())
+    .collect()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub(crate) api_key: String,
     pub(crate) api_secret_key: String,
+    pub(crate) watchlist_favorites: Vec<String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            api_key: "".to_string(),
+            api_secret_key: "".to_string(),
+            watchlist_favorites: default_favorites(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -18,6 +38,19 @@ pub enum LoadError {
 pub enum SaveError {
     File(io::Error),
     Write(io::Error),
+}
+
+impl Display for SaveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                SaveError::File(err) => err.to_string(),
+                SaveError::Write(err) => err.to_string(),
+            }
+        )
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -55,6 +88,14 @@ impl Config {
             fs::create_dir_all(dir).map_err(SaveError::File)?;
         }
         fs::write(path, json.as_bytes()).map_err(SaveError::Write)
+    }
+
+    fn crendentials_empty(&self) -> bool {
+        self.api_key == "" && self.api_secret_key == ""
+    }
+
+    pub(crate) fn valid(&self) -> bool {
+        !self.crendentials_empty()
     }
 }
 

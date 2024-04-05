@@ -4,17 +4,10 @@ pub(crate) mod calculator;
 pub(crate) mod chart;
 pub(crate) mod market;
 pub(crate) mod orders;
-pub(crate) mod settings;
 pub(crate) mod trades;
 pub(crate) mod watchlist;
 
-use crate::{message::Message, theme::h2c};
-
-use iced::{
-    theme,
-    widget::{button, pane_grid, row, text},
-    Color, Element, Font,
-};
+use iced::Color;
 
 /* pub fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     use keyboard::KeyCode;
@@ -35,102 +28,6 @@ use iced::{
         _ => direction.map(Message::FocusAdjacent),
     }
 } */
-
-#[derive(Clone, Copy)]
-pub struct Pane {
-    pub id: PaneType,
-    pub is_pinned: bool,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum PaneType {
-    Prices,
-    Book,
-    Trades,
-    Market,
-    Balances,
-    Orders,
-    Calculator,
-    Chart,
-}
-
-impl From<usize> for PaneType {
-    fn from(_value: usize) -> Self {
-        Self::Balances
-    }
-}
-
-impl ToString for PaneType {
-    fn to_string(&self) -> String {
-        match self {
-            PaneType::Prices => "Watchlist",
-            PaneType::Book => "Book",
-            PaneType::Trades => "Trades",
-            PaneType::Market => "Market",
-            PaneType::Balances => "Balances",
-            PaneType::Orders => "Orders",
-            PaneType::Calculator => "Calculator",
-            PaneType::Chart => "Chart",
-        }
-        .to_string()
-    }
-}
-
-impl Pane {
-    pub fn new(ty: PaneType) -> Self {
-        Self {
-            id: ty,
-            is_pinned: false,
-        }
-    }
-}
-
-pub fn view_controls<'a>(
-    pane: pane_grid::Pane,
-    total_panes: usize,
-    is_pinned: bool,
-    is_maximized: bool,
-) -> Element<'a, Message> {
-    let mut row = row![].spacing(5);
-
-    if total_panes > 1 {
-        let toggle = {
-            let (content, message) = if is_maximized {
-                (
-                    text('\u{F3DE}').font(Font::with_name("bootstrap-icons")),
-                    Message::Restore,
-                )
-            } else {
-                (
-                    text('\u{F3DF}').font(Font::with_name("bootstrap-icons")),
-                    Message::Maximize(pane),
-                )
-            };
-            button(content.size(12).style(h2c("FFFFFF").unwrap()))
-                .height(14)
-                .width(14)
-                .style(theme::Button::Secondary)
-                .on_press(message)
-        };
-
-        row = row.push(toggle);
-    }
-
-    let mut close = button(
-        text('\u{F62A}')
-            .size(12)
-            .font(Font::with_name("bootstrap-icons")),
-    )
-    .height(14)
-    .width(14)
-    .style(theme::Button::Destructive);
-
-    if total_panes > 1 && !is_pinned {
-        close = close.on_press(Message::Close(pane));
-    }
-
-    row.push(close).into()
-}
 
 pub const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
     0xFF as f32 / 255.0,

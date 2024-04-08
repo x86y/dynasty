@@ -3,12 +3,14 @@ use std::sync::Arc;
 use binance::{
     account::Account,
     api::Binance,
-    errors::Error,
-    rest_model::{Balance, Order, OrderSide, OrderStatus, Transaction},
+    rest_model::{OrderSide, OrderStatus},
 };
 use futures::future::join_all;
+use iced::Command;
 use regex::Regex;
 use tokio::sync::Mutex;
+
+use crate::message::Message;
 
 pub(crate) struct Client {
     binance_account: Arc<Mutex<Account>>,
@@ -31,81 +33,107 @@ impl Client {
         *account = Self::make_client(public, secret)
     }
 
-    pub(crate) async fn orders_history(&self) -> Vec<Order> {
-        let now = chrono::offset::Local::now();
-        let ago = now
-            .checked_sub_signed(chrono::Duration::try_weeks(8).unwrap())
-            .unwrap();
-        let assets = [
-            "LINKUSDT",
-            "UNIUSDT",
-            "1INCHUSDT",
-            "OPUSDT",
-            "ARBUSDT",
-            "SYNUSDT",
-        ];
-        let mut os: Vec<_> = {
-            let account = self.binance_account.lock().await;
+    pub(crate) fn orders_history(&self) -> Command<Message> {
+        let binance_account = Arc::clone(&self.binance_account);
 
-            join_all(assets.iter().map(|a: &&str| {
-                account.get_all_orders(binance::account::OrdersQuery {
-                    symbol: a.to_string(),
-                    order_id: None,
-                    start_time: Some(ago.timestamp_millis() as u64),
-                    end_time: None,
-                    limit: None,
-                    recv_window: None,
-                })
-            }))
-            .await
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|o| matches!(o.status, OrderStatus::Filled | OrderStatus::PartiallyFilled))
-            .collect()
-        };
+        Command::perform(
+            async move {
+                let now = chrono::offset::Local::now();
+                let ago = now
+                    .checked_sub_signed(chrono::Duration::try_weeks(8).unwrap())
+                    .unwrap();
+                let assets = [
+                    "LINKUSDT",
+                    "UNIUSDT",
+                    "1INCHUSDT",
+                    "OPUSDT",
+                    "ARBUSDT",
+                    "SYNUSDT",
+                ];
+                let mut os: Vec<_> = {
+                    let account = binance_account.lock().await;
 
-        os.sort_by(|o, n| n.time.cmp(&o.time));
-        os
+                    join_all(assets.iter().map(|a: &&str| {
+                        account.get_all_orders(binance::account::OrdersQuery {
+                            symbol: a.to_string(),
+                            order_id: None,
+                            start_time: Some(ago.timestamp_millis() as u64),
+                            end_time: None,
+                            limit: None,
+                            recv_window: None,
+                        })
+                    }))
+                    .await
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter(|o| {
+                        matches!(o.status, OrderStatus::Filled | OrderStatus::PartiallyFilled)
+                    })
+                    .collect()
+                };
+
+                os.sort_by(|o, n| n.time.cmp(&o.time));
+                os
+            },
+            Message::OrdersRecieved,
+        )
     }
 
-    pub(crate) async fn trade_spot(
+    pub(crate) fn balances(&self) -> Command<Message> {
+        let binance_account = Arc::clone(&self.binance_account);
+
+        Command::perform(
+            async move {
+                let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
+
+                let account = binance_account.lock().await;
+
+                join_all(assets.iter().map(|a| account.get_balance(a.to_string())))
+                    .await
+                    .into_iter()
+                    .flatten()
+                    .collect()
+            },
+            Message::BalancesRecieved,
+        )
+    }
+
+    pub(crate) fn trade_spot(
         &self,
         pair: String,
         price: f64,
         amt: f64,
         side: OrderSide,
-    ) -> Result<Transaction, Error> {
-        self.binance_account
-            .lock()
-            .await
-            .place_order(binance::account::OrderRequest {
-                symbol: pair,
-                side,
-                order_type: binance::rest_model::OrderType::Limit,
-                time_in_force: Some(binance::rest_model::TimeInForce::GTC),
-                quantity: Some(amt),
-                quote_order_qty: None,
-                price: Some(price),
-                new_client_order_id: None,
-                stop_price: None,
-                iceberg_qty: None,
-                new_order_resp_type: None,
-                recv_window: None,
-            })
-            .await
-    }
+    ) -> Command<Message> {
+        let binance_account = Arc::clone(&self.binance_account);
 
-    pub(crate) async fn balances(&self) -> Vec<Balance> {
-        let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
-
-        let account = self.binance_account.lock().await;
-
-        join_all(assets.iter().map(|a| account.get_balance(a.to_string())))
-            .await
-            .into_iter()
-            .flatten()
-            .collect()
+        Command::perform(
+            async move {
+                binance_account
+                    .lock()
+                    .await
+                    .place_order(binance::account::OrderRequest {
+                        symbol: pair,
+                        side,
+                        order_type: binance::rest_model::OrderType::Limit,
+                        time_in_force: Some(binance::rest_model::TimeInForce::GTC),
+                        quantity: Some(amt),
+                        quote_order_qty: None,
+                        price: Some(price),
+                        new_client_order_id: None,
+                        stop_price: None,
+                        iceberg_qty: None,
+                        new_order_resp_type: None,
+                        recv_window: None,
+                    })
+                    .await
+            },
+            |m| {
+                println!("{m:?}");
+                Message::MarketChanged("REEEEE".to_string())
+            },
+        )
     }
 
     pub(crate) fn split_symbol(symbol: &str) -> Option<(String, String)> {

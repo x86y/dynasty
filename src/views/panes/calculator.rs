@@ -135,7 +135,7 @@ pub(crate) fn order_value(order: &Order, prices: &HashMap<String, f32>) -> f64 {
 
 #[cfg(feature = "calculator_k")]
 mod calc_k {
-    use crate::{api::split_symbol, views::panes::calculator::order_value};
+    use crate::{api::Client, views::panes::calculator::order_value};
 
     use std::collections::HashMap;
 
@@ -152,9 +152,10 @@ mod calc_k {
         }
 
         pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
-            let mut keys = String::new(); let mut values = String::new();
+            let mut keys = String::new();
+            let mut values = String::new();
             for (key, val) in prices.iter().take(250) {
-                if let Some((base, _)) = split_symbol(key) {
+                if let Some((base, _)) = Client::split_symbol(key) {
                     let filtered: String = base.chars().filter(|c| c.is_alphabetic()).collect();
                     if !filtered.is_empty() {
                         keys.push_str(&format!("`\"{filtered}\""));
@@ -163,7 +164,8 @@ mod calc_k {
                 }
             }
             K0(format!("PRICES:({keys}! {values})"), Vec::new());
-            keys.clear();values.clear();
+            keys.clear();
+            values.clear();
 
             for (i, trade) in orders.iter().enumerate() {
                 keys.push_str(&format!("`t{} ", i));

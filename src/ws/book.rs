@@ -6,6 +6,8 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use super::WsUpdate;
+
 #[derive(Debug, Clone)]
 pub struct OrderBookDetails {
     pub sym: String,
@@ -13,7 +15,7 @@ pub struct OrderBookDetails {
     pub asks: BTreeMap<String, f64>,
 }
 
-pub fn connect(token: String) -> Subscription<BookEvent> {
+pub fn connect(token: String) -> Subscription<WsUpdate> {
     struct Connect;
 
     subscription::channel(
@@ -81,7 +83,7 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
                             },
                             recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
-                                    output.send(BookEvent::MessageReceived(i)).await.unwrap();
+                                    output.send(WsUpdate::Book(i)).await.unwrap();
                                 } else {
                                     break
                                 }
@@ -95,9 +97,4 @@ pub fn connect(token: String) -> Subscription<BookEvent> {
             }
         },
     )
-}
-
-#[derive(Debug, Clone)]
-pub enum BookEvent {
-    MessageReceived(OrderBookDetails),
 }

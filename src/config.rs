@@ -15,6 +15,7 @@ fn default_favorites() -> Vec<String> {
 pub struct Config {
     pub(crate) api_key: String,
     pub(crate) api_secret_key: String,
+    #[serde(default = "default_favorites")]
     pub(crate) watchlist_favorites: Vec<String>,
 }
 
@@ -91,7 +92,7 @@ impl Config {
     }
 
     fn crendentials_empty(&self) -> bool {
-        self.api_key == "" && self.api_secret_key == ""
+        self.api_key == "" || self.api_secret_key == ""
     }
 
     pub(crate) fn valid(&self) -> bool {

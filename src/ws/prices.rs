@@ -6,13 +6,15 @@ use futures::sink::SinkExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use super::WsUpdate;
+
 #[derive(Debug, Clone)]
 pub struct AssetDetails {
     pub name: String,
     pub price: f32,
 }
 
-pub fn connect() -> Subscription<Event> {
+pub fn connect() -> Subscription<WsUpdate> {
     struct Connect;
 
     subscription::channel(
@@ -53,7 +55,7 @@ pub fn connect() -> Subscription<Event> {
                             },
                             recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
-                                    output.send(Event::MessageReceived(i)).await.unwrap();
+                                    output.send(WsUpdate::Price(i)).await.unwrap();
                                 }
                             }
                         };
@@ -65,9 +67,4 @@ pub fn connect() -> Subscription<Event> {
             }
         },
     )
-}
-
-#[derive(Debug, Clone)]
-pub enum Event {
-    MessageReceived(AssetDetails),
 }

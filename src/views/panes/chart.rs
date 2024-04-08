@@ -1,4 +1,12 @@
 use crate::message::Message;
+use crate::views::components::better_btn::GreenBtn;
+use iced::widget::button;
+use iced::widget::column;
+use iced::widget::row;
+use iced::widget::Row;
+use iced::widget::Space;
+use iced::Element;
+use iced::Length;
 use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
@@ -7,11 +15,13 @@ use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use iced::widget::{container, Container};
 use ringbuf::Rb;
 
+use super::orders::tb;
+
 #[derive(Debug, Clone)]
 pub(crate) enum ChartMessage {}
 
 pub struct ChartPane {
-    pub data: ringbuf::HeapRb<f64>
+    pub data: ringbuf::HeapRb<f64>,
 }
 
 impl Chart<Message> for ChartPane {
@@ -62,7 +72,9 @@ impl Chart<Message> for ChartPane {
 
 impl ChartPane {
     pub(crate) fn new() -> Self {
-        Self { data: ringbuf::HeapRb::new(500) }
+        Self {
+            data: ringbuf::HeapRb::new(500),
+        }
     }
 
     pub(crate) fn update_data(&mut self, new_p: f64) {
@@ -70,19 +82,38 @@ impl ChartPane {
     }
 
     pub(crate) fn view(&self) -> Container<'_, Message> {
-        container(ChartWidget::new(self))
-            .style(container::Appearance {
-                background: Some(iced::Background::Color(iced::Color::from_rgb(
-                    0.07, 0.07, 0.07,
-                ))),
-                border: iced::Border {
-                    radius: 16.0.into(),
-                    ..Default::default()
-                },
+        let btns = Row::with_children(
+            ["1m", "5m", "30m", "1h", "1d"]
+                .map(|t| {
+                    button(tb(t).style(iced::Color::WHITE).size(12))
+                        .on_press(Message::TimeframeChanged(t.into()))
+                        .padding(8)
+                        .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                })
+                .map(Element::from),
+        )
+        .spacing(4);
+
+        container(column![
+            ChartWidget::new(self),
+            row![
+                Space::new(Length::Fill, 0),
+                btns,
+                Space::new(Length::Fill, 0)
+            ]
+        ])
+        .style(container::Appearance {
+            background: Some(iced::Background::Color(iced::Color::from_rgb(
+                0.07, 0.07, 0.07,
+            ))),
+            border: iced::Border {
+                radius: 16.0.into(),
                 ..Default::default()
-            })
-            .padding(2)
-            .center_x()
-            .center_y()
+            },
+            ..Default::default()
+        })
+        .padding(2)
+        .center_x()
+        .center_y()
     }
 }

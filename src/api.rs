@@ -29,7 +29,10 @@ impl Client {
 
     pub(crate) fn new(public: String, secret: String) -> Self {
         Self {
-            binance_account: Arc::new(Mutex::new(Self::make_client(public.clone(), secret.clone()))),
+            binance_account: Arc::new(Mutex::new(Self::make_client(
+                public.clone(),
+                secret.clone(),
+            ))),
             binance_market: Arc::new(Mutex::new(Self::make_market(public, secret))),
         }
     }
@@ -113,12 +116,20 @@ impl Client {
         )
     }
 
-    pub(crate) fn klines(&self, pair: String) -> Command<Message> {
+    pub(crate) fn klines(&self, pair: String, tf: String) -> Command<Message> {
         let market = Arc::clone(&self.binance_market);
         Command::perform(
             async move {
                 let acc = market.lock().await;
-                acc.get_klines(pair, "5m", 500, None, None).await.unwrap()
+                acc.get_klines(
+                    pair,
+                    if tf.is_empty() { "5m" } else { &tf },
+                    500,
+                    None,
+                    None,
+                )
+                .await
+                .unwrap()
             },
             Message::KlinesRecieved,
         )

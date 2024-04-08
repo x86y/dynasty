@@ -67,11 +67,14 @@ impl App {
         Command::batch([
             self.api.orders_history(),
             self.api.balances(),
-            self.api.klines(if self.data.quote.is_empty() {
-                "BTCUSDT".into()
-            } else {
-                self.data.quote.clone()
-            }),
+            self.api.klines(
+                if self.data.quote.is_empty() {
+                    "BTCUSDT".into()
+                } else {
+                    self.data.quote.clone()
+                },
+                String::new(),
+            ),
         ])
     }
 
@@ -275,6 +278,7 @@ impl Application for App {
                     self.dashboard.prepend_chart_data(&closes)
                 }
             },
+            Message::TimeframeChanged(tf) => self.api.klines(self.dashboard.new_pair.clone(), tf),
         }
     }
 

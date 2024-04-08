@@ -8,6 +8,7 @@ use iced::{
     Command, Element, Font, Length,
 };
 use iced_futures::Subscription;
+use ringbuf::Rb;
 
 use crate::{
     api::Client,
@@ -338,7 +339,7 @@ impl DashboardView {
     }
 
     pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<Message> {
-        self.chart.data.extend_from_slice(slc);
+        self.chart.data.push_slice(slc);
         Command::none()
     }
 

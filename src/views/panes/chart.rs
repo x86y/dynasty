@@ -5,12 +5,13 @@ use plotters::style::IntoFont;
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 
 use iced::widget::{container, Container};
+use ringbuf::Rb;
 
 #[derive(Debug, Clone)]
 pub(crate) enum ChartMessage {}
 
 pub struct ChartPane {
-    pub data: Vec<f64>,
+    pub data: ringbuf::HeapRb<f64>
 }
 
 impl Chart<Message> for ChartPane {
@@ -61,11 +62,11 @@ impl Chart<Message> for ChartPane {
 
 impl ChartPane {
     pub(crate) fn new() -> Self {
-        Self { data: vec![] }
+        Self { data: ringbuf::HeapRb::new(500) }
     }
 
     pub(crate) fn update_data(&mut self, new_p: f64) {
-        self.data.push(new_p);
+        let _ = self.data.push(new_p);
     }
 
     pub(crate) fn view(&self) -> Container<'_, Message> {

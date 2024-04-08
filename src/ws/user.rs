@@ -6,6 +6,8 @@ use futures::FutureExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use super::WsUpdate;
+
 pub fn connect(public: String) -> Subscription<WsUpdate> {
     struct Connect;
 
@@ -41,7 +43,7 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
                                     },
                                     recv2 = r.recv().fuse() => {
                                         if let Some(i) = recv2 {
-                                            output.send(WsUpdate::UpdateReceived(i)).await.unwrap();
+                                            output.send(WsUpdate::User(i)).await.unwrap();
                                         } else {
                                             eprintln!("User Stream error");
                                             break;
@@ -60,9 +62,4 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
             }
         },
     )
-}
-
-#[derive(Debug, Clone)]
-pub enum WsUpdate {
-    UpdateReceived(WebsocketEvent),
 }

@@ -7,7 +7,9 @@ use futures::sink::SinkExt;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub fn connect(token: String) -> Subscription<Event> {
+use super::WsUpdate;
+
+pub fn connect(token: String) -> Subscription<WsUpdate> {
     struct Connect;
 
     subscription::channel(
@@ -39,7 +41,7 @@ pub fn connect(token: String) -> Subscription<Event> {
                             },
                             recv2 = r.recv().fuse() => {
                                 if let Some(i) = recv2 {
-                                    output.send(Event::MessageReceived(i)).await.unwrap();
+                                    output.send(WsUpdate::Trade(i)).await.unwrap();
                                 } else {
                                     break
                                 }
@@ -53,9 +55,4 @@ pub fn connect(token: String) -> Subscription<Event> {
             }
         },
     )
-}
-
-#[derive(Debug, Clone)]
-pub enum Event {
-    MessageReceived(TradesEvent),
 }

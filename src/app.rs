@@ -3,19 +3,16 @@ use crate::config::Config;
 use crate::message::MaybeError;
 use crate::message::Message;
 use crate::svg_logos;
-use crate::views::dashboard::DashboardMessage;
 use crate::views::dashboard::DashboardView;
 use crate::views::settings::SettingsView;
-use crate::ws::book;
 use crate::ws::prices;
-use crate::ws::trades;
 use crate::ws::user;
+use crate::ws::WsUpdate;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::env;
-use std::sync::Arc;
 use std::time::Duration;
 
 use binance::rest_model::OrderStatus;
@@ -51,7 +48,7 @@ pub(crate) struct AppData {
 pub(crate) struct App {
     config: Config,
     data: AppData,
-    api: Arc<Client>,
+    api: Client,
     errors: Vec<String>,
     settings_opened: bool,
     dashboard: DashboardView,
@@ -64,12 +61,20 @@ impl App {
         App {
             config: config.clone(),
             data: Default::default(),
-            api: Arc::new(api),
+            api,
             errors: vec![],
             settings_opened: !config.valid(),
             dashboard: DashboardView::new(),
             settings: SettingsView::new(config),
         }
+    }
+
+    fn fetch_data(&self) -> Command<Message> {
+        Command::batch([self.api.orders_history(), self.api.balances()])
+    }
+
+    fn toggle_settings(&mut self) {
+        self.settings_opened = !(self.settings_opened && self.config.valid());
     }
 }
 
@@ -80,10 +85,13 @@ impl Application for App {
     type Executor = executor::Default;
 
     fn new(flags: Self::Flags) -> (Self, Command<Message>) {
+        let app = App::new(flags);
+        let fetch_data_cmd = app.fetch_data();
+
         (
-            App::new(flags),
+            app,
             Command::batch([
-                Command::perform(async {}, |_| Message::FetchData),
+                fetch_data_cmd,
                 font::load(
                     include_bytes!(concat!(
                         env!("CARGO_MANIFEST_DIR"),
@@ -134,52 +142,94 @@ impl Application for App {
                 self.dashboard.tick(&self.data);
                 Command::none()
             }
-            Message::FetchData => {
-                let api = Arc::clone(&self.api);
-                let api2 = Arc::clone(&self.api);
-
-                Command::batch([
-                    Command::perform(
-                        async move { api.orders_history().await },
-                        Message::OrdersRecieved,
-                    ),
-                    Command::perform(
-                        async move { api2.balances().await },
-                        Message::BalancesRecieved,
-                    ),
-                ])
-            }
             Message::ConfigUpdated(update) => match update {
                 Ok(new_config) => {
                     self.config = new_config;
 
-                    Command::batch([
-                        Command::perform(async {}, |_| Message::ToggleSettings),
-                        Command::perform(async {}, |_| Message::FetchData),
-                    ])
+                    self.toggle_settings();
+
+                    Command::batch([self.fetch_data()])
                 }
                 Err(err) => Command::perform(async {}, move |_| {
                     Message::DispatchErr(("config".to_string(), err.to_string()))
                 }),
             },
-            Message::BookEcho(msg) => {
-                match msg {
-                    book::BookEvent::MessageReceived(bt) => {
-                        self.data.book = (bt.sym, bt.bids, bt.asks);
+            Message::Ws(msg) => {
+                match &msg {
+                    WsUpdate::Book(bt) => {
+                        self.data.book = (bt.sym.clone(), bt.bids.clone(), bt.asks.clone());
                     }
-                };
-                Command::none()
-            }
-            Message::TradeEcho(t) => {
-                match t {
-                    trades::Event::MessageReceived(te) => {
+                    WsUpdate::Trade(te) => {
                         if self.data.trades.len() >= 1000 {
                             self.data.trades.pop_back();
                         }
-                        self.data.trades.push_front(te);
+                        self.data.trades.push_front(te.clone());
                     }
-                }
-                Command::none()
+                    WsUpdate::User(u) => {
+                        match u {
+                            binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
+                                for b in p.balances.iter() {
+                                    let ib =
+                                        self.data.balances.iter_mut().find(|a| a.asset == b.asset);
+                                    if let Some(uib) = ib {
+                                        *uib = unsafe { std::mem::transmute(b.clone()) }
+                                    }
+                                }
+                            }
+                            binance::ws_model::WebsocketEvent::OrderUpdate(o) => {
+                                let existing_order = self.data.orders.iter_mut().find(|order| {
+                                    // order.client_order_id == o.order_id&&
+                                    order.symbol == o.symbol
+                                        && order.side == o.side
+                                        && order.status == OrderStatus::PartiallyFilled
+                                });
+
+                                if let Some(order) = existing_order {
+                                    // Update the existing order with the new values
+                                    order.executed_qty += o.qty_last_executed;
+                                    order.cummulative_quote_qty += o.qty;
+                                    order.update_time = o.trade_order_time;
+                                } else {
+                                    self.data.orders.insert(
+                                        0,
+                                        Order {
+                                            symbol: o.symbol.clone(),
+                                            order_id: o.order_id,
+                                            order_list_id: o.order_list_id as i32,
+                                            client_order_id: o.client_order_id.clone().unwrap(),
+                                            price: o.price,
+                                            orig_qty: o.qty,
+                                            executed_qty: o.qty_last_executed,
+                                            cummulative_quote_qty: o.qty,
+                                            status: o.current_order_status.clone(),
+                                            time_in_force: o.time_in_force.clone(),
+                                            order_type: o.order_type.clone(),
+                                            side: o.side.clone(),
+                                            stop_price: o.stop_price,
+                                            iceberg_qty: o.iceberg_qty,
+                                            time: o.event_time,
+                                            update_time: o.trade_order_time,
+                                            is_working: false,
+                                            orig_quote_order_qty: o.qty,
+                                        },
+                                    );
+                                }
+                            }
+                            binance::ws_model::WebsocketEvent::BalanceUpdate(_p) => {
+                                // not needed imo?
+                            }
+                            binance::ws_model::WebsocketEvent::ListOrderUpdate(_lo) => {
+                                // not needed imo?
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    WsUpdate::Price(m) => {
+                        self.data.prices.insert(m.name.clone(), m.price);
+                    }
+                };
+
+                self.dashboard.ws(msg)
             }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;
@@ -193,66 +243,6 @@ impl Application for App {
                 self.data.quote = new_market;
                 Command::none()
             }
-            Message::UserEcho(f) => {
-                let user::WsUpdate::UpdateReceived(u) = f;
-                match u {
-                    binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
-                        for b in p.balances.iter() {
-                            let ib = self.data.balances.iter_mut().find(|a| a.asset == b.asset);
-                            if let Some(uib) = ib {
-                                *uib = unsafe { std::mem::transmute(b.clone()) }
-                            }
-                        }
-                    }
-                    binance::ws_model::WebsocketEvent::OrderUpdate(o) => {
-                        let existing_order = self.data.orders.iter_mut().find(|order| {
-                            // order.client_order_id == o.order_id&&
-                            order.symbol == o.symbol
-                                && order.side == o.side
-                                && order.status == OrderStatus::PartiallyFilled
-                        });
-
-                        if let Some(order) = existing_order {
-                            // Update the existing order with the new values
-                            order.executed_qty += o.qty_last_executed;
-                            order.cummulative_quote_qty += o.qty;
-                            order.update_time = o.trade_order_time;
-                        } else {
-                            self.data.orders.insert(
-                                0,
-                                Order {
-                                    symbol: o.symbol,
-                                    order_id: o.order_id,
-                                    order_list_id: o.order_list_id as i32,
-                                    client_order_id: o.client_order_id.unwrap(),
-                                    price: o.price,
-                                    orig_qty: o.qty,
-                                    executed_qty: o.qty_last_executed,
-                                    cummulative_quote_qty: o.qty,
-                                    status: o.current_order_status,
-                                    time_in_force: o.time_in_force,
-                                    order_type: o.order_type,
-                                    side: o.side,
-                                    stop_price: o.stop_price,
-                                    iceberg_qty: o.iceberg_qty,
-                                    time: o.event_time,
-                                    update_time: o.trade_order_time,
-                                    is_working: false,
-                                    orig_quote_order_qty: o.qty,
-                                },
-                            );
-                        }
-                    }
-                    binance::ws_model::WebsocketEvent::BalanceUpdate(_p) => {
-                        // not needed imo?
-                    }
-                    binance::ws_model::WebsocketEvent::ListOrderUpdate(_lo) => {
-                        // not needed imo?
-                    }
-                    _ => unreachable!(),
-                };
-                Command::none()
-            }
             Message::DispatchErr((source, message)) => {
                 eprintln!("error: {source}: {message}");
                 // FIXME: error panel cannot be closed and covers settings button
@@ -260,22 +250,13 @@ impl Application for App {
 
                 Command::none()
             }
-            Message::ToggleSettings => {
-                self.settings_opened = !(self.settings_opened && self.config.valid());
+            Message::SettingsToggled => {
+                self.toggle_settings();
 
                 Command::none()
             }
             Message::Dashboard(msg) => self.dashboard.update(msg, &self.api, &self.data),
             Message::Settings(msg) => self.settings.update(msg),
-            Message::PriceEcho(msg) => {
-                match msg {
-                    prices::Event::MessageReceived(ref m) => {
-                        self.data.prices.insert(m.name.clone(), m.price);
-                    }
-                };
-                self.dashboard
-                    .update(DashboardMessage::PriceEcho(msg), &self.api, &self.data)
-            }
             Message::NoOp => Command::none(),
         }
     }
@@ -283,8 +264,8 @@ impl Application for App {
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             iced::time::every(Duration::from_millis(1000)).map(|_| Message::Tick),
-            prices::connect().map(Message::PriceEcho),
-            user::connect(self.config.api_key.clone()).map(Message::UserEcho),
+            prices::connect().map(Message::from),
+            user::connect(self.config.api_key.clone()).map(Message::from),
             self.dashboard.subscription(),
             /*
             keyboard::on_key_press(|key_code, modifiers| {
@@ -327,7 +308,7 @@ impl Application for App {
                 button(text("Settings").size(14))
                     .padding(8)
                     .style(iced::theme::Button::Text)
-                    .on_press(Message::ToggleSettings)
+                    .on_press(Message::SettingsToggled)
             ]
             .align_items(iced::Alignment::Center),
         )
@@ -348,7 +329,7 @@ impl Application for App {
                 button(text("X").size(14))
                     .padding(8)
                     .style(iced::theme::Button::Text)
-                    .on_press(Message::ToggleSettings)
+                    .on_press(Message::SettingsToggled)
             ]
             .align_items(iced::Alignment::Center),
         )

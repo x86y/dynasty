@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use iced::{
     alignment::{Horizontal, Vertical},
     theme,
@@ -18,7 +16,7 @@ use crate::{
     config::Config,
     message::Message,
     theme::h2c,
-    ws::{book, prices, trades},
+    ws::{book, trades, WsUpdate},
 };
 
 use super::panes::{
@@ -150,8 +148,6 @@ pub(crate) enum DashboardMessage {
     MarketPairSet,
     MarketPairSet2,
     MarketPairUnset,
-    MarketPrice(prices::Event),
-    PriceEcho(prices::Event),
     PriceInc(f64),
     AssetSelected(String),
     QtySet(f64),
@@ -241,7 +237,7 @@ impl DashboardView {
     pub(crate) fn update(
         &mut self,
         message: DashboardMessage,
-        api: &Arc<Client>,
+        api: &Client,
         data: &AppData,
     ) -> Command<Message> {
         match message {
@@ -326,50 +322,18 @@ impl DashboardView {
                 self.filter_string = wfi;
                 Command::none()
             }
-            DashboardMessage::BuyPressed => {
-                let api = Arc::clone(api);
-                let new_pair = self.new_pair.clone();
-                let new_price = self.new_price.parse().unwrap();
-                let new_amt = self.new_amt.parse().unwrap();
-
-                Command::perform(
-                    async move {
-                        api.trade_spot(
-                            new_pair,
-                            new_price,
-                            new_amt,
-                            binance::rest_model::OrderSide::Buy,
-                        )
-                        .await
-                    },
-                    |m| {
-                        println!("{m:?}");
-                        Message::MarketChanged("REEEEE".to_string())
-                    },
-                )
-            }
-            DashboardMessage::SellPressed => {
-                let api = Arc::clone(api);
-                let new_pair = self.new_pair.clone();
-                let new_price = self.new_price.parse().unwrap();
-                let new_amt = self.new_amt.parse().unwrap();
-
-                Command::perform(
-                    async move {
-                        api.trade_spot(
-                            new_pair,
-                            new_price,
-                            new_amt,
-                            binance::rest_model::OrderSide::Sell,
-                        )
-                        .await
-                    },
-                    |m| {
-                        println!("{m:?}");
-                        Message::MarketChanged("REEEEE".to_string())
-                    },
-                )
-            }
+            DashboardMessage::BuyPressed => api.trade_spot(
+                self.new_pair.clone(),
+                self.new_price.parse().unwrap(),
+                self.new_amt.parse().unwrap(),
+                binance::rest_model::OrderSide::Buy,
+            ),
+            DashboardMessage::SellPressed => api.trade_spot(
+                self.new_pair.clone(),
+                self.new_price.parse().unwrap(),
+                self.new_amt.parse().unwrap(),
+                binance::rest_model::OrderSide::Sell,
+            ),
             DashboardMessage::MarketPairChanged(np) => {
                 self.new_pair = np;
                 Command::none()
@@ -380,16 +344,6 @@ impl DashboardView {
             }
             DashboardMessage::MarketAmtChanged(nm) => {
                 self.new_amt = nm;
-                Command::none()
-            }
-            DashboardMessage::PriceEcho(msg) => {
-                match msg {
-                    prices::Event::MessageReceived(m) => {
-                        if m.name == self.new_pair {
-                            self.chart.update_data(m.price.into());
-                        }
-                    }
-                };
                 Command::none()
             }
             DashboardMessage::AssetSelected(a) => {
@@ -416,10 +370,6 @@ impl DashboardView {
                     (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
                 Command::none()
             }
-            DashboardMessage::MarketPrice(p) => {
-                println!("incame price {p:?}");
-                Command::none()
-            }
             DashboardMessage::MarketPairSet => {
                 self.pair_submitted = true;
                 Command::none()
@@ -438,6 +388,18 @@ impl DashboardView {
 
     pub(crate) fn tick(&mut self, data: &AppData) {
         self.calculator.tick(data)
+    }
+    pub(crate) fn ws(&mut self, message: WsUpdate) -> Command<Message> {
+        match message {
+            WsUpdate::Price(m) => {
+                if m.name == self.new_pair {
+                    self.chart.update_data(m.price.into());
+                }
+            }
+            WsUpdate::Trade(_) | WsUpdate::Book(_) | WsUpdate::User(_) => (),
+        }
+
+        Command::none()
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData, config: &'a Config) -> PaneGrid<Message> {
@@ -485,12 +447,12 @@ impl DashboardView {
     pub(crate) fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             if self.pair_submitted {
-                trades::connect(self.new_pair.to_lowercase()).map(Message::TradeEcho)
+                trades::connect(self.new_pair.to_lowercase()).map(Message::from)
             } else {
                 Subscription::none()
             },
             if self.pair_submitted {
-                book::connect(self.new_pair.to_lowercase()).map(Message::BookEcho)
+                book::connect(self.new_pair.to_lowercase()).map(Message::from)
             } else {
                 Subscription::none()
             },

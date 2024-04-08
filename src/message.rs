@@ -4,7 +4,7 @@ use std::fmt::Display;
 use crate::{
     config::Config,
     views::{dashboard::DashboardMessage, settings::SettingsMessage},
-    ws::{book, prices, trades, user},
+    ws::WsUpdate,
 };
 
 use binance::rest_model::{Balance, Order};
@@ -75,7 +75,7 @@ pub(crate) enum Message {
     /// Go to or from settings depending on where you are.
     ///
     /// You cannot close settings while config is invalid
-    ToggleSettings,
+    SettingsToggled,
 
     /// Manually triggered at interval
     Tick,
@@ -83,23 +83,10 @@ pub(crate) enum Message {
     /// Error source and message
     DispatchErr((String, String)),
 
-    /// Fetch personal data with api key
-    FetchData,
-
     /// Config update happened
     ConfigUpdated(Result<Config, String>),
 
-    /// Websocket trade event
-    TradeEcho(trades::Event),
-
-    /// Websocket book event
-    BookEcho(book::BookEvent),
-
-    /// Websocket user event
-    UserEcho(user::WsUpdate),
-
-    /// Websocket price event
-    PriceEcho(prices::Event),
+    Ws(WsUpdate),
 
     /// ??? ??? ???
     OrdersRecieved(Vec<Order>),
@@ -122,6 +109,12 @@ impl From<MaybeError> for Message {
             MaybeError::Error { source, message } => Self::DispatchErr((source, message)),
             MaybeError::NoError { .. } => Self::NoOp,
         }
+    }
+}
+
+impl From<WsUpdate> for Message {
+    fn from(value: WsUpdate) -> Self {
+        Self::Ws(value)
     }
 }
 

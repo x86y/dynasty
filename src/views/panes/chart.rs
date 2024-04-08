@@ -66,7 +66,7 @@ impl ChartPane {
     }
 
     pub(crate) fn update_data(&mut self, new_p: f64) {
-        let _ = self.data.push(new_p);
+        let _ = self.data.push_overwrite(new_p);
     }
 
     pub(crate) fn view(&self) -> Container<'_, Message> {

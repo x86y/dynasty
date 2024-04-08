@@ -167,7 +167,7 @@ pub(crate) struct DashboardView {
     // 2
     new_price: String,
     new_amt: String,
-    new_pair: String,
+    pub new_pair: String,
     // 3
     pair_submitted: bool,
 }
@@ -301,7 +301,7 @@ impl DashboardView {
                     self.new_pair = a;
                 }
                 Command::batch([
-                    api.klines(self.new_pair.clone()),
+                    api.klines(self.new_pair.clone(), String::new()),
                     Command::perform(async {}, |_| DashboardMessage::MarketPairUnset.into()),
                 ])
             }

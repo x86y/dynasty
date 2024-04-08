@@ -71,6 +71,9 @@ pub(crate) enum Message {
     /// Config update happened
     ConfigUpdated(Result<Config, String>),
 
+    // API keys update happened
+    CredentialsUpdated,
+
     Ws(WsUpdate),
 
     /// ??? ??? ???

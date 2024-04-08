@@ -15,6 +15,7 @@ use std::collections::VecDeque;
 use std::env;
 use std::time::Duration;
 
+use binance::rest_model::KlineSummaries;
 use binance::rest_model::OrderStatus;
 use binance::rest_model::{Balance, Order};
 use binance::ws_model::TradesEvent;
@@ -28,13 +29,14 @@ use iced::widget::Space;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct AppData {
     pub(crate) prices: HashMap<String, f32>,
     pub(crate) book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     pub(crate) trades: VecDeque<TradesEvent>,
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
+    pub(crate) klines: KlineSummaries,
     pub(crate) quote: String,
 }
 
@@ -53,7 +55,15 @@ impl App {
         let api = Client::new(config.api_key.clone(), config.api_secret_key.clone());
         App {
             config: config.clone(),
-            data: Default::default(),
+            data: AppData {
+                klines: KlineSummaries::AllKlineSummaries(vec![]),
+                prices: Default::default(),
+                book: Default::default(),
+                trades: Default::default(),
+                balances: Default::default(),
+                orders: Default::default(),
+                quote: Default::default(),
+            },
             api,
             errors: vec![],
             settings_opened: !config.valid(),
@@ -63,7 +73,15 @@ impl App {
     }
 
     fn fetch_data(&self) -> Command<Message> {
-        Command::batch([self.api.orders_history(), self.api.balances()])
+        Command::batch([
+            self.api.orders_history(),
+            self.api.balances(),
+            self.api.klines(if self.data.quote.is_empty() {
+                "BTCUSDT".into()
+            } else {
+                self.data.quote.clone()
+            }),
+        ])
     }
 
     fn toggle_settings(&mut self) {
@@ -260,6 +278,12 @@ impl Application for App {
             Message::Dashboard(msg) => self.dashboard.update(msg, &self.api, &self.data),
             Message::Settings(msg) => self.settings.update(msg),
             Message::NoOp => Command::none(),
+            Message::KlinesRecieved(kr) => match kr {
+                KlineSummaries::AllKlineSummaries(klines) => {
+                    let closes: Vec<f64> = klines.iter().map(|kline| kline.close).collect();
+                    self.dashboard.prepend_chart_data(&closes)
+                }
+            },
         }
     }
 

@@ -10,7 +10,7 @@ use iced::widget::{container, Container};
 pub(crate) enum ChartMessage {}
 
 pub struct ChartPane {
-    data: Vec<f64>,
+    pub data: Vec<f64>,
 }
 
 impl Chart<Message> for ChartPane {

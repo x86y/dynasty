@@ -7,6 +7,7 @@ use crate::{
     ws::WsUpdate,
 };
 
+use binance::rest_model::KlineSummaries;
 use binance::rest_model::{Balance, Order};
 
 /// Converts Result Err variant into string, stores error source
@@ -79,6 +80,7 @@ pub(crate) enum Message {
     /// ??? ??? ???
     OrdersRecieved(Vec<Order>),
     BalancesRecieved(Vec<Balance>),
+    KlinesRecieved(KlineSummaries),
     MarketChanged(String),
 
     /// Settings view events

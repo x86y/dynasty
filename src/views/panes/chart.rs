@@ -4,10 +4,7 @@ use plotters::style::colors;
 use plotters::style::IntoFont;
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 
-use iced::{
-    widget::{container, Container},
-    Command,
-};
+use iced::widget::{container, Container};
 
 #[derive(Debug, Clone)]
 pub(crate) enum ChartMessage {}
@@ -19,10 +16,7 @@ pub struct ChartPane {
 impl Chart<Message> for ChartPane {
     type State = ();
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
-        const POINT_COLOR: RGBColor = colors::WHITE;
         const LINE_COLOR: RGBColor = colors::GREEN;
-        const HOVER_COLOR: RGBColor = colors::YELLOW;
-        const PREVIEW_COLOR: RGBColor = colors::GREEN;
 
         let (min, max) = self.data.iter().fold((f32::MAX, f32::MIN), |acc, &x| {
             (acc.0.min(x as f32), acc.1.max(x as f32))
@@ -70,9 +64,6 @@ impl ChartPane {
         Self { data: vec![] }
     }
 
-    pub(crate) fn update(&mut self, _message: f64) -> Command<Message> {
-        Command::none()
-    }
     pub(crate) fn update_data(&mut self, new_p: f64) {
         self.data.push(new_p);
     }

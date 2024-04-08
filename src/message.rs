@@ -44,21 +44,6 @@ impl MaybeError {
             self
         }
     }
-
-    /// Throws away Ok and stores Err as `Debug` string
-    pub(crate) fn maybe_debug<T, E>(self, value: &Result<T, E>) -> Self
-    where
-        E: Debug,
-    {
-        if let Err(err) = value {
-            Self::Error {
-                source: self.into_source(),
-                message: format!("{err:?}"),
-            }
-        } else {
-            self
-        }
-    }
 }
 
 impl Display for MaybeError {

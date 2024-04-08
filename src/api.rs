@@ -29,7 +29,6 @@ impl Client {
 
     pub(crate) async fn swap_credentials(&mut self, public: String, secret: String) {
         let mut account = self.binance_account.lock().await;
-
         *account = Self::make_client(public, secret)
     }
 

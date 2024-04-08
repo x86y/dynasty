@@ -1,10 +1,9 @@
 use iced::{
-    alignment::{Horizontal, Vertical},
     theme,
     widget::{
         button,
         pane_grid::{self, Configuration},
-        responsive, row, text, Container, PaneGrid,
+        responsive, row, text, PaneGrid,
     },
     Command, Element, Font, Length,
 };
@@ -128,16 +127,12 @@ pub fn view_controls<'a>(
 
 #[derive(Debug, Clone)]
 pub(crate) enum DashboardMessage {
-    Split(pane_grid::Axis, pane_grid::Pane),
-    SplitFocused(pane_grid::Axis),
-    FocusAdjacent(pane_grid::Direction),
     Clicked(pane_grid::Pane),
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
     Maximize(pane_grid::Pane),
     Restore,
     Close(pane_grid::Pane),
-    CloseFocused,
     WatchlistFilterInput(String),
     ApplyWatchlistFilter(WatchlistFilter),
     SellPressed,
@@ -162,7 +157,6 @@ impl From<CalculatorMessage> for DashboardMessage {
 
 pub(crate) struct DashboardView {
     focus: Option<pane_grid::Pane>,
-    panes_created: usize,
     panes: pane_grid::State<Pane>,
     chart: ChartPane,
     calculator: CalculatorPane,
@@ -221,7 +215,6 @@ impl DashboardView {
 
         Self {
             focus: None,
-            panes_created: 1,
             panes,
             chart: ChartPane::new(),
             calculator: CalculatorPane::new(),
@@ -241,40 +234,6 @@ impl DashboardView {
         data: &AppData,
     ) -> Command<Message> {
         match message {
-            DashboardMessage::Split(axis, pane) => {
-                let result = self
-                    .panes
-                    .split(axis, pane, Pane::new(self.panes_created.into()));
-
-                if let Some((pane, _)) = result {
-                    self.focus = Some(pane);
-                }
-
-                self.panes_created += 1;
-                Command::none()
-            }
-            DashboardMessage::SplitFocused(axis) => {
-                if let Some(pane) = self.focus {
-                    let result = self
-                        .panes
-                        .split(axis, pane, Pane::new(self.panes_created.into()));
-
-                    if let Some((pane, _)) = result {
-                        self.focus = Some(pane);
-                    }
-
-                    self.panes_created += 1;
-                }
-                Command::none()
-            }
-            DashboardMessage::FocusAdjacent(direction) => {
-                if let Some(pane) = self.focus {
-                    if let Some(adjacent) = self.panes.adjacent(pane, direction) {
-                        self.focus = Some(adjacent);
-                    }
-                }
-                Command::none()
-            }
             DashboardMessage::Clicked(pane) => {
                 self.focus = Some(pane);
                 Command::none()
@@ -299,18 +258,6 @@ impl DashboardView {
             DashboardMessage::Close(pane) => {
                 if let Some((_, sibling)) = self.panes.close(pane) {
                     self.focus = Some(sibling);
-                }
-                Command::none()
-            }
-            DashboardMessage::CloseFocused => {
-                if let Some(pane) = self.focus {
-                    if let Some(Pane { is_pinned, .. }) = self.panes.get(pane) {
-                        if !is_pinned {
-                            if let Some((_, sibling)) = self.panes.close(pane) {
-                                self.focus = Some(sibling);
-                            }
-                        }
-                    }
                 }
                 Command::none()
             }

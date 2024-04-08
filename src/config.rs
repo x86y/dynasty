@@ -92,7 +92,7 @@ impl Config {
     }
 
     fn crendentials_empty(&self) -> bool {
-        self.api_key == "" || self.api_secret_key == ""
+        self.api_key.is_empty() || self.api_secret_key.is_empty()
     }
 
     pub(crate) fn valid(&self) -> bool {

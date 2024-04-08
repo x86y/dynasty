@@ -28,12 +28,6 @@ use iced::widget::Space;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 
-#[derive(PartialEq, Debug)]
-enum Screen {
-    Dashboard,
-    Settings,
-}
-
 #[derive(Default, Debug)]
 pub(crate) struct AppData {
     pub(crate) prices: HashMap<String, f32>,
@@ -41,7 +35,6 @@ pub(crate) struct AppData {
     pub(crate) trades: VecDeque<TradesEvent>,
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
-    pub(crate) chart_data: Vec<f64>,
     pub(crate) quote: String,
 }
 

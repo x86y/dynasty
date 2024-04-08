@@ -14,8 +14,7 @@ use std::env;
 use iced::{Application, Font, Settings};
 
 fn main() -> iced::Result {
-    let config = Config::load()
-        .unwrap_or_default();
+    let config = Config::load().unwrap_or_default();
 
     App::run(Settings {
         window: iced::window::Settings {

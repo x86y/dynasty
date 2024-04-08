@@ -146,7 +146,7 @@ mod calc_k {
     use std::collections::HashMap;
 
     use binance::rest_model::Order;
-    use ngnk::{CK, kinit, K0};
+    use ngnk::{kinit, CK, K0};
 
     pub(crate) struct Calculator {}
 
@@ -158,42 +158,30 @@ mod calc_k {
         }
 
         pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
-            let mut r: String = String::new();
-
-            for key in prices.keys().take(250) {
-                if let Some((base, _)) = split_symbol(key) {
-                    if !base.is_empty() {
-                        r.push_str(&format!("`\"{base}\""));
-                    }
-                }
-            }
-            r.push('!');
+            let mut keys = String::new(); let mut values = String::new();
             for (key, val) in prices.iter().take(250) {
                 if let Some((base, _)) = split_symbol(key) {
-                    let f: String = base.chars().filter(|c| c.is_alphabetic()).collect();
-                    if !f.is_empty() {
-                        r.push_str(&format!("{val} "));
+                    let filtered: String = base.chars().filter(|c| c.is_alphabetic()).collect();
+                    if !filtered.is_empty() {
+                        keys.push_str(&format!("`\"{filtered}\""));
+                        values.push_str(&format!("{val} "));
                     }
                 }
             }
-            K0(format!("b:{r}"), Vec::new());
+            K0(format!("PRICES:({keys}! {values})"), Vec::new());
+            keys.clear();values.clear();
 
-            let mut out = String::new();
-            for i in 0..orders.len() {
-                out.push_str(&format!("`t{i}",));
+            for (i, trade) in orders.iter().enumerate() {
+                keys.push_str(&format!("`t{} ", i));
+                values.push_str(&format!("{} ", order_value(trade, prices)));
             }
-            out.push('!');
-            for trade in orders.iter() {
-                out.push_str(&format!("{} ", order_value(trade, prices)));
-            }
-            K0(format!("d:{out}"), Vec::new());
+            K0(format!("ORDERS:({keys}!{values})"), Vec::new());
         }
 
         pub(crate) fn eval(&self, line: &str) -> String {
             //format!("{:?}", CK(K0(line.to_string(), vec![])))
             let payload = format!(".[{{`k@{line}}};[];{{(\"Error in K code\")}}]");
             CK(K0(payload, vec![]))
-            
         }
     }
 }

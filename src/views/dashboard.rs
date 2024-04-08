@@ -300,7 +300,10 @@ impl DashboardView {
                 } else {
                     self.new_pair = a;
                 }
-                Command::perform(async {}, |_| DashboardMessage::MarketPairUnset.into())
+                Command::batch([
+                    api.klines(self.new_pair.clone()),
+                    Command::perform(async {}, |_| DashboardMessage::MarketPairUnset.into()),
+                ])
             }
             DashboardMessage::QtySet(f) => {
                 let usdt_b = data
@@ -339,7 +342,8 @@ impl DashboardView {
     }
 
     pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<Message> {
-        self.chart.data.push_slice(slc);
+        self.chart.data.clear();
+        self.chart.data.push_slice_overwrite(slc);
         Command::none()
     }
 

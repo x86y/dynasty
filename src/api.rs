@@ -114,11 +114,11 @@ impl Client {
     }
 
     pub(crate) fn klines(&self, pair: String) -> Command<Message> {
-        let binance_account = Arc::clone(&self.binance_market);
+        let market = Arc::clone(&self.binance_market);
         Command::perform(
             async move {
-                let acc = binance_account.lock().await;
-                dbg!(acc.get_klines(pair, "1m", 500, None, None).await.unwrap())
+                let acc = market.lock().await;
+                acc.get_klines(pair, "5m", 500, None, None).await.unwrap()
             },
             Message::KlinesRecieved,
         )

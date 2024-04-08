@@ -146,7 +146,7 @@ mod calc_k {
     use std::collections::HashMap;
 
     use binance::rest_model::Order;
-    use ngnk::{iK, kinit, K0};
+    use ngnk::{CK, kinit, K0};
 
     pub(crate) struct Calculator {}
 
@@ -161,17 +161,18 @@ mod calc_k {
             let mut r: String = String::new();
 
             for key in prices.keys().take(250) {
-                let (base, _) = split_symbol(key).unwrap();
-                if !base.is_empty() {
-                    r.push_str(&format!("`\"{base}\""));
+                if let Some((base, _)) = split_symbol(key) {
+                    if !base.is_empty() {
+                        r.push_str(&format!("`\"{base}\""));
+                    }
                 }
             }
             r.push('!');
-            for (key, value) in prices.iter().take(250) {
+            for (key, val) in prices.iter().take(250) {
                 if let Some((base, _)) = split_symbol(key) {
-                    let f: String = name.chars().filter(|c| c.is_alphabetic()).collect();
+                    let f: String = base.chars().filter(|c| c.is_alphabetic()).collect();
                     if !f.is_empty() {
-                        r.push_str(&format!("{f} "));
+                        r.push_str(&format!("{val} "));
                     }
                 }
             }
@@ -190,7 +191,9 @@ mod calc_k {
 
         pub(crate) fn eval(&self, line: &str) -> String {
             //format!("{:?}", CK(K0(line.to_string(), vec![])))
-            format!("{:?}", iK(K0(line.to_string(), vec![])))
+            let payload = format!(".[{{`k@{line}}};[];{{(\"Error in K code\")}}]");
+            CK(K0(payload, vec![]))
+            
         }
     }
 }

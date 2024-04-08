@@ -2297,8 +2297,6 @@ dependencies = [
 [[package]]
 name = "ngnk"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad2596587b5eb936642ff49304d4a6b32b9a9be93e6a82faf7a11ae763edea30"
 dependencies = [
  "bindgen",
 ]

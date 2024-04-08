@@ -17,7 +17,6 @@ use iced::{Font, Settings};
 
 fn main() -> iced::Result {
     let config = Config::load()
-        .expect("unable to load config")
         .unwrap_or_default();
 
     App::run(Settings {
@@ -45,7 +44,7 @@ fn main() -> iced::Result {
             ..Default::default()
         },
         antialiasing: true,
-        flags: config,
+        flags: config.unwrap_or_default(),
         ..Default::default()
     })
 }

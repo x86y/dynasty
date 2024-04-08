@@ -27,9 +27,17 @@ impl Client {
         }
     }
 
-    pub(crate) async fn swap_credentials(&mut self, public: String, secret: String) {
-        let mut account = self.binance_account.lock().await;
-        *account = Self::make_client(public, secret)
+    /// Replace credentials in inner client
+    pub(crate) fn swap_credentials(&mut self, public: String, secret: String) -> Command<Message> {
+        let binance_account = Arc::clone(&self.binance_account);
+
+        Command::perform(
+            async move {
+                let mut account = binance_account.lock().await;
+                *account = Self::make_client(public, secret);
+            },
+            |_| Message::CredentialsUpdated,
+        )
     }
 
     pub(crate) fn orders_history(&self) -> Command<Message> {

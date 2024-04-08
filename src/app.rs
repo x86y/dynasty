@@ -137,16 +137,25 @@ impl Application for App {
             }
             Message::ConfigUpdated(update) => match update {
                 Ok(new_config) => {
-                    self.config = new_config;
+                    let credentials_updated = self.config.credentials() != new_config.credentials();
 
+                    self.config = new_config;
                     self.toggle_settings();
 
-                    Command::batch([self.fetch_data()])
+                    if credentials_updated {
+                        self.api.swap_credentials(
+                            self.config.api_key.clone(),
+                            self.config.api_secret_key.clone(),
+                        )
+                    } else {
+                        Command::none()
+                    }
                 }
                 Err(err) => Command::perform(async {}, move |_| {
                     Message::DispatchErr(("config".to_string(), err.to_string()))
                 }),
             },
+            Message::CredentialsUpdated => self.fetch_data(),
             Message::Ws(msg) => {
                 match &msg {
                     WsUpdate::Book(bt) => {

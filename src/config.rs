@@ -91,6 +91,10 @@ impl Config {
         fs::write(path, json.as_bytes()).map_err(SaveError::Write)
     }
 
+    pub(crate) fn credentials(&self) -> (&str, &str) {
+        (&self.api_key, &self.api_secret_key)
+    }
+
     fn crendentials_empty(&self) -> bool {
         self.api_key.is_empty() || self.api_secret_key.is_empty()
     }

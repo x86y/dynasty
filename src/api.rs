@@ -3,6 +3,7 @@ use std::sync::Arc;
 use binance::{
     account::Account,
     api::Binance,
+    market::Market,
     rest_model::{OrderSide, OrderStatus},
 };
 use futures::future::join_all;
@@ -14,6 +15,7 @@ use crate::message::Message;
 
 pub(crate) struct Client {
     binance_account: Arc<Mutex<Account>>,
+    binance_market: Arc<Mutex<Market>>,
 }
 
 impl Client {
@@ -21,9 +23,14 @@ impl Client {
         Binance::new(Some(public), Some(secret))
     }
 
+    fn make_market(public: String, secret: String) -> Market {
+        Binance::new(Some(public), Some(secret))
+    }
+
     pub(crate) fn new(public: String, secret: String) -> Self {
         Self {
-            binance_account: Arc::new(Mutex::new(Self::make_client(public, secret))),
+            binance_account: Arc::new(Mutex::new(Self::make_client(public.clone(), secret.clone()))),
+            binance_market: Arc::new(Mutex::new(Self::make_market(public, secret))),
         }
     }
 
@@ -103,6 +110,17 @@ impl Client {
                     .collect()
             },
             Message::BalancesRecieved,
+        )
+    }
+
+    pub(crate) fn klines(&self, pair: String) -> Command<Message> {
+        let binance_account = Arc::clone(&self.binance_market);
+        Command::perform(
+            async move {
+                let acc = binance_account.lock().await;
+                dbg!(acc.get_klines(pair, "1m", 500, None, None).await.unwrap())
+            },
+            Message::KlinesRecieved,
         )
     }
 

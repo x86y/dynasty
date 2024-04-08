@@ -336,6 +336,12 @@ impl DashboardView {
     pub(crate) fn tick(&mut self, data: &AppData) {
         self.calculator.tick(data)
     }
+
+    pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<Message> {
+        self.chart.data.extend_from_slice(slc);
+        Command::none()
+    }
+
     pub(crate) fn ws(&mut self, message: WsUpdate) -> Command<Message> {
         match message {
             WsUpdate::Price(m) => {

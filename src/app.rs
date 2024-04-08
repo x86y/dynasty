@@ -29,14 +29,13 @@ use iced::widget::Space;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct AppData {
     pub(crate) prices: HashMap<String, f32>,
     pub(crate) book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     pub(crate) trades: VecDeque<TradesEvent>,
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
-    pub(crate) klines: KlineSummaries,
     pub(crate) quote: String,
 }
 
@@ -55,15 +54,7 @@ impl App {
         let api = Client::new(config.api_key.clone(), config.api_secret_key.clone());
         App {
             config: config.clone(),
-            data: AppData {
-                klines: KlineSummaries::AllKlineSummaries(vec![]),
-                prices: Default::default(),
-                book: Default::default(),
-                trades: Default::default(),
-                balances: Default::default(),
-                orders: Default::default(),
-                quote: Default::default(),
-            },
+            data: Default::default(),
             api,
             errors: vec![],
             settings_opened: !config.valid(),

@@ -1,6 +1,8 @@
 use iced::subscription::{self, Subscription};
 
-use binance::{api::Binance, userstream::UserStream, websockets::*, ws_model::WebsocketEvent};
+use binance::{
+    api::Binance, userstream::UserStream, websockets::WebSockets, ws_model::WebsocketEvent,
+};
 use futures::sink::SinkExt;
 use futures::FutureExt;
 use std::sync::atomic::AtomicBool;
@@ -33,7 +35,7 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
                         });
                     loop {
                         match web_socket.connect(&listen_key).await {
-                            Ok(_) => loop {
+                            Ok(()) => loop {
                                 futures::select! {
                                     recv = web_socket.event_loop(&keep_running).fuse() => {
                                         if recv.is_err() {
@@ -52,7 +54,7 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
                                 };
                             },
                             Err(e) => {
-                                eprintln!("WebSocket connection error: {:?}", e);
+                                eprintln!("WebSocket connection error: {e:?}");
                                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                                 break;
                             }

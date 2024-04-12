@@ -9,6 +9,7 @@ use iced::{
 };
 use iced_futures::Subscription;
 use ringbuf::Rb;
+use tokio::sync::mpsc;
 
 use crate::{
     api::Client,
@@ -16,7 +17,7 @@ use crate::{
     config::Config,
     message::Message,
     theme::h2c,
-    ws::{book, trades, WsUpdate},
+    ws::{book, trades, WsEvent, WsUpdate},
 };
 
 use super::panes::{
@@ -142,8 +143,6 @@ pub(crate) enum DashboardMessage {
     MarketAmtChanged(String),
     MarketPairChanged(String),
     MarketPairSet,
-    MarketPairSet2,
-    MarketPairUnset,
     PriceInc(f64),
     AssetSelected(String),
     QtySet(f64),
@@ -161,15 +160,16 @@ pub(crate) struct DashboardView {
     panes: pane_grid::State<Pane>,
     chart: ChartPane,
     calculator: CalculatorPane,
-    // 1
+    // ???
     filter: WatchlistFilter,
     filter_string: String,
-    // 2
-    new_price: String,
-    new_amt: String,
-    pub new_pair: String,
-    // 3
-    pair_submitted: bool,
+    // market widget values
+    textbox_price: String,
+    textbox_amount: String,
+    pub textbox_pair: String,
+    // websockets
+    ws_book: Option<mpsc::UnboundedSender<book::Message>>,
+    ws_trade: Option<mpsc::UnboundedSender<trades::Message>>,
 }
 
 macro_rules! v {
@@ -221,10 +221,11 @@ impl DashboardView {
             calculator: CalculatorPane::new(),
             filter: WatchlistFilter::Favorites,
             filter_string: "".to_string(),
-            new_price: Default::default(),
-            new_amt: Default::default(),
-            new_pair: "BTCUSDT".into(),
-            pair_submitted: true,
+            textbox_price: Default::default(),
+            textbox_amount: Default::default(),
+            textbox_pair: "BTCUSDT".into(),
+            ws_book: None,
+            ws_trade: None,
         }
     }
 
@@ -271,39 +272,39 @@ impl DashboardView {
                 Command::none()
             }
             DashboardMessage::BuyPressed => api.trade_spot(
-                self.new_pair.clone(),
-                self.new_price.parse().unwrap(),
-                self.new_amt.parse().unwrap(),
+                self.textbox_pair.clone(),
+                self.textbox_price.parse().unwrap(),
+                self.textbox_amount.parse().unwrap(),
                 binance::rest_model::OrderSide::Buy,
             ),
             DashboardMessage::SellPressed => api.trade_spot(
-                self.new_pair.clone(),
-                self.new_price.parse().unwrap(),
-                self.new_amt.parse().unwrap(),
+                self.textbox_pair.clone(),
+                self.textbox_price.parse().unwrap(),
+                self.textbox_amount.parse().unwrap(),
                 binance::rest_model::OrderSide::Sell,
             ),
             DashboardMessage::MarketPairChanged(np) => {
-                self.new_pair = np;
+                self.textbox_pair = np;
                 Command::none()
             }
             DashboardMessage::MarketQuoteChanged(nm) => {
-                self.new_price = nm;
+                self.textbox_price = nm;
                 Command::none()
             }
             DashboardMessage::MarketAmtChanged(nm) => {
-                self.new_amt = nm;
+                self.textbox_amount = nm;
                 Command::none()
             }
             DashboardMessage::AssetSelected(a) => {
                 if !a.ends_with("USDT") && !a.ends_with("BTC") && !a.ends_with("ETH") {
-                    self.new_pair = format!("{a}USDT");
+                    self.textbox_pair = format!("{a}USDT");
                 } else {
-                    self.new_pair = a;
-                }
-                Command::batch([
-                    api.klines(self.new_pair.clone(), String::new()),
-                    Command::perform(async {}, |_| DashboardMessage::MarketPairUnset.into()),
-                ])
+                    self.textbox_pair = a;
+                };
+
+                self.update_pair();
+
+                Command::none()
             }
             DashboardMessage::QtySet(f) => {
                 let usdt_b = data
@@ -312,28 +313,20 @@ impl DashboardView {
                     .find(|b| b.asset == "USDT")
                     .unwrap()
                     .free;
-                self.new_amt = (usdt_b * f).to_string();
+                self.textbox_amount = (usdt_b * f).to_string();
                 Command::none()
             }
             DashboardMessage::PriceInc(inc) => {
-                let price = data.prices.get(&self.new_pair).unwrap();
-                self.new_price =
+                let price = data.prices.get(&self.textbox_pair).unwrap();
+                self.textbox_price =
                     (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
                 Command::none()
             }
-            DashboardMessage::MarketPairSet => {
-                self.pair_submitted = true;
-                Command::none()
-            }
-            DashboardMessage::MarketPairSet2 => {
-                self.pair_submitted = true;
-                Command::none()
-            }
-            DashboardMessage::MarketPairUnset => {
-                self.pair_submitted = false;
-                Command::perform(async {}, |_| DashboardMessage::MarketPairSet2.into())
-            }
             DashboardMessage::Calculator(msg) => self.calculator.update(msg),
+            DashboardMessage::MarketPairSet => {
+                self.update_pair();
+                Command::none()
+            }
         }
     }
 
@@ -349,12 +342,26 @@ impl DashboardView {
 
     pub(crate) fn ws(&mut self, message: WsUpdate) -> Command<Message> {
         match message {
-            WsUpdate::Price(m) => {
-                if m.name == self.new_pair {
-                    self.chart.update_data(m.price.into());
+            WsUpdate::Price(m) => match m {
+                crate::ws::WsEvent::Connected(_) => todo!(),
+                crate::ws::WsEvent::Disconnected => todo!(),
+                crate::ws::WsEvent::Message(m) => {
+                    if m.name == self.textbox_pair {
+                        self.chart.update_data(m.price.into());
+                    }
                 }
-            }
-            WsUpdate::Trade(_) | WsUpdate::Book(_) | WsUpdate::User(_) => (),
+            },
+            WsUpdate::Book(m) => match m {
+                WsEvent::Connected(sender) => self.ws_book = Some(sender),
+                WsEvent::Disconnected => self.ws_book = None,
+                WsEvent::Message(_) => (),
+            },
+            WsUpdate::Trade(m) => match m {
+                WsEvent::Connected(sender) => self.ws_trade = Some(sender),
+                WsEvent::Disconnected => self.ws_trade = None,
+                WsEvent::Message(_) => (),
+            },
+            WsUpdate::User(_) => (),
         }
 
         Command::none()
@@ -382,7 +389,11 @@ impl DashboardView {
                 PaneType::Chart => self.chart.view().into(),
                 PaneType::Book => book_view(&data.book),
                 PaneType::Trades => trades_view(&data.trades),
-                PaneType::Market => market_view(&self.new_price, &self.new_amt, &self.new_pair),
+                PaneType::Market => market_view(
+                    &self.textbox_price,
+                    &self.textbox_amount,
+                    &self.textbox_pair,
+                ),
                 PaneType::Balances => balances_view(&data.balances),
                 PaneType::Orders => orders_view(&data.orders, &data.prices),
                 PaneType::Calculator => self.calculator.view(),
@@ -404,16 +415,21 @@ impl DashboardView {
 
     pub(crate) fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
-            if self.pair_submitted {
-                trades::connect(self.new_pair.to_lowercase()).map(Message::from)
-            } else {
-                Subscription::none()
-            },
-            if self.pair_submitted {
-                book::connect(self.new_pair.to_lowercase()).map(Message::from)
-            } else {
-                Subscription::none()
-            },
+            trades::connect(self.textbox_pair.to_lowercase()).map(Message::from),
+            book::connect(self.textbox_pair.to_lowercase()).map(Message::from),
         ])
+    }
+
+    fn update_pair(&mut self) {
+        let lower_pair = self.textbox_pair.to_lowercase();
+
+        if let Some(book_ws) = &mut self.ws_book {
+            book_ws
+                .send(book::Message::NewPair(lower_pair.clone()))
+                .unwrap();
+        };
+        if let Some(ws_trade) = &mut self.ws_trade {
+            ws_trade.send(trades::Message::NewPair(lower_pair)).unwrap();
+        };
     }
 }

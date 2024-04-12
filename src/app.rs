@@ -7,6 +7,7 @@ use crate::views::dashboard::DashboardView;
 use crate::views::settings::SettingsView;
 use crate::ws::prices;
 use crate::ws::user;
+use crate::ws::WsEvent;
 use crate::ws::WsUpdate;
 
 use std::collections::BTreeMap;
@@ -168,16 +169,20 @@ impl Application for App {
                 }),
             },
             Message::CredentialsUpdated => self.fetch_data(),
-            Message::Ws(msg) => {
-                match &msg {
-                    WsUpdate::Book(bt) => {
-                        self.data.book = (bt.sym.clone(), bt.bids.clone(), bt.asks.clone());
-                    }
-                    WsUpdate::Trade(te) => {
-                        if self.data.trades.len() >= 1000 {
-                            self.data.trades.pop_back();
+            Message::Ws(update) => {
+                match &update {
+                    WsUpdate::Book(event) => {
+                        if let WsEvent::Message(bt) = event {
+                            self.data.book = (bt.sym.clone(), bt.bids.clone(), bt.asks.clone());
                         }
-                        self.data.trades.push_front(te.clone());
+                    }
+                    WsUpdate::Trade(event) => {
+                        if let WsEvent::Message(te) = event {
+                            if self.data.trades.len() >= 1000 {
+                                self.data.trades.pop_back();
+                            }
+                            self.data.trades.push_front(te.clone());
+                        }
                     }
                     WsUpdate::User(u) => {
                         match u {
@@ -239,11 +244,17 @@ impl Application for App {
                         }
                     }
                     WsUpdate::Price(m) => {
-                        self.data.prices.insert(m.name.clone(), m.price);
+                        match m {
+                            crate::ws::WsEvent::Connected(_) => todo!(),
+                            crate::ws::WsEvent::Disconnected => todo!(),
+                            crate::ws::WsEvent::Message(m) => {
+                                self.data.prices.insert(m.name.clone(), m.price)
+                            }
+                        };
                     }
                 };
 
-                self.dashboard.ws(msg)
+                self.dashboard.ws(update)
             }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;
@@ -278,7 +289,9 @@ impl Application for App {
                     self.dashboard.prepend_chart_data(&closes)
                 }
             },
-            Message::TimeframeChanged(tf) => self.api.klines(self.dashboard.new_pair.clone(), tf),
+            Message::TimeframeChanged(tf) => {
+                self.api.klines(self.dashboard.textbox_pair.clone(), tf)
+            }
         }
     }
 

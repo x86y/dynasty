@@ -1,10 +1,17 @@
-use iced::futures::FutureExt;
-use iced::subscription::{self, Subscription};
-
-use binance::{websockets::*, ws_model::WebsocketEvent};
-use futures::sink::SinkExt;
 use std::sync::atomic::AtomicBool;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
+use binance::{
+    websockets::{all_ticker_stream, WebSockets},
+    ws_model::WebsocketEvent,
+};
+use futures::sink::SinkExt;
+use iced::{
+    futures::FutureExt,
+    subscription::{self, Subscription},
+};
+use tokio::sync::mpsc;
+
+use crate::ws::WsEvent;
 
 use super::WsUpdate;
 
@@ -24,10 +31,7 @@ pub fn connect() -> Subscription<WsUpdate> {
             let keep_running = AtomicBool::new(true);
             let book_ticker: &'static str = all_ticker_stream();
 
-            let (s, mut r): (
-                UnboundedSender<AssetDetails>,
-                UnboundedReceiver<AssetDetails>,
-            ) = unbounded_channel();
+            let (s, mut r) = mpsc::unbounded_channel();
 
             let mut web_socket: WebSockets<'_, Vec<WebsocketEvent>> =
                 WebSockets::new(|events: Vec<WebsocketEvent>| {
@@ -37,7 +41,7 @@ pub fn connect() -> Subscription<WsUpdate> {
                                 name: tick_event.symbol.clone(),
                                 price: tick_event.best_bid.parse::<f32>().unwrap(),
                             };
-                            s.send(asset).unwrap();
+                            let _ = s.send(asset);
                         }
                     }
                     Ok(())
@@ -45,7 +49,7 @@ pub fn connect() -> Subscription<WsUpdate> {
 
             loop {
                 match web_socket.connect(book_ticker).await {
-                    Ok(_) => loop {
+                    Ok(()) => loop {
                         futures::select! {
                             recv = web_socket.event_loop(&keep_running).fuse() => {
                                 if recv.is_err() {
@@ -53,15 +57,17 @@ pub fn connect() -> Subscription<WsUpdate> {
                                     break;
                                 }
                             },
-                            recv2 = r.recv().fuse() => {
-                                if let Some(i) = recv2 {
-                                    output.send(WsUpdate::Price(i)).await.unwrap();
+                            message = r.recv().fuse() => {
+                                if let Some(i) = message {
+                                    output.send(WsUpdate::Price(WsEvent::Message(i))).await.unwrap();
+                                } else {
+                                    break;
                                 }
                             }
                         };
                     },
                     Err(e) => {
-                        eprintln!("WebSocket connection error: {:?}", e);
+                        eprintln!("WebSocket connection error: {e:?}");
                     }
                 }
             }

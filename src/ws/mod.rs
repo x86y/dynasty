@@ -11,15 +11,15 @@ pub mod util;
 
 #[derive(Debug, Clone)]
 pub(crate) enum WsEvent<T, M> {
-    Connected(mpsc::UnboundedSender<M>),
+    Connected(M),
     Disconnected,
     Message(T),
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum WsUpdate {
-    Trade(WsEvent<TradesEvent, trades::Message>),
-    Book(WsEvent<OrderBookDetails, book::Message>),
+    Trade(WsEvent<TradesEvent, mpsc::UnboundedSender<trades::Message>>),
+    Book(WsEvent<OrderBookDetails, mpsc::UnboundedSender<book::Message>>),
     Price(WsEvent<AssetDetails, ()>),
     User(WebsocketEvent),
 }

@@ -28,7 +28,7 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
     .style(h2c("808080").unwrap())
 }
 
-pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a, Message> {
+pub fn orders_view<'a>(os: &[Order], ps: &'a Option<HashMap<String, f32>>) -> Element<'a, Message> {
     let header = filled![
         tb("Symbol").width(Length::Fixed(100.0)),
         tb("Price").width(Length::Fixed(100.0)),
@@ -79,7 +79,11 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a
                     .unwrap(),
                 );
             let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
-            let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
+            let price_now = if let Some(prices) = ps {
+                prices.get(&b.symbol).unwrap_or(&0.0)
+            } else {
+                &0.0
+            };
 
             let pnl = {
                 let pnl_value = match b.side {

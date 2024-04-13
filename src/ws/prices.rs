@@ -26,6 +26,7 @@ pub fn connect() -> Subscription<WsUpdate> {
             let keep_running = AtomicBool::new(true);
             let book_ticker: &'static str = all_ticker_stream();
 
+            let mut output_clone = output.clone();
             let mut web_socket: WebSockets<'_, Vec<WebsocketEvent>> =
                 WebSockets::new(|events: Vec<WebsocketEvent>| {
                     for ev in &events {
@@ -34,7 +35,7 @@ pub fn connect() -> Subscription<WsUpdate> {
                                 name: tick_event.symbol.clone(),
                                 price: tick_event.best_bid.parse::<f32>().unwrap(),
                             };
-                            let _ = output.try_send(WsUpdate::Price(WsEvent::Message(asset)));
+                            let _ = output_clone.try_send(WsUpdate::Price(WsEvent::Message(asset)));
                         }
                     }
                     Ok(())
@@ -43,6 +44,8 @@ pub fn connect() -> Subscription<WsUpdate> {
             loop {
                 match web_socket.connect(book_ticker).await {
                     Ok(()) => loop {
+                        let _ = output.try_send(WsUpdate::Price(WsEvent::Connected(())));
+
                         if let Err(e) = web_socket.event_loop(&keep_running).await {
                             eprintln!("Prices Stream error: {e:?}");
                             break;
@@ -52,6 +55,7 @@ pub fn connect() -> Subscription<WsUpdate> {
                         eprintln!("WebSocket connection error: {e:?}");
                     }
                 }
+                let _ = output.try_send(WsUpdate::Price(WsEvent::Disconnected));
             }
         },
     )

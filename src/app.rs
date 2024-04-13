@@ -32,7 +32,7 @@ use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 
 #[derive(Debug, Default)]
 pub(crate) struct AppData {
-    pub(crate) prices: HashMap<String, f32>,
+    pub(crate) prices: Option<HashMap<String, f32>>,
     pub(crate) book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     pub(crate) trades: VecDeque<TradesEvent>,
     pub(crate) balances: Vec<Balance>,
@@ -245,10 +245,18 @@ impl Application for App {
                     }
                     WsUpdate::Price(m) => {
                         match m {
-                            crate::ws::WsEvent::Connected(_) => todo!(),
-                            crate::ws::WsEvent::Disconnected => todo!(),
+                            crate::ws::WsEvent::Connected(_) => {
+                                self.data.prices = Some(Default::default())
+                            }
+                            crate::ws::WsEvent::Disconnected => {
+                                self.data.prices.as_mut().map(|prices| prices.clear());
+                            }
                             crate::ws::WsEvent::Message(m) => {
-                                self.data.prices.insert(m.name.clone(), m.price)
+                                self.data
+                                    .prices
+                                    .as_mut()
+                                    .expect("websocket connected")
+                                    .insert(m.name.clone(), m.price);
                             }
                         };
                     }
@@ -320,7 +328,12 @@ impl Application for App {
                         .watchlist_favorites
                         .iter()
                         .map(|t| {
-                            let price_now = self.data.prices.get(t).unwrap_or(&0.0);
+                            let price_now = if let Some(prices) = &self.data.prices {
+                                prices.get(t).unwrap_or(&0.0)
+                            } else {
+                                &0.0
+                            };
+
                             let ticker = t.strip_suffix("USDT").unwrap_or(t);
                             let handle = match svg_logos::LOGOS.get(ticker) {
                                 Some(bytes) => svg::Handle::from_memory(*bytes),
@@ -377,34 +390,24 @@ impl Application for App {
             ..Default::default()
         });
 
-        let message_log: Element<_> = if self.data.prices.is_empty() {
-            container(text("Loading...").style(Color::from_rgb8(0x88, 0x88, 0x88)))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .center_x()
-                .center_y()
-                .into()
-        } else {
-            scrollable(column![container(
-                column![
-                    if self.errors.is_empty() {
-                        header
-                    } else {
-                        err_header
-                    },
-                    if self.settings_opened {
-                        container(self.settings.view())
-                    } else {
-                        container(self.dashboard.view(&self.data, &self.config))
-                    }
-                ]
-                .spacing(8)
-            )
-            .width(Length::Fill)
-            .height(1000.0)
-            .padding(10),])
-            .into()
-        };
+        let message_log = scrollable(column![container(
+            column![
+                if self.errors.is_empty() {
+                    header
+                } else {
+                    err_header
+                },
+                if self.settings_opened {
+                    container(self.settings.view())
+                } else {
+                    container(self.dashboard.view(&self.data, &self.config))
+                }
+            ]
+            .spacing(8)
+        )
+        .width(Length::Fill)
+        .height(1000.0)
+        .padding(10),]);
 
         container(message_log)
             .width(Length::Fill)

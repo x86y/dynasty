@@ -1,6 +1,7 @@
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
 use crate::{message::Message, theme::h2c};
+use iced::widget;
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
@@ -49,11 +50,15 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, Message> {
 }
 
 pub fn watchlist_view<'a>(
-    ps: &'a HashMap<String, f32>,
+    ps: &'a Option<HashMap<String, f32>>,
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
 ) -> Element<'a, Message> {
+    let Some(ps) = ps else {
+        return widget::text("LOADING").into();
+    };
+
     let mut sorted_assets: Vec<_> = ps.iter().collect();
     sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
 

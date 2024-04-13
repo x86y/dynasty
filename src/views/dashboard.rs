@@ -317,7 +317,12 @@ impl DashboardView {
                 Command::none()
             }
             DashboardMessage::PriceInc(inc) => {
-                let price = data.prices.get(&self.textbox_pair).unwrap();
+                let price = data
+                    .prices
+                    .as_ref()
+                    .expect("prices exist for some reason")
+                    .get(&self.textbox_pair)
+                    .expect("price exists for some reason");
                 self.textbox_price =
                     (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
                 Command::none()
@@ -343,8 +348,8 @@ impl DashboardView {
     pub(crate) fn ws(&mut self, message: WsUpdate) -> Command<Message> {
         match message {
             WsUpdate::Price(m) => match m {
-                crate::ws::WsEvent::Connected(_) => todo!(),
-                crate::ws::WsEvent::Disconnected => todo!(),
+                crate::ws::WsEvent::Connected(_) => (),
+                crate::ws::WsEvent::Disconnected => (),
                 crate::ws::WsEvent::Message(m) => {
                     if m.name == self.textbox_pair {
                         self.chart.update_data(m.price.into());

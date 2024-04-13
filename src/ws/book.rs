@@ -113,10 +113,6 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                                 if ws_closed.is_err() {
                                     eprintln!("Orderbook stream error: {:?}", ws_closed.unwrap_err());
                                 }
-                                let _ = output
-                                    .send(WsUpdate::Book(WsEvent::Disconnected))
-                                    .await;
-                                state = State::Disconnected;
                             },
                             input_message = input.recv().fuse() => {
                                 if let Some(input) = input_message {
@@ -126,13 +122,11 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                                         }
                                     };
                                 }
-
-                                let _ = output
-                                    .send(WsUpdate::Book(WsEvent::Disconnected))
-                                    .await;
-                                state = State::Disconnected;
                             }
                         };
+
+                        let _ = output.send(WsUpdate::Book(WsEvent::Disconnected)).await;
+                        state = State::Disconnected;
                     }
                 }
             }

@@ -1,6 +1,7 @@
 use std::sync::atomic::AtomicBool;
 
 use binance::websockets::diff_book_depth_stream;
+use futures::channel::mpsc;
 use iced::subscription::{self, Subscription};
 use std::collections::BTreeMap;
 
@@ -20,11 +21,11 @@ pub(crate) enum Message {
 
 struct BookWs {
     pair: String,
-    output: futures::channel::mpsc::Sender<WsMessage>,
+    output: mpsc::Sender<WsMessage>,
 }
 
 impl BookWs {
-    fn new(pair: String, output: futures::channel::mpsc::Sender<WsMessage>) -> Self {
+    fn new(pair: String, output: mpsc::Sender<WsMessage>) -> Self {
         Self { pair, output }
     }
 }
@@ -34,7 +35,7 @@ impl WsListener for BookWs {
     type Input = Message;
     type Output = OrderBookDetails;
 
-    fn output(&mut self) -> &mut futures::channel::mpsc::Sender<WsMessage> {
+    fn output(&mut self) -> &mut mpsc::Sender<WsMessage> {
         &mut self.output
     }
 

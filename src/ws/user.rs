@@ -44,7 +44,7 @@ impl WsListener for UserWs {
         event
     }
 
-    fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage {
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
         WsMessage::User(msg)
     }
 

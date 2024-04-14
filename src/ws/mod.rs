@@ -17,25 +17,25 @@ pub mod user;
 pub mod util;
 
 #[derive(Debug, Clone)]
-pub(crate) enum WsEvent<Output, Input> {
+pub(crate) enum WsEvent<In, Out> {
     /// Connection established
     ///
     /// Contains channel for sending input messages
-    Connected(mpsc_tokio::UnboundedSender<Input>),
+    Connected(mpsc_tokio::UnboundedSender<In>),
 
     /// Connection closed
     Disconnected,
 
     /// Websocket message
-    Message(Output),
+    Message(Out),
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum WsMessage {
-    Trade(WsEvent<TradesEvent, trades::Message>),
-    Book(WsEvent<OrderBookDetails, book::Message>),
-    Price(WsEvent<AssetDetails, ()>),
-    User(WsEvent<WebsocketEvent, ()>),
+    Trade(WsEvent<trades::Message, TradesEvent>),
+    Book(WsEvent<book::Message, OrderBookDetails>),
+    Price(WsEvent<(), AssetDetails>),
+    User(WsEvent<(), WebsocketEvent>),
 }
 
 pub(crate) trait WsListener {
@@ -56,7 +56,7 @@ pub(crate) trait WsListener {
     fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool);
 
     /// Wrap `WsEvent` in correct variant of WsMessage
-    fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage;
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage;
 
     /// Main entrypoint
     async fn run(&mut self) -> ! {

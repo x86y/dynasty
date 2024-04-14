@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::message::MaybeError;
 use crate::message::Message;
 use crate::svg_logos;
+use crate::views::components::loading::Loader;
 use crate::views::dashboard::DashboardView;
 use crate::views::settings::SettingsView;
 use crate::ws::prices;
@@ -38,6 +39,7 @@ pub(crate) struct AppData {
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
     pub(crate) quote: String,
+    pub(crate) loader: Loader
 }
 
 pub(crate) struct App {
@@ -144,6 +146,10 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::LoaderTick(instant) => {
+                self.data.loader.state.update(instant);
+                Command::none()
+            }
             Message::Tick => {
                 self.dashboard.tick(&self.data);
                 Command::none()

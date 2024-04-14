@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::time::Instant;
 
 use crate::{
     config::Config,
@@ -62,6 +63,7 @@ pub(crate) enum Message {
     ///
     /// You cannot close settings while config is invalid
     SettingsToggled,
+    LoaderTick(Instant),
 
     /// Manually triggered at interval
     Tick,

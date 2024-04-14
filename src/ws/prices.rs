@@ -8,7 +8,7 @@ use iced::subscription::{self, Subscription};
 
 use crate::ws::WsEvent;
 
-use super::WsUpdate;
+use super::WsMessage;
 
 #[derive(Debug, Clone)]
 pub struct AssetDetails {
@@ -16,7 +16,7 @@ pub struct AssetDetails {
     pub price: f32,
 }
 
-pub fn connect() -> Subscription<WsUpdate> {
+pub fn connect() -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(
@@ -35,7 +35,8 @@ pub fn connect() -> Subscription<WsUpdate> {
                                 name: tick_event.symbol.clone(),
                                 price: tick_event.best_bid.parse::<f32>().unwrap(),
                             };
-                            let _ = output_clone.try_send(WsUpdate::Price(WsEvent::Message(asset)));
+                            let _ =
+                                output_clone.try_send(WsMessage::Price(WsEvent::Message(asset)));
                         }
                     }
                     Ok(())
@@ -44,7 +45,7 @@ pub fn connect() -> Subscription<WsUpdate> {
             loop {
                 match web_socket.connect(book_ticker).await {
                     Ok(()) => loop {
-                        let _ = output.try_send(WsUpdate::Price(WsEvent::Connected(())));
+                        let _ = output.try_send(WsMessage::Price(WsEvent::Connected(())));
 
                         if let Err(e) = web_socket.event_loop(&keep_running).await {
                             eprintln!("Prices Stream error: {e:?}");
@@ -55,7 +56,7 @@ pub fn connect() -> Subscription<WsUpdate> {
                         eprintln!("WebSocket connection error: {e:?}");
                     }
                 }
-                let _ = output.try_send(WsUpdate::Price(WsEvent::Disconnected));
+                let _ = output.try_send(WsMessage::Price(WsEvent::Disconnected));
             }
         },
     )

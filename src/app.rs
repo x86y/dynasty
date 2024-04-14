@@ -8,7 +8,7 @@ use crate::views::settings::SettingsView;
 use crate::ws::prices;
 use crate::ws::user;
 use crate::ws::WsEvent;
-use crate::ws::WsUpdate;
+use crate::ws::WsMessage;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -171,12 +171,12 @@ impl Application for App {
             Message::CredentialsUpdated => self.fetch_data(),
             Message::Ws(update) => {
                 match &update {
-                    WsUpdate::Book(event) => {
+                    WsMessage::Book(event) => {
                         if let WsEvent::Message(bt) = event {
                             self.data.book = (bt.sym.clone(), bt.bids.clone(), bt.asks.clone());
                         }
                     }
-                    WsUpdate::Trade(event) => {
+                    WsMessage::Trade(event) => {
                         if let WsEvent::Message(te) = event {
                             if self.data.trades.len() >= 1000 {
                                 self.data.trades.pop_back();
@@ -184,7 +184,7 @@ impl Application for App {
                             self.data.trades.push_front(te.clone());
                         }
                     }
-                    WsUpdate::User(u) => {
+                    WsMessage::User(u) => {
                         match u {
                             binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
                                 for b in p.balances.iter() {
@@ -243,7 +243,7 @@ impl Application for App {
                             _ => unreachable!(),
                         }
                     }
-                    WsUpdate::Price(m) => {
+                    WsMessage::Price(m) => {
                         match m {
                             crate::ws::WsEvent::Connected(_) => {
                                 self.data.prices = Some(Default::default())

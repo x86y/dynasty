@@ -5,9 +5,9 @@ use binance::{
 };
 use iced::subscription::{self, Subscription};
 
-use super::WsUpdate;
+use super::WsMessage;
 
-pub fn connect(public: String) -> Subscription<WsUpdate> {
+pub fn connect(public: String) -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(
@@ -22,7 +22,7 @@ pub fn connect(public: String) -> Subscription<WsUpdate> {
 
                     let mut web_socket: WebSockets<'_, WebsocketEvent> =
                         WebSockets::new(|event: WebsocketEvent| {
-                            let _ = output.try_send(WsUpdate::User(event));
+                            let _ = output.try_send(WsMessage::User(event));
                             Ok(())
                         });
                     loop {

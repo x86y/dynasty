@@ -4,7 +4,7 @@ use std::fmt::Display;
 use crate::{
     config::Config,
     views::{dashboard::DashboardMessage, settings::SettingsMessage},
-    ws::WsUpdate,
+    ws::WsMessage,
 };
 
 use binance::rest_model::KlineSummaries;
@@ -75,7 +75,7 @@ pub(crate) enum Message {
     // API keys update happened
     CredentialsUpdated,
 
-    Ws(WsUpdate),
+    Ws(WsMessage),
 
     /// ??? ??? ???
     OrdersRecieved(Vec<Order>),
@@ -103,8 +103,8 @@ impl From<MaybeError> for Message {
     }
 }
 
-impl From<WsUpdate> for Message {
-    fn from(value: WsUpdate) -> Self {
+impl From<WsMessage> for Message {
+    fn from(value: WsMessage) -> Self {
         Self::Ws(value)
     }
 }

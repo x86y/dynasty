@@ -17,7 +17,7 @@ use crate::{
     config::Config,
     message::Message,
     theme::h2c,
-    ws::{book, trades, WsEvent, WsUpdate},
+    ws::{book, trades, WsEvent, WsMessage},
 };
 
 use super::panes::{
@@ -345,9 +345,9 @@ impl DashboardView {
         Command::none()
     }
 
-    pub(crate) fn ws(&mut self, message: WsUpdate) -> Command<Message> {
+    pub(crate) fn ws(&mut self, message: WsMessage) -> Command<Message> {
         match message {
-            WsUpdate::Price(m) => match m {
+            WsMessage::Price(m) => match m {
                 crate::ws::WsEvent::Connected(_) => (),
                 crate::ws::WsEvent::Disconnected => (),
                 crate::ws::WsEvent::Message(m) => {
@@ -356,17 +356,17 @@ impl DashboardView {
                     }
                 }
             },
-            WsUpdate::Book(m) => match m {
+            WsMessage::Book(m) => match m {
                 WsEvent::Connected(sender) => self.ws_book = Some(sender),
                 WsEvent::Disconnected => self.ws_book = None,
                 WsEvent::Message(_) => (),
             },
-            WsUpdate::Trade(m) => match m {
+            WsMessage::Trade(m) => match m {
                 WsEvent::Connected(sender) => self.ws_trade = Some(sender),
                 WsEvent::Disconnected => self.ws_trade = None,
                 WsEvent::Message(_) => (),
             },
-            WsUpdate::User(_) => (),
+            WsMessage::User(_) => (),
         }
 
         Command::none()

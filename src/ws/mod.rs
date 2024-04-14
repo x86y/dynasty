@@ -55,7 +55,7 @@ pub(crate) trait WsListener {
     /// Handle message from input channel
     fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool);
 
-    /// Wrap `WsEvent` into correct variant of WsMessage
+    /// Wrap `WsEvent` in correct variant of WsMessage
     fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage;
 
     /// Main entrypoint
@@ -72,38 +72,37 @@ pub(crate) trait WsListener {
             let mut keep_running = AtomicBool::new(true);
             let endpoint = self.endpoint().await;
 
-            match web_socket.connect(&endpoint).await {
-                Ok(()) => {
-                    let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
+            if let Err(e) = web_socket.connect(&endpoint).await {
+                eprintln!("WebSocket connection error: {e:?}");
+                continue;
+            }
 
-                    let connect_msg = self.message(WsEvent::Connected(input_tx));
-                    let _ = self.output().send(connect_msg).await;
+            let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
 
-                    loop {
-                        futures::select! {
-                            ws_closed = web_socket.event_loop(&keep_running).fuse() => {
-                                if let Err(e) = ws_closed {
-                                    eprintln!("Stream error: {e:?}");
-                                }
-                                break;
-                            }
-                            event = rx.recv().fuse() => {
-                                let event = event.expect("nobody should be closing channel");
-                                let message = self.message(WsEvent::Message(event));
-                                let _ = self.output().send(message).await;
-                            }
-                            input_message = input_rx.recv().fuse() => {
-                                if let Some(input) = input_message {
-                                    self.handle_input(input, &mut keep_running);
-                                }
-                            }
+            let connect_msg = self.message(WsEvent::Connected(input_tx));
+            let _ = self.output().send(connect_msg).await;
+
+            loop {
+                futures::select! {
+                    ws_closed = web_socket.event_loop(&keep_running).fuse() => {
+                        if let Err(e) = ws_closed {
+                            eprintln!("WebSocket stream error: {e:?}");
+                        }
+                        break;
+                    }
+                    output = rx.recv().fuse() => {
+                        let output = output.expect("nobody should be closing channel");
+                        let message = self.message(WsEvent::Message(output));
+                        let _ = self.output().send(message).await;
+                    }
+                    input = input_rx.recv().fuse() => {
+                        if let Some(input) = input {
+                            self.handle_input(input, &mut keep_running);
                         }
                     }
                 }
-                Err(e) => {
-                    eprintln!("WebSocket connection error: {e:?}");
-                }
             }
+
             let message = self.message(WsEvent::Disconnected);
             let _ = self.output().send(message).await;
         }

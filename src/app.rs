@@ -184,7 +184,11 @@ impl Application for App {
                             self.data.trades.push_front(te.clone());
                         }
                     }
-                    WsMessage::User(u) => {
+                    WsMessage::User(event) => {
+                        let WsEvent::Message(u) = event else {
+                            return Command::none();
+                        };
+
                         match u {
                             binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
                                 for b in p.balances.iter() {

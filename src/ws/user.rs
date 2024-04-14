@@ -1,47 +1,63 @@
-use std::sync::atomic::AtomicBool;
+use std::time::Duration;
 
-use binance::{
-    api::Binance, userstream::UserStream, websockets::WebSockets, ws_model::WebsocketEvent,
-};
+use binance::{api::Binance, userstream::UserStream, ws_model::WebsocketEvent};
+use futures::channel::mpsc;
 use iced::subscription::{self, Subscription};
 
-use super::WsMessage;
+use crate::ws::WsEvent;
 
-pub fn connect(public: String) -> Subscription<WsMessage> {
+use super::{WsListener, WsMessage};
+
+struct UserWs {
+    api_key: String,
+    output: mpsc::Sender<WsMessage>,
+}
+
+impl UserWs {
+    fn new(api_key: String, output: mpsc::Sender<WsMessage>) -> Self {
+        Self { api_key, output }
+    }
+}
+
+impl WsListener for UserWs {
+    type Input = ();
+    type Output = WebsocketEvent;
+
+    fn output(&mut self) -> &mut mpsc::Sender<WsMessage> {
+        &mut self.output
+    }
+
+    async fn endpoint(&self) -> String {
+        let user_stream: UserStream = Binance::new(Some(self.api_key.clone()), None);
+        loop {
+            match user_stream.start().await {
+                Ok(answer) => return answer.listen_key,
+                Err(e) => eprintln!("Unable to get user stream key: {e:?}"),
+            };
+
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+    }
+
+    fn connect(&mut self) -> Self::Input {
+        ()
+    }
+
+    fn handle_event(event: WebsocketEvent) -> Self::Output {
+        event
+    }
+
+    fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage {
+        WsMessage::User(msg)
+    }
+}
+
+pub fn connect(api_key: String) -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(
         std::any::TypeId::of::<Connect>(),
         100,
-        |mut output| async move {
-            let keep_running = AtomicBool::new(true);
-            let user_stream: UserStream = Binance::new(Some(public), None);
-            loop {
-                if let Ok(answer) = user_stream.start().await {
-                    let listen_key = answer.listen_key;
-
-                    let mut web_socket: WebSockets<'_, WebsocketEvent> =
-                        WebSockets::new(|event: WebsocketEvent| {
-                            let _ = output.try_send(WsMessage::User(event));
-                            Ok(())
-                        });
-                    loop {
-                        match web_socket.connect(&listen_key).await {
-                            Ok(()) => loop {
-                                if let Err(e) = web_socket.event_loop(&keep_running).await {
-                                    eprintln!("User Stream error: {e:?}");
-                                    break;
-                                };
-                            },
-                            Err(e) => {
-                                eprintln!("WebSocket connection error: {e:?}");
-                                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        },
+        |output| async move { UserWs::new(api_key, output).run().await },
     )
 }

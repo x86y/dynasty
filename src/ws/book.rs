@@ -7,7 +7,7 @@ use iced::subscription::{self, Subscription};
 use std::collections::BTreeMap;
 use tokio::sync::mpsc;
 
-use super::{WsEvent, WsUpdate};
+use super::{WsEvent, WsMessage};
 
 #[derive(Debug, Clone)]
 pub struct OrderBookDetails {
@@ -30,7 +30,7 @@ enum State<'a> {
     ),
 }
 
-pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
+pub fn connect(mut pair: String) -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(
@@ -81,7 +81,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                                         }
                                     }
 
-                                    let _ = output_clone.try_send(WsUpdate::Book(
+                                    let _ = output_clone.try_send(WsMessage::Book(
                                         WsEvent::Message(OrderBookDetails {
                                             sym: symbol,
                                             bids: b,
@@ -98,7 +98,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                                 let (sender, receiver) = mpsc::unbounded_channel();
 
                                 let _ = output
-                                    .send(WsUpdate::Book(WsEvent::Connected(sender)))
+                                    .send(WsMessage::Book(WsEvent::Connected(sender)))
                                     .await;
                                 state = State::Connected(web_socket, receiver);
                             }
@@ -125,7 +125,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                             }
                         };
 
-                        let _ = output.send(WsUpdate::Book(WsEvent::Disconnected)).await;
+                        let _ = output.send(WsMessage::Book(WsEvent::Disconnected)).await;
                         state = State::Disconnected;
                     }
                 }

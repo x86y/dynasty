@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 
 use crate::ws::WsEvent;
 
-use super::WsUpdate;
+use super::WsMessage;
 
 #[derive(Debug, Clone)]
 pub(crate) enum Message {
@@ -25,7 +25,7 @@ enum State<'a> {
     ),
 }
 
-pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
+pub fn connect(mut pair: String) -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(
@@ -44,7 +44,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                             WebSockets::new(move |events: WebsocketEvent| {
                                 if let WebsocketEvent::AggTrade(tick_event) = events {
                                     let _ = output_clone
-                                        .try_send(WsUpdate::Trade(WsEvent::Message(*tick_event)));
+                                        .try_send(WsMessage::Trade(WsEvent::Message(*tick_event)));
                                 };
 
                                 Ok(())
@@ -56,7 +56,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                                 let (sender, receiver) = mpsc::unbounded_channel();
 
                                 let _ = output
-                                    .send(WsUpdate::Trade(WsEvent::Connected(sender)))
+                                    .send(WsMessage::Trade(WsEvent::Connected(sender)))
                                     .await;
                                 state = State::Connected(web_socket, receiver);
                             }
@@ -84,7 +84,7 @@ pub fn connect(mut pair: String) -> Subscription<WsUpdate> {
                             }
                         };
 
-                        let _ = output.send(WsUpdate::Trade(WsEvent::Disconnected)).await;
+                        let _ = output.send(WsMessage::Trade(WsEvent::Disconnected)).await;
                         state = State::Disconnected;
                     }
                 }

@@ -17,17 +17,17 @@ pub mod user;
 pub mod util;
 
 #[derive(Debug, Clone)]
-pub(crate) enum WsEvent<T, M> {
+pub(crate) enum WsEvent<Output, Input> {
     /// Connection established
     ///
-    /// Optionally contains initialization data (currently channel for sending commands)
-    Connected(mpsc_tokio::UnboundedSender<M>),
+    /// Contains channel for sending input messages
+    Connected(mpsc_tokio::UnboundedSender<Input>),
 
     /// Connection closed
     Disconnected,
 
     /// Websocket message
-    Message(T),
+    Message(Output),
 }
 
 #[derive(Debug, Clone)]

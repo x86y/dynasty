@@ -39,7 +39,7 @@ pub(crate) struct AppData {
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
     pub(crate) quote: String,
-    pub(crate) loader: Loader
+    pub(crate) loader: Loader,
 }
 
 pub(crate) struct App {
@@ -258,9 +258,7 @@ impl Application for App {
                             crate::ws::WsEvent::Connected(_) => {
                                 self.data.prices = Some(Default::default())
                             }
-                            crate::ws::WsEvent::Disconnected => {
-                                self.data.prices.as_mut().map(|prices| prices.clear());
-                            }
+                            crate::ws::WsEvent::Disconnected => self.data.prices = None,
                             crate::ws::WsEvent::Message(m) => {
                                 self.data
                                     .prices

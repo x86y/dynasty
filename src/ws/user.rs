@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::atomic::AtomicBool, time::Duration};
 
 use binance::{api::Binance, userstream::UserStream, ws_model::WebsocketEvent};
 use futures::channel::mpsc;
@@ -20,6 +20,7 @@ impl UserWs {
 }
 
 impl WsListener for UserWs {
+    type Event = WebsocketEvent;
     type Input = ();
     type Output = WebsocketEvent;
 
@@ -39,25 +40,21 @@ impl WsListener for UserWs {
         }
     }
 
-    fn connect(&mut self) -> Self::Input {
-        ()
-    }
-
-    fn handle_event(event: WebsocketEvent) -> Self::Output {
+    fn handle_event(event: Self::Event) -> Self::Output {
         event
     }
 
     fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage {
         WsMessage::User(msg)
     }
+
+    fn handle_input(&mut self, _: Self::Input, _: &mut AtomicBool) {}
 }
 
 pub fn connect(api_key: String) -> Subscription<WsMessage> {
     struct Connect;
 
-    subscription::channel(
-        std::any::TypeId::of::<Connect>(),
-        100,
-        |output| async move { UserWs::new(api_key, output).run().await },
-    )
+    subscription::channel(std::any::TypeId::of::<Connect>(), 100, |output| async {
+        UserWs::new(api_key, output).run().await
+    })
 }

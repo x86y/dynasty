@@ -5,6 +5,7 @@ use binance::{
     ws_model::WebsocketEvent,
 };
 use iced::subscription::{self, Subscription};
+use tokio::sync::mpsc;
 
 use crate::ws::WsEvent;
 
@@ -42,7 +43,8 @@ pub fn connect() -> Subscription<WsMessage> {
             loop {
                 match web_socket.connect(all_ticker_stream()).await {
                     Ok(()) => loop {
-                        let _ = output.try_send(WsMessage::Price(WsEvent::Connected(())));
+                        let (tx, _rx) = mpsc::unbounded_channel();
+                        let _ = output.try_send(WsMessage::Price(WsEvent::Connected(tx)));
 
                         if let Err(e) = web_socket.event_loop(&keep_running).await {
                             eprintln!("Prices Stream error: {e:?}");

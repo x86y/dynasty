@@ -3,3 +3,4 @@ pub mod input;
 pub mod list;
 pub mod scrollbar;
 pub mod unstyled_btn;
+pub mod loading;

@@ -1,3 +1,4 @@
+use crate::views::components::loading::Loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
 use crate::{message::Message, theme::h2c};
@@ -54,9 +55,10 @@ pub fn watchlist_view<'a>(
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
+    loader: &'a Loader
 ) -> Element<'a, Message> {
     let Some(ps) = ps else {
-        return widget::text("LOADING").into();
+        return loader.view()
     };
 
     let mut sorted_assets: Vec<_> = ps.iter().collect();

@@ -1,11 +1,9 @@
 use iced::{
-    theme,
-    widget::{
+    theme, widget::{
         button,
         pane_grid::{self, Configuration},
         responsive, row, text, PaneGrid,
-    },
-    Command, Element, Font, Length,
+    }, window, Command, Element, Font, Length
 };
 use iced_futures::Subscription;
 use ringbuf::Rb;
@@ -390,6 +388,7 @@ impl DashboardView {
                     &config.watchlist_favorites,
                     self.filter,
                     &self.filter_string,
+                    &data.loader
                 ),
                 PaneType::Chart => self.chart.view().into(),
                 PaneType::Book => book_view(&data.book),
@@ -422,6 +421,7 @@ impl DashboardView {
         Subscription::batch([
             trades::connect(self.textbox_pair.to_lowercase()).map(Message::from),
             book::connect(self.textbox_pair.to_lowercase()).map(Message::from),
+            window::frames().map(Message::LoaderTick)
         ])
     }
 

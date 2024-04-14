@@ -91,7 +91,7 @@ impl WsListener for BookWs {
         };
     }
 
-    fn message(&self, msg: WsEvent<Self::Output, Self::Input>) -> WsMessage {
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
         WsMessage::Book(msg)
     }
 }

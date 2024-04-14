@@ -21,7 +21,7 @@ use super::orders::tb;
 pub(crate) enum ChartMessage {}
 
 pub struct ChartPane {
-    pub data: ringbuf::HeapRb<f64>,
+    pub data: ringbuf::StaticRb<f64, 500>,
 }
 
 impl Chart<Message> for ChartPane {
@@ -73,7 +73,7 @@ impl Chart<Message> for ChartPane {
 impl ChartPane {
     pub(crate) fn new() -> Self {
         Self {
-            data: ringbuf::HeapRb::new(500),
+            data: ringbuf::StaticRb::default()
         }
     }
 

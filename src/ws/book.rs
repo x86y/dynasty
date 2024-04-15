@@ -43,7 +43,7 @@ impl WsListener for BookWs {
         diff_book_depth_stream(&self.pair, 1000)
     }
 
-    fn handle_event(event: Self::Event) -> Self::Output {
+    fn handle_event(&self, event: Self::Event) -> Self::Output {
         let binance::ws_model::DepthOrderBookEvent {
             event_time: _,
             symbol,

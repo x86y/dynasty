@@ -50,6 +50,9 @@ pub(crate) struct App {
     settings_opened: bool,
     dashboard: DashboardView,
     settings: SettingsView,
+    ws_user: Option<tokio::sync::mpsc::UnboundedSender<user::Message>>,
+    // keep this around so that websocket does not spin endlessly because of dropped sender
+    ws_prices: Option<tokio::sync::mpsc::UnboundedSender<()>>,
 }
 
 impl App {
@@ -63,6 +66,8 @@ impl App {
             settings_opened: !config.valid(),
             dashboard: DashboardView::new(),
             settings: SettingsView::new(config),
+            ws_user: None,
+            ws_prices: None,
         }
     }
 
@@ -174,7 +179,14 @@ impl Application for App {
                     Message::DispatchErr(("config".to_string(), err.to_string()))
                 }),
             },
-            Message::CredentialsUpdated => self.fetch_data(),
+            Message::CredentialsUpdated => {
+                if let Some(ws_user) = &mut self.ws_user {
+                    ws_user
+                        .send(user::Message::NewApiKey(self.config.api_key.clone()))
+                        .unwrap();
+                };
+                self.fetch_data()
+            }
             Message::Ws(update) => {
                 match &update {
                     WsMessage::Book(event) => {
@@ -190,12 +202,10 @@ impl Application for App {
                             self.data.trades.push_front(te.clone());
                         }
                     }
-                    WsMessage::User(event) => {
-                        let WsEvent::Message(u) = event else {
-                            return Command::none();
-                        };
-
-                        match u {
+                    WsMessage::User(event) => match event {
+                        WsEvent::Connected(sender) => self.ws_user = Some(sender.clone()),
+                        WsEvent::Disconnected => self.ws_user = None,
+                        WsEvent::Message(msg) => match msg {
                             binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
                                 for b in p.balances.iter() {
                                     let ib =
@@ -251,14 +261,18 @@ impl Application for App {
                                 // not needed imo?
                             }
                             _ => unreachable!(),
-                        }
-                    }
+                        },
+                    },
                     WsMessage::Price(m) => {
                         match m {
-                            crate::ws::WsEvent::Connected(_) => {
+                            crate::ws::WsEvent::Connected(tx) => {
+                                self.ws_prices = Some(tx.clone());
                                 self.data.prices = Some(Default::default())
                             }
-                            crate::ws::WsEvent::Disconnected => self.data.prices = None,
+                            crate::ws::WsEvent::Disconnected => {
+                                self.ws_prices = None;
+                                self.data.prices = None
+                            }
                             crate::ws::WsEvent::Message(m) => {
                                 self.data
                                     .prices

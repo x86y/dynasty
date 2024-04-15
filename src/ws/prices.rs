@@ -1,7 +1,6 @@
-use std::sync::atomic::AtomicBool;
+use std::{error::Error, sync::atomic::AtomicBool};
 
 use binance::ws_model::DayTickerEvent;
-use futures::channel::mpsc;
 use iced::subscription::{self, Subscription};
 
 use crate::ws::WsEvent;
@@ -14,13 +13,12 @@ pub struct AssetDetails {
     pub price: f32,
 }
 
-struct PricesWs {
-    output: mpsc::Sender<WsMessage>,
-}
+#[derive(Debug)]
+pub(crate) struct PricesWs {}
 
 impl PricesWs {
-    fn new(output: mpsc::Sender<WsMessage>) -> Self {
-        Self { output }
+    pub(crate) fn new() -> Self {
+        Self {}
     }
 }
 
@@ -29,12 +27,8 @@ impl WsListener for PricesWs {
     type Input = ();
     type Output = AssetDetails;
 
-    fn output(&mut self) -> &mut mpsc::Sender<WsMessage> {
-        &mut self.output
-    }
-
-    async fn endpoint(&self) -> String {
-        "!ticker".to_owned()
+    async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
+        Ok("!ticker".to_owned())
     }
 
     fn handle_event(&self, event: Self::Event) -> Self::Output {
@@ -55,6 +49,6 @@ pub fn connect() -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(std::any::TypeId::of::<Connect>(), 100, |output| async {
-        PricesWs::new(output).run().await
+        PricesWs::new().run(output).await
     })
 }

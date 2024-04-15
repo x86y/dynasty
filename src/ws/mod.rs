@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::{error::Error, sync::atomic::AtomicBool, time::Duration};
 
 use binance::{
     websockets::WebSockets,
@@ -35,7 +35,7 @@ pub(crate) enum WsMessage {
     Trade(WsEvent<trades::Message, TradesEvent>),
     Book(WsEvent<book::Message, OrderBookDetails>),
     Price(WsEvent<(), AssetDetails>),
-    User(WsEvent<(), WebsocketEvent>),
+    User(WsEvent<user::Message, WebsocketEvent>),
 }
 
 pub(crate) trait WsListener {
@@ -43,11 +43,8 @@ pub(crate) trait WsListener {
     type Input;
     type Output;
 
-    /// Get iced output handle
-    fn output(&mut self) -> &mut mpsc_futures::Sender<WsMessage>;
-
     /// Endpoint given to `web_socket.connect`
-    async fn endpoint(&self) -> String;
+    async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>>;
 
     /// Handle websocket event
     fn handle_event(&self, event: Self::Event) -> Self::Output;
@@ -59,7 +56,7 @@ pub(crate) trait WsListener {
     fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage;
 
     /// Main entrypoint
-    async fn run(&mut self) -> ! {
+    async fn run(&mut self, mut output: mpsc_futures::Sender<WsMessage>) -> ! {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let mut web_socket = WebSockets::new(|event| {
@@ -69,19 +66,29 @@ pub(crate) trait WsListener {
         });
 
         loop {
-            let mut keep_running = AtomicBool::new(true);
-            let endpoint = self.endpoint().await;
+            let endpoint = match self.endpoint().await {
+                Ok(endpoint) => endpoint,
+                Err(e) => {
+                    eprintln!("Endpoint error: {e:?}");
+
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    continue;
+                }
+            };
 
             if let Err(e) = web_socket.connect(&endpoint).await {
                 eprintln!("WebSocket connection error: {e:?}");
+
+                tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
 
             let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
 
             let connect_msg = self.message(WsEvent::Connected(input_tx));
-            let _ = self.output().send(connect_msg).await;
+            let _ = output.send(connect_msg).await;
 
+            let mut keep_running = AtomicBool::new(true);
             loop {
                 futures::select! {
                     ws_closed = web_socket.event_loop(&keep_running).fuse() => {
@@ -91,9 +98,9 @@ pub(crate) trait WsListener {
                         break;
                     }
                     event = rx.recv().fuse() => {
-                        let output = self.handle_event(event.expect("nobody should be closing channel"));
-                        let message = self.message(WsEvent::Message(output));
-                        let _ = self.output().send(message).await;
+                        let handled = self.handle_event(event.expect("nobody should be closing channel"));
+                        let message = self.message(WsEvent::Message(handled));
+                        let _ = output.send(message).await;
                     }
                     input = input_rx.recv().fuse() => {
                         if let Some(input) = input {
@@ -104,7 +111,7 @@ pub(crate) trait WsListener {
             }
 
             let message = self.message(WsEvent::Disconnected);
-            let _ = self.output().send(message).await;
+            let _ = output.send(message).await;
         }
     }
 }

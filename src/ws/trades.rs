@@ -1,8 +1,7 @@
-use std::sync::atomic::AtomicBool;
+use std::{error::Error, sync::atomic::AtomicBool};
 
 use binance::websockets::agg_trade_stream;
 use binance::ws_model::TradesEvent;
-use futures::channel::mpsc;
 use iced::subscription::{self, Subscription};
 
 use crate::ws::WsEvent;
@@ -14,14 +13,14 @@ pub(crate) enum Message {
     NewPair(String),
 }
 
-struct TradesWs {
+#[derive(Debug)]
+pub(crate) struct TradesWs {
     pair: String,
-    output: mpsc::Sender<WsMessage>,
 }
 
 impl TradesWs {
-    fn new(pair: String, output: mpsc::Sender<WsMessage>) -> Self {
-        Self { pair, output }
+    pub(crate) fn new(pair: String) -> Self {
+        Self { pair }
     }
 }
 
@@ -30,12 +29,8 @@ impl WsListener for TradesWs {
     type Input = Message;
     type Output = TradesEvent;
 
-    fn output(&mut self) -> &mut mpsc::Sender<WsMessage> {
-        &mut self.output
-    }
-
-    async fn endpoint(&self) -> String {
-        agg_trade_stream(&self.pair)
+    async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
+        Ok(agg_trade_stream(&self.pair))
     }
 
     fn handle_event(&self, event: Self::Event) -> Self::Output {
@@ -56,10 +51,10 @@ impl WsListener for TradesWs {
     }
 }
 
-pub fn connect(pair: String) -> Subscription<WsMessage> {
+pub(crate) fn connect(pair: String) -> Subscription<WsMessage> {
     struct Connect;
 
     subscription::channel(std::any::TypeId::of::<Connect>(), 100, |output| async {
-        TradesWs::new(pair, output).run().await
+        TradesWs::new(pair).run(output).await
     })
 }

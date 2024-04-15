@@ -39,9 +39,9 @@ pub(crate) enum WsMessage {
 }
 
 pub(crate) trait WsListener {
-    type Event: DeserializeOwned;
+    type Event: Send + DeserializeOwned;
     type Input;
-    type Output: Send;
+    type Output;
 
     /// Get iced output handle
     fn output(&mut self) -> &mut mpsc_futures::Sender<WsMessage>;
@@ -49,8 +49,8 @@ pub(crate) trait WsListener {
     /// Endpoint given to `web_socket.connect`
     async fn endpoint(&self) -> String;
 
-    /// Turn websocket event into output
-    fn handle_event(event: Self::Event) -> Self::Output;
+    /// Handle websocket event
+    fn handle_event(&self, event: Self::Event) -> Self::Output;
 
     /// Handle message from input channel
     fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool);
@@ -63,7 +63,7 @@ pub(crate) trait WsListener {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let mut web_socket = WebSockets::new(|event| {
-            let _ = tx.send(Self::handle_event(event));
+            let _ = tx.send(event);
 
             Ok(())
         });
@@ -90,8 +90,8 @@ pub(crate) trait WsListener {
                         }
                         break;
                     }
-                    output = rx.recv().fuse() => {
-                        let output = output.expect("nobody should be closing channel");
+                    event = rx.recv().fuse() => {
+                        let output = self.handle_event(event.expect("nobody should be closing channel"));
                         let message = self.message(WsEvent::Message(output));
                         let _ = self.output().send(message).await;
                     }

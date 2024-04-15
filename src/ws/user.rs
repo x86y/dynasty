@@ -40,7 +40,7 @@ impl WsListener for UserWs {
         }
     }
 
-    fn handle_event(event: Self::Event) -> Self::Output {
+    fn handle_event(&self, event: Self::Event) -> Self::Output {
         event
     }
 

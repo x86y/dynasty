@@ -9,7 +9,6 @@ use super::{WsListener, WsMessage};
 
 #[derive(Debug, Clone)]
 pub(crate) enum Message {
-    // FIXME: events cannot be processed before ws is connected but api key is required to connect
     NewApiKey(String),
 }
 
@@ -29,6 +28,10 @@ impl WsListener for UserWs {
     type Input = Message;
     type Output = WebsocketEvent;
 
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
+        WsMessage::User(msg)
+    }
+
     async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
         let user_stream: UserStream = Binance::new(Some(self.api_key.clone()), None);
 
@@ -41,10 +44,6 @@ impl WsListener for UserWs {
 
     fn handle_event(&self, event: Self::Event) -> Self::Output {
         event
-    }
-
-    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
-        WsMessage::User(msg)
     }
 
     fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool) {

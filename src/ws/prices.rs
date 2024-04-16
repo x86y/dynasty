@@ -27,6 +27,10 @@ impl WsListener for PricesWs {
     type Input = ();
     type Output = AssetDetails;
 
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
+        WsMessage::Price(msg)
+    }
+
     async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
         Ok("!ticker".to_owned())
     }
@@ -36,10 +40,6 @@ impl WsListener for PricesWs {
             name: event.symbol,
             price: event.best_bid.parse::<f32>().unwrap(),
         }
-    }
-
-    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
-        WsMessage::Price(msg)
     }
 
     fn handle_input(&mut self, _: Self::Input, _: &mut AtomicBool) {}

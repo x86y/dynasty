@@ -29,6 +29,10 @@ impl WsListener for TradesWs {
     type Input = Message;
     type Output = TradesEvent;
 
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
+        WsMessage::Trade(msg)
+    }
+
     async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
         Ok(agg_trade_stream(&self.pair))
     }
@@ -44,10 +48,6 @@ impl WsListener for TradesWs {
                 keep_running.store(false, std::sync::atomic::Ordering::Relaxed);
             }
         };
-    }
-
-    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
-        WsMessage::Trade(msg)
     }
 }
 

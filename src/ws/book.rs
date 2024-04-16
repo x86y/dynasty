@@ -34,6 +34,10 @@ impl WsListener for BookWs {
     type Input = Message;
     type Output = OrderBookDetails;
 
+    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
+        WsMessage::Book(msg)
+    }
+
     async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
         Ok(diff_book_depth_stream(&self.pair, 1000))
     }
@@ -84,10 +88,6 @@ impl WsListener for BookWs {
                 keep_running.store(false, std::sync::atomic::Ordering::Relaxed);
             }
         };
-    }
-
-    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
-        WsMessage::Book(msg)
     }
 }
 

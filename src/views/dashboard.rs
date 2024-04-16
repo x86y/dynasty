@@ -348,7 +348,8 @@ impl DashboardView {
     pub(crate) fn ws(&mut self, message: WsMessage) -> Command<Message> {
         match message {
             WsMessage::Price(m) => match m {
-                crate::ws::WsEvent::Connected(_) => (),
+                crate::ws::WsEvent::Created(_) => (),
+                crate::ws::WsEvent::Connected => (),
                 crate::ws::WsEvent::Disconnected => (),
                 crate::ws::WsEvent::Message(m) => {
                     if m.name == self.textbox_pair {
@@ -357,12 +358,14 @@ impl DashboardView {
                 }
             },
             WsMessage::Book(m) => match m {
-                WsEvent::Connected(sender) => self.ws_book = Some(sender),
+                WsEvent::Created(sender) => self.ws_book = Some(sender),
+                WsEvent::Connected => (),
                 WsEvent::Disconnected => self.ws_book = None,
                 WsEvent::Message(_) => (),
             },
             WsMessage::Trade(m) => match m {
-                WsEvent::Connected(sender) => self.ws_trade = Some(sender),
+                WsEvent::Created(sender) => self.ws_trade = Some(sender),
+                WsEvent::Connected => (),
                 WsEvent::Disconnected => self.ws_trade = None,
                 WsEvent::Message(_) => (),
             },

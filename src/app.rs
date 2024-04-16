@@ -203,7 +203,8 @@ impl Application for App {
                         }
                     }
                     WsMessage::User(event) => match event {
-                        WsEvent::Connected(sender) => self.ws_user = Some(sender.clone()),
+                        WsEvent::Created(sender) => self.ws_user = Some(sender.clone()),
+                        WsEvent::Connected => (),
                         WsEvent::Disconnected => self.ws_user = None,
                         WsEvent::Message(msg) => match msg {
                             binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
@@ -265,15 +266,10 @@ impl Application for App {
                     },
                     WsMessage::Price(m) => {
                         match m {
-                            crate::ws::WsEvent::Connected(tx) => {
-                                self.ws_prices = Some(tx.clone());
-                                self.data.prices = Some(Default::default())
-                            }
-                            crate::ws::WsEvent::Disconnected => {
-                                self.ws_prices = None;
-                                self.data.prices = None
-                            }
-                            crate::ws::WsEvent::Message(m) => {
+                            WsEvent::Created(tx) => self.ws_prices = Some(tx.clone()),
+                            WsEvent::Connected => self.data.prices = Some(Default::default()),
+                            WsEvent::Disconnected => self.data.prices = None,
+                            WsEvent::Message(m) => {
                                 self.data
                                     .prices
                                     .as_mut()

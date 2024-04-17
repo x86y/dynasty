@@ -323,7 +323,7 @@ impl DashboardView {
     }
 
     pub(crate) fn tick(&mut self, data: &AppData) {
-        self.calculator.tick(data)
+        self.calculator.tick(data);
     }
 
     pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<Message> {

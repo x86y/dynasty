@@ -29,7 +29,7 @@ pub fn book_view(
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
                         .width(Length::FillPortion(1))
                         .style(iced::Color::from_rgb(1.0, 0.0, 0.0)),
-                    t(format!("{:.4}", quantity))
+                    t(format!("{quantity:.4}"))
                         .width(Length::FillPortion(1))
                         .style(h2c("B7BDB7").unwrap()),
                     t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
@@ -51,7 +51,7 @@ pub fn book_view(
                     t(format!("{:.2}", price.parse::<f64>().unwrap()))
                         .width(Length::FillPortion(1))
                         .style(iced::Color::from_rgb(0.0, 1.0, 0.0)),
-                    t(format!("{:.2}", quantity))
+                    t(format!("{quantity:.2}"))
                         .width(Length::FillPortion(1))
                         .style(h2c("B7BDB7").unwrap()),
                     t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))

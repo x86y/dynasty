@@ -360,7 +360,7 @@ impl Application for App {
                             let svg = svg(handle)
                                 .width(Length::Fixed(16.0))
                                 .height(Length::Fixed(16.0));
-                            return row![svg, text(format!("{:.2}", price_now)).size(14)]
+                            return row![svg, text(format!("{price_now:.2}")).size(14)]
                                 .spacing(4)
                                 .align_items(iced::Alignment::Center);
                         })

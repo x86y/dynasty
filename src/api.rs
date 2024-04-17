@@ -72,7 +72,7 @@ impl Client {
                 let mut os: Vec<_> = {
                     let account = binance_account.lock().await;
 
-                    join_all(assets.iter().map(|a: &&str| {
+                    join_all(assets.into_iter().map(|a: &str| {
                         account.get_all_orders(binance::account::OrdersQuery {
                             symbol: a.to_string(),
                             order_id: None,
@@ -108,7 +108,7 @@ impl Client {
 
                 let account = binance_account.lock().await;
 
-                join_all(assets.iter().map(|a| account.get_balance(a.to_string())))
+                join_all(assets.iter().map(|&a| account.get_balance(a.to_string())))
                     .await
                     .into_iter()
                     .flatten()
@@ -250,7 +250,7 @@ mod tests {
             match Client::split_symbol(symbol) {
                 Some([base, quote]) => {
                     assert_eq!(
-                        format!("{}{}", base, quote),
+                        format!("{base}{quote}"),
                         symbol,
                         "Split symbol should recombine to the original symbol"
                     );

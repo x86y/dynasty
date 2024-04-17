@@ -94,7 +94,7 @@ pub fn orders_view<'a>(os: &[Order], ps: &'a Option<HashMap<String, f32>>) -> El
                         b.executed_qty * (norm_price - *price_now as f64)
                     }
                 };
-                t(format!("{:.0}$", pnl_value))
+                t(format!("{pnl_value:.0}$"))
                     .width(Length::Fixed(100.0))
                     .style(
                         if pnl_value >= 0.0 {

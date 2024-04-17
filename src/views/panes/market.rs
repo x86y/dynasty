@@ -39,8 +39,8 @@ pub(crate) struct Market {
 impl Market {
     pub(crate) fn new() -> Self {
         let mut m = Self {
-            price: Default::default(),
-            amount: Default::default(),
+            price: String::default(),
+            amount: String::default(),
             pair: String::new(),
             ws_pair: String::new(),
         };

@@ -315,9 +315,7 @@ impl Application for App {
                     self.dashboard.prepend_chart_data(&closes)
                 }
             },
-            Message::TimeframeChanged(tf) => {
-                self.api.klines(self.dashboard.textbox_pair.clone(), tf)
-            }
+            Message::TimeframeChanged(tf) => self.api.klines(self.dashboard.pair().to_owned(), tf),
         }
     }
 

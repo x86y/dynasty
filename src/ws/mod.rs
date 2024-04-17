@@ -46,7 +46,7 @@ pub(crate) trait WsListener {
     type Input;
     type Output;
 
-    /// Wrap `WsEvent` in correct variant of WsMessage
+    /// Wrap `WsEvent` in correct variant of `WsMessage`
     fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage;
 
     /// Endpoint given to `web_socket.connect`

@@ -72,7 +72,7 @@ impl CalculatorPane {
 
     pub(crate) fn tick(&mut self, data: &AppData) {
         if let Some(prices) = &data.prices {
-            self.calculator.update_context(&prices, &data.orders);
+            self.calculator.update_context(prices, &data.orders);
         }
 
         if !self.is_editing {

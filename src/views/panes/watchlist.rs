@@ -2,7 +2,6 @@ use crate::views::components::loading::Loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
 use crate::{message::Message, theme::h2c};
-use iced::widget;
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
@@ -55,11 +54,9 @@ pub fn watchlist_view<'a>(
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
-    loader: &'a Loader
+    loader: &'a Loader,
 ) -> Element<'a, Message> {
-    let Some(ps) = ps else {
-        return loader.view()
-    };
+    let Some(ps) = ps else { return loader.view() };
 
     let mut sorted_assets: Vec<_> = ps.iter().collect();
     sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
@@ -100,9 +97,7 @@ pub fn watchlist_view<'a>(
                 sorted_assets
                     .iter()
                     .filter_map(|i| {
-                        if !search.is_empty() {
-                            i.0.contains(&search.to_uppercase()).then_some((i.0, i.1))
-                        } else {
+                        if search.is_empty() {
                             match filter {
                                 WatchlistFilter::Favorites => favorites.contains(i.0),
                                 WatchlistFilter::Eth => i.0.contains("ETH"),
@@ -110,6 +105,8 @@ pub fn watchlist_view<'a>(
                                 WatchlistFilter::Alts => true,
                             }
                             .then_some((i.0, i.1))
+                        } else {
+                            i.0.contains(&search.to_uppercase()).then_some((i.0, i.1))
                         }
                     })
                     .map(|(n, p)| asset_button(n, *p))

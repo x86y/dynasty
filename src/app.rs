@@ -9,6 +9,7 @@ use crate::views::settings::SettingsView;
 use crate::ws::prices;
 use crate::ws::user;
 use crate::ws::WsEvent;
+use crate::ws::WsHandle;
 use crate::ws::WsMessage;
 
 use std::collections::BTreeMap;
@@ -50,9 +51,8 @@ pub(crate) struct App {
     settings_opened: bool,
     dashboard: DashboardView,
     settings: SettingsView,
-    ws_user: Option<tokio::sync::mpsc::UnboundedSender<user::Message>>,
-    // keep this around so that websocket does not spin endlessly because of dropped sender
-    ws_prices: Option<tokio::sync::mpsc::UnboundedSender<()>>,
+    ws_user: Option<WsHandle<user::Message>>,
+    ws_prices: Option<WsHandle<()>>,
 }
 
 impl App {
@@ -181,9 +181,7 @@ impl Application for App {
             },
             Message::CredentialsUpdated => {
                 if let Some(ws_user) = &mut self.ws_user {
-                    ws_user
-                        .send(user::Message::NewApiKey(self.config.api_key.clone()))
-                        .unwrap();
+                    ws_user.send(user::Message::NewApiKey(self.config.api_key.clone()));
                 };
                 self.fetch_data()
             }
@@ -203,7 +201,7 @@ impl Application for App {
                         }
                     }
                     WsMessage::User(event) => match event {
-                        WsEvent::Created(sender) => self.ws_user = Some(sender.clone()),
+                        WsEvent::Created(handle) => self.ws_user = Some(handle.clone()),
                         WsEvent::Connected => (),
                         WsEvent::Disconnected => self.ws_user = None,
                         WsEvent::Message(msg) => match msg {
@@ -266,7 +264,7 @@ impl Application for App {
                     },
                     WsMessage::Price(m) => {
                         match m {
-                            WsEvent::Created(tx) => self.ws_prices = Some(tx.clone()),
+                            WsEvent::Created(handle) => self.ws_prices = Some(handle.clone()),
                             WsEvent::Connected => self.data.prices = Some(Default::default()),
                             WsEvent::Disconnected => self.data.prices = None,
                             WsEvent::Message(m) => {

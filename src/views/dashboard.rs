@@ -9,7 +9,6 @@ use iced::{
 };
 use iced_futures::Subscription;
 use ringbuf::Rb;
-use tokio::sync::mpsc;
 
 use crate::{
     api::Client,
@@ -17,7 +16,7 @@ use crate::{
     config::Config,
     message::Message,
     theme::h2c,
-    ws::{book, trades, WsEvent, WsMessage},
+    ws::{book, trades, WsEvent, WsHandle, WsMessage},
 };
 
 use super::panes::{
@@ -164,8 +163,8 @@ pub(crate) struct DashboardView {
     filter: WatchlistFilter,
     filter_string: String,
     // websockets
-    ws_book: Option<mpsc::UnboundedSender<book::Message>>,
-    ws_trade: Option<mpsc::UnboundedSender<trades::Message>>,
+    ws_book: Option<WsHandle<book::Message>>,
+    ws_trade: Option<WsHandle<trades::Message>>,
     // widgets
     market: Market,
 }
@@ -345,13 +344,13 @@ impl DashboardView {
                 }
             },
             WsMessage::Book(m) => match m {
-                WsEvent::Created(sender) => self.ws_book = Some(sender),
+                WsEvent::Created(handle) => self.ws_book = Some(handle),
                 WsEvent::Connected => (),
                 WsEvent::Disconnected => self.ws_book = None,
                 WsEvent::Message(_) => (),
             },
             WsMessage::Trade(m) => match m {
-                WsEvent::Created(sender) => self.ws_trade = Some(sender),
+                WsEvent::Created(handle) => self.ws_trade = Some(handle),
                 WsEvent::Connected => (),
                 WsEvent::Disconnected => self.ws_trade = None,
                 WsEvent::Message(_) => (),
@@ -417,12 +416,10 @@ impl DashboardView {
         let lower_pair = self.market.ws_pair().to_owned();
 
         if let Some(book_ws) = &mut self.ws_book {
-            book_ws
-                .send(book::Message::NewPair(lower_pair.clone()))
-                .unwrap();
+            book_ws.send(book::Message::NewPair(lower_pair.clone()));
         };
         if let Some(ws_trade) = &mut self.ws_trade {
-            ws_trade.send(trades::Message::NewPair(lower_pair)).unwrap();
+            ws_trade.send(trades::Message::NewPair(lower_pair));
         };
     }
 }

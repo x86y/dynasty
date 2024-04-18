@@ -16,12 +16,22 @@ pub mod trades;
 pub mod user;
 pub mod util;
 
+/// Allows communicating with websocket. If you drop this, ws will spin endlessly on closed channel
+#[derive(Debug, Clone)]
+pub(crate) struct WsHandle<T>(mpsc_tokio::UnboundedSender<T>);
+
+impl<T> WsHandle<T> {
+    pub(crate) fn send(&self, msg: T) {
+        self.0.send(msg).unwrap();
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) enum WsEvent<In, Out> {
     /// Websocket created
     ///
     /// Contains channel for sending input messages
-    Created(mpsc_tokio::UnboundedSender<In>),
+    Created(WsHandle<In>),
 
     /// Connected successfully
     Connected,
@@ -73,7 +83,7 @@ pub(crate) trait WsListener {
 
         let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
 
-        let connected = self.message(WsEvent::Created(input_tx));
+        let connected = self.message(WsEvent::Created(WsHandle(input_tx)));
         let _ = output.send(connected).await;
 
         loop {

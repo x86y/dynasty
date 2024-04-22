@@ -1,8 +1,8 @@
 use std::{error::Error, sync::atomic::AtomicBool};
 
 use binance::websockets::agg_trade_stream;
-use binance::ws_model::TradesEvent;
 use iced::subscription::{self, Subscription};
+use serde::{de, Deserialize, Deserializer};
 
 use crate::ws::WsEvent;
 
@@ -22,6 +22,29 @@ impl TradesWs {
     pub(crate) fn new(pair: String) -> Self {
         Self { pair }
     }
+}
+
+fn str_as_f32<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = <&str>::deserialize(deserializer)?;
+    s.parse::<f32>().map_err(de::Error::custom)
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct TradesEvent {
+    #[serde(rename = "p", deserialize_with = "str_as_f32")]
+    pub(crate) price: f32,
+
+    #[serde(rename = "q", deserialize_with = "str_as_f32")]
+    pub(crate) qty: f32,
+
+    #[serde(rename = "T")]
+    pub(crate) trade_order_time: u64,
+
+    #[serde(rename = "m")]
+    pub(crate) is_buyer_maker: bool,
 }
 
 impl WsListener for TradesWs {

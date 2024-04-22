@@ -1,16 +1,27 @@
 use std::{error::Error, sync::atomic::AtomicBool};
 
-use binance::ws_model::DayTickerEvent;
 use iced::subscription::{self, Subscription};
+use serde::{de, Deserialize, Deserializer};
 
 use crate::ws::WsEvent;
 
 use super::{WsListener, WsMessage};
 
-#[derive(Debug, Clone)]
-pub struct AssetDetails {
-    pub name: String,
-    pub price: f32,
+fn str_as_f32<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = <&str>::deserialize(deserializer)?;
+    s.parse::<f32>().map_err(de::Error::custom)
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct AssetDetails {
+    #[serde(rename = "s")]
+    pub(crate) name: String,
+
+    #[serde(rename = "b", deserialize_with = "str_as_f32")]
+    pub(crate) price: f32,
 }
 
 #[derive(Debug)]
@@ -23,7 +34,7 @@ impl PricesWs {
 }
 
 impl WsListener for PricesWs {
-    type Event = DayTickerEvent;
+    type Event = AssetDetails;
     type Input = ();
     type Output = AssetDetails;
 
@@ -36,10 +47,7 @@ impl WsListener for PricesWs {
     }
 
     fn handle_event(&self, event: Self::Event) -> Self::Output {
-        AssetDetails {
-            name: event.symbol,
-            price: event.best_bid.parse::<f32>().unwrap(),
-        }
+        event
     }
 
     fn handle_input(&mut self, _: Self::Input, _: &mut AtomicBool) {}

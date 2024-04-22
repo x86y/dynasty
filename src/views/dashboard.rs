@@ -304,8 +304,6 @@ impl DashboardView {
             DashboardMessage::PriceInc(inc) => {
                 let price = data
                     .prices
-                    .as_ref()
-                    .expect("prices exist for some reason")
                     .get(self.market.pair())
                     .expect("price exists for some reason");
                 self.market.set_price(

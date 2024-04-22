@@ -50,13 +50,15 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, Message> {
 }
 
 pub fn watchlist_view<'a>(
-    ps: &'a Option<HashMap<String, f32>>,
+    ps: &'a HashMap<String, f32>,
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
     loader: &'a Loader,
 ) -> Element<'a, Message> {
-    let Some(ps) = ps else { return loader.view() };
+    if ps.is_empty() {
+        return loader.view();
+    };
 
     let mut sorted_assets: Vec<_> = ps.iter().collect();
     sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());

@@ -34,7 +34,7 @@ use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
 
 #[derive(Debug, Default)]
 pub(crate) struct AppData {
-    pub(crate) prices: Option<HashMap<String, f32>>,
+    pub(crate) prices: HashMap<String, f32>,
     pub(crate) book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     pub(crate) trades: VecDeque<TradesEvent>,
     pub(crate) balances: Vec<Balance>,
@@ -265,14 +265,9 @@ impl Application for App {
                     WsMessage::Price(m) => {
                         match m {
                             WsEvent::Created(handle) => self.ws_prices = Some(handle.clone()),
-                            WsEvent::Connected => self.data.prices = Some(Default::default()),
-                            WsEvent::Disconnected => self.data.prices = None,
+                            WsEvent::Connected | WsEvent::Disconnected => (),
                             WsEvent::Message(m) => {
-                                self.data
-                                    .prices
-                                    .as_mut()
-                                    .expect("websocket connected")
-                                    .insert(m.name.clone(), m.price);
+                                self.data.prices.insert(m.name.clone(), m.price);
                             }
                         };
                     }
@@ -342,11 +337,7 @@ impl Application for App {
                         .watchlist_favorites
                         .iter()
                         .map(|t| {
-                            let price_now = if let Some(prices) = &self.data.prices {
-                                prices.get(t).unwrap_or(&0.0)
-                            } else {
-                                &0.0
-                            };
+                            let price_now = &self.data.prices.get(t).unwrap_or(&0.0);
 
                             let ticker = t.strip_suffix("USDT").unwrap_or(t);
                             let handle = match svg_logos::LOGOS.get(ticker) {

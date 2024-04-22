@@ -1,14 +1,11 @@
 use std::{error::Error, sync::atomic::AtomicBool, time::Duration};
 
-use binance::{
-    websockets::WebSockets,
-    ws_model::{TradesEvent, WebsocketEvent},
-};
+use binance::{websockets::WebSockets, ws_model::WebsocketEvent};
 use futures::{channel::mpsc as mpsc_futures, FutureExt, SinkExt};
 use serde::de::DeserializeOwned;
 use tokio::sync::mpsc as mpsc_tokio;
 
-use self::{book::OrderBookDetails, prices::AssetDetails};
+use self::{book::OrderBookDetails, prices::AssetDetails, trades::TradesEvent};
 
 pub mod book;
 pub mod prices;
@@ -123,15 +120,15 @@ pub(crate) trait WsListener {
                         }
                         break;
                     }
-                    event = rx.recv().fuse() => {
-                        let handled = self.handle_event(event.expect("nobody should be closing channel"));
-                        let message = self.message(WsEvent::Message(handled));
-                        let _ = output.send(message).await;
-                    }
                     input = input_rx.recv().fuse() => {
                         if let Some(input) = input {
                             self.handle_input(input, &mut keep_running);
                         }
+                    }
+                    event = rx.recv().fuse() => {
+                        let handled = self.handle_event(event.expect("nobody should be closing channel"));
+                        let message = self.message(WsEvent::Message(handled));
+                        let _ = output.send(message).await;
                     }
                 }
             }

@@ -16,7 +16,7 @@ use crate::{
     config::Config,
     message::Message,
     theme::h2c,
-    ws::{book, trades, WsEvent, WsHandle, WsMessage},
+    ws::{book, prices::AssetDetails, trades, WsHandle},
 };
 
 use super::panes::{
@@ -338,34 +338,18 @@ impl DashboardView {
         Command::none()
     }
 
-    pub(crate) fn ws(&mut self, message: WsMessage) -> Command<DashboardMessage> {
-        match message {
-            WsMessage::Price(m) => match m {
-                crate::ws::WsEvent::Created(_) => (),
-                crate::ws::WsEvent::Connected => (),
-                crate::ws::WsEvent::Disconnected => (),
-                crate::ws::WsEvent::Message(m) => {
-                    if m.name == self.market.pair() {
-                        self.chart.update_data(m.price.into());
-                    }
-                }
-            },
-            WsMessage::Book(m) => match m {
-                WsEvent::Created(handle) => self.ws_book = Some(handle),
-                WsEvent::Connected => (),
-                WsEvent::Disconnected => self.ws_book = None,
-                WsEvent::Message(_) => (),
-            },
-            WsMessage::Trade(m) => match m {
-                WsEvent::Created(handle) => self.ws_trade = Some(handle),
-                WsEvent::Connected => (),
-                WsEvent::Disconnected => self.ws_trade = None,
-                WsEvent::Message(_) => (),
-            },
-            WsMessage::User(_) => (),
-        }
+    pub(crate) fn set_ws_trade_handle(&mut self, handle: Option<WsHandle<trades::Message>>) {
+        self.ws_trade = handle;
+    }
 
-        Command::none()
+    pub(crate) fn set_ws_book_handle(&mut self, handle: Option<WsHandle<book::Message>>) {
+        self.ws_book = handle;
+    }
+
+    pub(crate) fn chart_pair_price(&mut self, asset: &AssetDetails) {
+        if asset.name == self.market.pair() {
+            self.chart.update_data(f64::from(asset.price));
+        }
     }
 
     pub(crate) fn view<'a>(

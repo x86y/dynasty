@@ -11,23 +11,31 @@ use std::time::Instant;
 
 use crate::views::dashboard::DashboardMessage;
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Loader {
-    pub state: State,
+    state: State,
 }
 
 impl Loader {
-    pub fn view(&self) -> Element<DashboardMessage> {
+    pub(crate) fn new() -> Self {
+        Self {
+            state: State::new(),
+        }
+    }
+
+    pub(crate) fn view(&self) -> Element<DashboardMessage> {
         canvas(&self.state)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
     }
+    pub(crate) fn update(&mut self, now: Instant) {
+        self.state.update(now);
+    }
 }
 
 #[derive(Debug)]
 pub struct State {
-    space_cache: canvas::Cache,
     system_cache: canvas::Cache,
     start: Instant,
     now: Instant,
@@ -44,14 +52,13 @@ impl State {
         let now = Instant::now();
 
         State {
-            space_cache: canvas::Cache::default(),
             system_cache: canvas::Cache::default(),
             start: now,
             now,
         }
     }
 
-    pub fn update(&mut self, now: Instant) {
+    fn update(&mut self, now: Instant) {
         self.now = now;
         self.system_cache.clear();
     }
@@ -121,11 +128,5 @@ impl<Message> canvas::Program<Message> for State {
         });
 
         vec![system]
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
     }
 }

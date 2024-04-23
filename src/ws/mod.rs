@@ -1,5 +1,5 @@
 use binance::rest_model::{Order, OrderStatus};
-use iced::{Command, Subscription};
+use iced::Subscription;
 use tokio::sync::mpsc;
 
 use self::listener::WsListener;
@@ -101,7 +101,7 @@ impl Websockets {
         msg: WsMessage,
         data: &mut AppData,
         dashboard: &mut DashboardView,
-    ) -> Command<Message> {
+    ) {
         match msg {
             WsMessage::Book(event) => {
                 match event {
@@ -193,6 +193,5 @@ impl Websockets {
                 };
             }
         }
-        Command::none()
     }
 }

@@ -156,7 +156,10 @@ impl Application for App {
                 self.ws.relogin_user(&self.config.api_key);
                 self.fetch_data()
             }
-            Message::Ws(msg) => self.ws.update(msg, &mut self.data, &mut self.dashboard),
+            Message::Ws(msg) => {
+                self.ws.update(msg, &mut self.data, &mut self.dashboard);
+                Command::none()
+            }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;
                 Command::none()

@@ -34,7 +34,7 @@ macro_rules! filter_button {
 fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
     container(row![
         button(tb(n).size(14).style(h2c("EFE1D1").unwrap()))
-            .on_press(DashboardMessage::AssetSelected(n.to_string()).into())
+            .on_press(DashboardMessage::AssetSelected(n.to_string()))
             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
         Space::new(Length::Fill, 1.0),
         button(
@@ -42,7 +42,7 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
                 .size(14)
                 .style(h2c("B7BDB76").unwrap())
         )
-        .on_press(DashboardMessage::AssetSelected(n.to_string()).into())
+        .on_press(DashboardMessage::AssetSelected(n.to_string()))
         .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
     ])
     .width(Length::Fill)

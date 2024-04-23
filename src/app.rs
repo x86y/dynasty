@@ -304,10 +304,8 @@ impl Application for App {
             Message::NoOp => Command::none(),
             Message::KlinesRecieved(kr) => match kr {
                 KlineSummaries::AllKlineSummaries(klines) => {
-                    let closes: Vec<f64> = klines.iter().map(|kline| kline.close).collect();
-                    self.dashboard
-                        .prepend_chart_data(&closes)
-                        .map(Message::from)
+                    let closes = klines.iter().map(|kline| kline.close);
+                    self.dashboard.prepend_chart_data(closes).map(Message::from)
                 }
             },
         }

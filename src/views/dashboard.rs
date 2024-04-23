@@ -329,9 +329,12 @@ impl DashboardView {
         self.calculator.tick(data);
     }
 
-    pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<DashboardMessage> {
+    pub(crate) fn prepend_chart_data<T>(&mut self, slc: T) -> Command<DashboardMessage>
+    where
+        T: Iterator<Item = f64>,
+    {
         self.chart.data.clear();
-        self.chart.data.push_slice_overwrite(slc);
+        self.chart.data.push_iter_overwrite(slc);
         Command::none()
     }
 

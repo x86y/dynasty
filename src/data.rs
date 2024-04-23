@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use binance::rest_model::{Balance, Order};
 
-use crate::{views::components::loading::Loader, ws::trades::TradesEvent};
+use crate::ws::trades::TradesEvent;
 
 #[derive(Debug, Default)]
 pub(crate) struct AppData {
@@ -12,5 +12,4 @@ pub(crate) struct AppData {
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
     pub(crate) quote: String,
-    pub(crate) loader: Loader,
 }

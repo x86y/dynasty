@@ -128,10 +128,6 @@ impl Application for App {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::LoaderTick(instant) => {
-                self.data.loader.state.update(instant);
-                Command::none()
-            }
             Message::Tick => {
                 self.dashboard.tick(&self.data);
                 Command::none()
@@ -201,7 +197,7 @@ impl Application for App {
         Subscription::batch([
             iced::time::every(Duration::from_millis(1000)).map(|_| Message::Tick),
             self.ws.subscription(),
-            self.dashboard.subscription(),
+            self.dashboard.subscription(&self.data),
             /*
             keyboard::on_key_press(|key_code, modifiers| {
                 if !modifiers.command() {

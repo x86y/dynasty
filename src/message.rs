@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 use std::fmt::Display;
-use std::time::Instant;
 
 use crate::{
     config::Config,
@@ -93,9 +92,6 @@ pub(crate) enum Message {
 
     /// Does nothing
     NoOp,
-
-    // Loader widget tick
-    LoaderTick(Instant),
 }
 
 impl From<MaybeError> for Message {

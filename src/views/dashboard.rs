@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use iced::{
     theme,
     widget::{
@@ -19,16 +21,19 @@ use crate::{
     ws::{prices::AssetDetails, Websockets},
 };
 
-use super::panes::{
-    balances::balances_view,
-    book::book_view,
-    calculator::{CalculatorPane, CalculatorPaneMessage},
-    chart::ChartPane,
-    market::{Market, MarketPanelMessage},
-    orders::orders_view,
-    style,
-    trades::trades_view,
-    watchlist::{watchlist_view, WatchlistFilter},
+use super::{
+    components::loading::Loader,
+    panes::{
+        balances::balances_view,
+        book::book_view,
+        calculator::{CalculatorPane, CalculatorPaneMessage},
+        chart::ChartPane,
+        market::{Market, MarketPanelMessage},
+        orders::orders_view,
+        style,
+        trades::trades_view,
+        watchlist::{watchlist_view, WatchlistFilter},
+    },
 };
 
 #[derive(PartialEq)]
@@ -140,6 +145,9 @@ pub(crate) enum DashboardMessage {
     Market(MarketPanelMessage),
     Calculator(CalculatorPaneMessage),
     TimeframeChanged(String),
+
+    // Loader widget tick
+    LoaderTick(Instant),
 }
 
 impl From<CalculatorPaneMessage> for DashboardMessage {
@@ -164,6 +172,7 @@ pub(crate) struct DashboardView {
     filter_string: String,
     // widgets
     market: Market,
+    loader: Loader,
 }
 
 macro_rules! v {
@@ -216,6 +225,7 @@ impl DashboardView {
             filter: WatchlistFilter::Favorites,
             filter_string: "".to_string(),
             market: Market::new(),
+            loader: Loader::new(),
         }
     }
 
@@ -280,6 +290,10 @@ impl DashboardView {
                 .map(Message::from),
             DashboardMessage::TimeframeChanged(tf) => api.klines(self.pair().to_owned(), tf),
             DashboardMessage::Market(msg) => self.market.update(msg, api, data, ws),
+            DashboardMessage::LoaderTick(instant) => {
+                self.loader.update(instant);
+                Command::none()
+            }
         }
     }
 
@@ -324,7 +338,7 @@ impl DashboardView {
                     &config.watchlist_favorites,
                     self.filter,
                     &self.filter_string,
-                    &data.loader,
+                    &self.loader,
                 ),
                 PaneType::Chart => self.chart.view(),
                 PaneType::Book => book_view(&data.book),
@@ -350,7 +364,13 @@ impl DashboardView {
         .into()
     }
 
-    pub(crate) fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch([window::frames().map(Message::LoaderTick)])
+    pub(crate) fn subscription(&self, data: &AppData) -> Subscription<Message> {
+        if data.prices.is_empty() {
+            window::frames()
+                .map(DashboardMessage::LoaderTick)
+                .map(Message::from)
+        } else {
+            Subscription::none()
+        }
     }
 }

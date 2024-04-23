@@ -32,7 +32,7 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, DashboardMessage> {
                         svg,
                         button(tb(&b.asset).size(14).style(h2c("B7BDB7").unwrap()))
                             .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                            .on_press(DashboardMessage::AssetSelected(b.asset.clone()).into()),
+                            .on_press(DashboardMessage::AssetSelected(b.asset.clone())),
                     ]
                     .spacing(4)
                     .align_items(iced::Alignment::Center),
@@ -43,7 +43,7 @@ pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, DashboardMessage> {
                             .style(h2c("B7BDB7").unwrap())
                     )
                     .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                    .on_press(DashboardMessage::AssetSelected(b.asset.clone()).into()),
+                    .on_press(DashboardMessage::AssetSelected(b.asset.clone())),
                 ])
                 .width(Length::Fill)
             })

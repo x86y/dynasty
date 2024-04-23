@@ -1,27 +1,15 @@
-use std::{error::Error, sync::atomic::AtomicBool, time::Duration};
+use binance::rest_model::{Order, OrderStatus};
+use iced::{Command, Subscription};
+use tokio::sync::mpsc;
 
-use binance::{websockets::WebSockets, ws_model::WebsocketEvent};
-use futures::{channel::mpsc as mpsc_futures, FutureExt, SinkExt};
-use serde::de::DeserializeOwned;
-use tokio::sync::mpsc as mpsc_tokio;
+use self::listener::WsListener;
+use crate::{data::AppData, message::Message, views::dashboard::DashboardView};
 
-use self::{book::OrderBookDetails, prices::AssetDetails, trades::TradesEvent};
-
-pub mod book;
-pub mod prices;
-pub mod trades;
-pub mod user;
-pub mod util;
-
-/// Allows communicating with websocket. If you drop this, ws will spin endlessly on closed channel
-#[derive(Debug, Clone)]
-pub(crate) struct WsHandle<T>(mpsc_tokio::UnboundedSender<T>);
-
-impl<T> WsHandle<T> {
-    pub(crate) fn send(&self, msg: T) {
-        self.0.send(msg).unwrap();
-    }
-}
+mod book;
+mod listener;
+pub(crate) mod prices;
+pub(crate) mod trades;
+mod user;
 
 #[derive(Debug, Clone)]
 pub(crate) enum WsEvent<In, Out> {
@@ -42,99 +30,169 @@ pub(crate) enum WsEvent<In, Out> {
 
 #[derive(Debug, Clone)]
 pub(crate) enum WsMessage {
-    Trade(WsEvent<trades::Message, TradesEvent>),
-    Book(WsEvent<book::Message, OrderBookDetails>),
-    Price(WsEvent<(), AssetDetails>),
-    User(WsEvent<user::Message, WebsocketEvent>),
+    Trade(
+        WsEvent<<trades::TradesWs as WsListener>::Input, <trades::TradesWs as WsListener>::Output>,
+    ),
+    Book(WsEvent<<book::BookWs as WsListener>::Input, <book::BookWs as WsListener>::Output>),
+    Price(
+        WsEvent<<prices::PricesWs as WsListener>::Input, <prices::PricesWs as WsListener>::Output>,
+    ),
+    User(WsEvent<<user::UserWs as WsListener>::Input, <user::UserWs as WsListener>::Output>),
 }
 
-pub(crate) trait WsListener {
-    type Event: Send + DeserializeOwned;
-    type Input;
-    type Output;
+/// Allows communicating with websocket. If you drop this, ws will spin endlessly on closed channel
+#[derive(Debug, Clone)]
+pub(crate) struct WsHandle<T>(mpsc::UnboundedSender<T>);
 
-    /// Wrap `WsEvent` in correct variant of `WsMessage`
-    fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage;
+impl<T> WsHandle<T> {
+    pub(crate) fn send(&self, msg: T) {
+        self.0.send(msg).unwrap();
+    }
+}
+pub(crate) struct Websockets {
+    currency_pair: String,
+    api_key: String,
+    user: Option<WsHandle<user::Message>>,
+    prices: Option<WsHandle<()>>,
+    book: Option<WsHandle<book::Message>>,
+    trade: Option<WsHandle<trades::Message>>,
+}
 
-    /// Endpoint given to `web_socket.connect`
-    async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>>;
-
-    /// Handle websocket event
-    fn handle_event(&self, event: Self::Event) -> Self::Output;
-
-    /// Handle message from input channel
-    ///
-    /// `keep_running` can disconnect websocket if set to false
-    fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool);
-
-    /// Main entrypoint
-    async fn run(&mut self, mut output: mpsc_futures::Sender<WsMessage>) -> ! {
-        // forward messages out of websocket callback
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-
-        let mut web_socket = WebSockets::new(|event| {
-            let _ = tx.send(event);
-
-            Ok(())
-        });
-
-        let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
-
-        let connected = self.message(WsEvent::Created(WsHandle(input_tx)));
-        let _ = output.send(connected).await;
-
-        loop {
-            let mut keep_running = AtomicBool::new(true);
-
-            // input might alter endpoint result
-            if let Ok(input) = input_rx.try_recv() {
-                self.handle_input(input, &mut keep_running);
-                continue;
-            }
-
-            let endpoint = match self.endpoint().await {
-                Ok(endpoint) => endpoint,
-                Err(e) => {
-                    eprintln!("Endpoint error: {e:?}");
-
-                    tokio::time::sleep(Duration::from_secs(2)).await;
-                    continue;
-                }
-            };
-
-            if let Err(e) = web_socket.connect(&endpoint).await {
-                eprintln!("WebSocket connection error: {e:?}");
-
-                tokio::time::sleep(Duration::from_secs(2)).await;
-                continue;
-            }
-
-            let connected = self.message(WsEvent::Connected);
-            let _ = output.send(connected).await;
-
-            loop {
-                futures::select! {
-                    ws_closed = web_socket.event_loop(&keep_running).fuse() => {
-                        if let Err(e) = ws_closed {
-                            eprintln!("WebSocket stream error: {e:?}");
-                        }
-                        break;
-                    }
-                    input = input_rx.recv().fuse() => {
-                        if let Some(input) = input {
-                            self.handle_input(input, &mut keep_running);
-                        }
-                    }
-                    event = rx.recv().fuse() => {
-                        let handled = self.handle_event(event.expect("nobody should be closing channel"));
-                        let message = self.message(WsEvent::Message(handled));
-                        let _ = output.send(message).await;
-                    }
-                }
-            }
-
-            let disconnected = self.message(WsEvent::Disconnected);
-            let _ = output.send(disconnected).await;
+impl Websockets {
+    pub(crate) fn new(api_key: String, currency_pair: String) -> Self {
+        Self {
+            user: None,
+            prices: None,
+            book: None,
+            trade: None,
+            api_key,
+            currency_pair: currency_pair.to_lowercase(),
         }
+    }
+
+    pub(crate) fn relogin_user(&self, api_key: &str) {
+        if let Some(ws_user) = &self.user {
+            ws_user.send(user::Message::NewApiKey(api_key.to_owned()));
+        };
+    }
+
+    pub(crate) fn track_new_currency_pair(&self, pair: &str) {
+        let pair = pair.to_lowercase();
+
+        if let Some(book_ws) = &self.book {
+            book_ws.send(book::Message::NewPair(pair.clone()));
+        };
+        if let Some(ws_trade) = &self.trade {
+            ws_trade.send(trades::Message::NewPair(pair));
+        };
+    }
+
+    pub(crate) fn subscription(&self) -> Subscription<Message> {
+        Subscription::batch([
+            trades::connect(self.currency_pair.clone()).map(Message::from),
+            book::connect(self.currency_pair.clone()).map(Message::from),
+            prices::connect().map(Message::from),
+            user::connect(self.api_key.clone()).map(Message::from),
+        ])
+    }
+
+    pub(crate) fn update(
+        &mut self,
+        msg: WsMessage,
+        data: &mut AppData,
+        dashboard: &mut DashboardView,
+    ) -> Command<Message> {
+        match msg {
+            WsMessage::Book(event) => {
+                match event {
+                    WsEvent::Created(handle) => self.book = Some(handle),
+                    WsEvent::Message(bt) => {
+                        data.book = (bt.sym, bt.bids, bt.asks);
+                    }
+                    WsEvent::Connected | WsEvent::Disconnected => (),
+                };
+            }
+            WsMessage::Trade(event) => match event {
+                WsEvent::Created(handle) => self.trade = Some(handle),
+                WsEvent::Message(te) => {
+                    if data.trades.len() >= 1000 {
+                        data.trades.pop_back();
+                    }
+                    data.trades.push_front(te);
+                }
+                WsEvent::Connected | WsEvent::Disconnected => (),
+            },
+            WsMessage::User(event) => match event {
+                WsEvent::Created(handle) => self.user = Some(handle),
+                WsEvent::Message(msg) => match msg {
+                    binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
+                        for b in p.balances.into_iter() {
+                            let ib = data.balances.iter_mut().find(|a| a.asset == b.asset);
+                            if let Some(uib) = ib {
+                                *uib = unsafe { std::mem::transmute(b) }
+                            }
+                        }
+                    }
+                    binance::ws_model::WebsocketEvent::OrderUpdate(o) => {
+                        let existing_order = data.orders.iter_mut().find(|order| {
+                            // order.client_order_id == o.order_id&&
+                            order.symbol == o.symbol
+                                && order.side == o.side
+                                && order.status == OrderStatus::PartiallyFilled
+                        });
+
+                        if let Some(order) = existing_order {
+                            // Update the existing order with the new values
+                            order.executed_qty += o.qty_last_executed;
+                            order.cummulative_quote_qty += o.qty;
+                            order.update_time = o.trade_order_time;
+                        } else {
+                            data.orders.insert(
+                                0,
+                                Order {
+                                    symbol: o.symbol,
+                                    order_id: o.order_id,
+                                    order_list_id: o.order_list_id as i32,
+                                    client_order_id: o.client_order_id.unwrap(),
+                                    price: o.price,
+                                    orig_qty: o.qty,
+                                    executed_qty: o.qty_last_executed,
+                                    cummulative_quote_qty: o.qty,
+                                    status: o.current_order_status,
+                                    time_in_force: o.time_in_force,
+                                    order_type: o.order_type,
+                                    side: o.side,
+                                    stop_price: o.stop_price,
+                                    iceberg_qty: o.iceberg_qty,
+                                    time: o.event_time,
+                                    update_time: o.trade_order_time,
+                                    is_working: false,
+                                    orig_quote_order_qty: o.qty,
+                                },
+                            );
+                        }
+                    }
+                    binance::ws_model::WebsocketEvent::BalanceUpdate(_p) => {
+                        // not needed imo?
+                    }
+                    binance::ws_model::WebsocketEvent::ListOrderUpdate(_lo) => {
+                        // not needed imo?
+                    }
+                    _ => unreachable!(),
+                },
+                WsEvent::Connected | WsEvent::Disconnected => (),
+            },
+            WsMessage::Price(m) => {
+                match m {
+                    WsEvent::Created(handle) => self.prices = Some(handle),
+                    WsEvent::Message(asset) => {
+                        dashboard.chart_pair_price(&asset);
+                        data.prices.insert(asset.name.to_owned(), asset.price);
+                    }
+                    WsEvent::Connected | WsEvent::Disconnected => (),
+                };
+            }
+        }
+        Command::none()
     }
 }

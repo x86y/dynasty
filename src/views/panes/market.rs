@@ -2,14 +2,13 @@ use super::orders::tb;
 
 use crate::{
     api::Client,
+    data::AppData,
     message::Message,
-    views::{
-        components::{
-            better_btn::{GreenBtn, RedBtn},
-            input::Inp,
-        },
-        dashboard::DashboardMessage,
+    views::components::{
+        better_btn::{GreenBtn, RedBtn},
+        input::Inp,
     },
+    ws::Websockets,
 };
 
 use iced::{
@@ -29,25 +28,31 @@ macro_rules! tin {
     };
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum MarketPanelMessage {
+    BuyPressed,
+    SellPressed,
+    PriceMultiplied(f64),
+    PriceInput(String),
+    AmountMultiplied(f64),
+    AmountInput(String),
+    PairSet,
+    PairInput(String),
+}
+
 pub(crate) struct Market {
     price: String,
     amount: String,
     pair: String,
-    ws_pair: String,
 }
 
 impl Market {
     pub(crate) fn new() -> Self {
-        let mut m = Self {
+        Self {
             price: String::default(),
             amount: String::default(),
-            pair: String::new(),
-            ws_pair: String::new(),
-        };
-
-        m.set_pair("BTCUSDT".to_owned(), false);
-
-        m
+            pair: "BTCUSDT".to_owned(),
+        }
     }
 
     /// currently entered pair of currencies
@@ -55,44 +60,44 @@ impl Market {
         &self.pair
     }
 
-    /// currently entered pair of currencies, in binance websocket compatible format
-    pub(crate) fn ws_pair(&self) -> &str {
-        &self.ws_pair
-    }
-
-    pub(crate) fn view(&self) -> Element<'_, DashboardMessage> {
+    pub(crate) fn view(&self) -> Element<'_, MarketPanelMessage> {
         container(
             column![
                 Space::new(Length::Fill, 1.0),
                 tin!("type a pair", &self.pair)
-                    .on_input(DashboardMessage::MarketPairInput)
+                    .on_input(MarketPanelMessage::PairInput)
                     .width(300.0)
-                    .on_submit(DashboardMessage::MarketPairSet),
+                    .on_submit(MarketPanelMessage::PairSet),
                 row![
                     column![
                         tin!("price", &self.price)
-                            .on_input(DashboardMessage::MarketPriceInput)
+                            .on_input(MarketPanelMessage::PriceInput)
                             .width(150.0),
                         row![
                             bbtn!(text("-0.1%").size(12))
-                                .on_press(DashboardMessage::PriceInc(-0.1)),
-                            bbtn!(text("+0.1%").size(12)).on_press(DashboardMessage::PriceInc(0.1)),
+                                .on_press(MarketPanelMessage::PriceMultiplied(-0.1)),
+                            bbtn!(text("+0.1%").size(12))
+                                .on_press(MarketPanelMessage::PriceMultiplied(0.1)),
                         ]
                         .spacing(2.0)
                         .width(150.0),
                     ],
                     column![
                         tin!("amount", &self.amount)
-                            .on_input(DashboardMessage::MarketAmountInput)
+                            .on_input(MarketPanelMessage::AmountInput)
                             .width(150.0),
                         row![
-                            bbtn!(text("10%").size(12)).on_press(DashboardMessage::QtySet(0.1)),
+                            bbtn!(text("10%").size(12))
+                                .on_press(MarketPanelMessage::AmountMultiplied(0.1)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("25%").size(12)).on_press(DashboardMessage::QtySet(0.25)),
+                            bbtn!(text("25%").size(12))
+                                .on_press(MarketPanelMessage::AmountMultiplied(0.25)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("50%").size(12)).on_press(DashboardMessage::QtySet(0.5)),
+                            bbtn!(text("50%").size(12))
+                                .on_press(MarketPanelMessage::AmountMultiplied(0.5)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("100%").size(12)).on_press(DashboardMessage::QtySet(1.0)),
+                            bbtn!(text("100%").size(12))
+                                .on_press(MarketPanelMessage::AmountMultiplied(1.0)),
                         ]
                         .width(150.0),
                     ]
@@ -103,12 +108,12 @@ impl Market {
                     button(tb("Buy").style(iced::Color::WHITE).size(12))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
                         .padding(8)
-                        .on_press(DashboardMessage::BuyPressed),
+                        .on_press(MarketPanelMessage::BuyPressed),
                     Space::new(5.0, 0.0),
                     button(tb("Sell").style(iced::Color::WHITE).size(12))
                         .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
                         .padding(8)
-                        .on_press(DashboardMessage::SellPressed)
+                        .on_press(MarketPanelMessage::SellPressed)
                 ],
                 Space::new(Length::Fill, 1.0)
             ]
@@ -120,7 +125,55 @@ impl Market {
         .into()
     }
 
-    pub(crate) fn buy_pressed(&mut self, api: &Client) -> Command<Message> {
+    pub(crate) fn update(
+        &mut self,
+        msg: MarketPanelMessage,
+        api: &Client,
+        data: &AppData,
+        ws: &Websockets,
+    ) -> Command<Message> {
+        match msg {
+            MarketPanelMessage::BuyPressed => self.buy(api),
+            MarketPanelMessage::SellPressed => self.sell(api),
+            MarketPanelMessage::AmountMultiplied(f) => {
+                let usdt_b = data
+                    .balances
+                    .iter()
+                    .find(|b| b.asset == "USDT")
+                    .unwrap()
+                    .free;
+                self.amount = (usdt_b * f).to_string();
+                Command::none()
+            }
+            MarketPanelMessage::PriceInput(new) => {
+                self.price = new;
+                Command::none()
+            }
+            MarketPanelMessage::AmountInput(new) => {
+                self.amount = new;
+                Command::none()
+            }
+            MarketPanelMessage::PriceMultiplied(inc) => {
+                let price = data
+                    .prices
+                    .get(&self.pair)
+                    .expect("price exists for some reason");
+                self.price =
+                    (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
+                Command::none()
+            }
+            MarketPanelMessage::PairSet => {
+                ws.track_new_currency_pair(&self.pair);
+                Command::none()
+            }
+            MarketPanelMessage::PairInput(new) => {
+                self.pair = new;
+                Command::none()
+            }
+        }
+    }
+
+    fn buy(&mut self, api: &Client) -> Command<Message> {
         api.trade_spot(
             self.pair.clone(),
             self.price.parse().unwrap(),
@@ -129,7 +182,7 @@ impl Market {
         )
     }
 
-    pub(crate) fn sell_pressed(&mut self, api: &Client) -> Command<Message> {
+    fn sell(&mut self, api: &Client) -> Command<Message> {
         api.trade_spot(
             self.pair.clone(),
             self.price.parse().unwrap(),
@@ -138,27 +191,15 @@ impl Market {
         )
     }
 
-    pub(crate) fn set_price(&mut self, new: String) {
-        self.price = new;
-    }
-
-    pub(crate) fn set_amount(&mut self, new: String) {
-        self.amount = new;
-    }
-
     // FIXME: this is totally wrong and broken
-    /// Set new pair
+    /// Set new pair from selected currency
     ///
     /// from_selection means value came from other widget and needs to be normalized
-    pub(crate) fn set_pair(&mut self, mut new: String, from_selection: bool) {
+    pub(crate) fn pair_selected(&mut self, mut new: String) {
         // FIXME: this breaks with any other currency
-        if from_selection
-            && !(new.ends_with("USDT") || new.ends_with("BTC") || new.ends_with("ETH"))
-        {
+        if !(new.ends_with("USDT") || new.ends_with("BTC") || new.ends_with("ETH")) {
             new = format!("{new}USDT");
         }
-
-        self.ws_pair = new.to_lowercase();
         self.pair = new;
     }
 }

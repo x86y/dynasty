@@ -12,19 +12,19 @@ use ringbuf::Rb;
 
 use crate::{
     api::Client,
-    app::AppData,
     config::Config,
+    data::AppData,
     message::Message,
     theme::h2c,
-    ws::{book, prices::AssetDetails, trades, WsHandle},
+    ws::{prices::AssetDetails, Websockets},
 };
 
 use super::panes::{
     balances::balances_view,
     book::book_view,
-    calculator::{CalculatorMessage, CalculatorPane},
+    calculator::{CalculatorPane, CalculatorPaneMessage},
     chart::ChartPane,
-    market::Market,
+    market::{Market, MarketPanelMessage},
     orders::orders_view,
     style,
     trades::trades_view,
@@ -136,22 +136,21 @@ pub(crate) enum DashboardMessage {
     Close(pane_grid::Pane),
     WatchlistFilterInput(String),
     ApplyWatchlistFilter(WatchlistFilter),
-    SellPressed,
-    BuyPressed,
-    MarketPriceInput(String),
-    MarketAmountInput(String),
-    MarketPairInput(String),
-    MarketPairSet,
-    PriceInc(f64),
     AssetSelected(String),
-    QtySet(f64),
-    Calculator(CalculatorMessage),
+    Market(MarketPanelMessage),
+    Calculator(CalculatorPaneMessage),
     TimeframeChanged(String),
 }
 
-impl From<CalculatorMessage> for DashboardMessage {
-    fn from(value: CalculatorMessage) -> Self {
+impl From<CalculatorPaneMessage> for DashboardMessage {
+    fn from(value: CalculatorPaneMessage) -> Self {
         Self::Calculator(value)
+    }
+}
+
+impl From<MarketPanelMessage> for DashboardMessage {
+    fn from(value: MarketPanelMessage) -> Self {
+        Self::Market(value)
     }
 }
 
@@ -163,9 +162,6 @@ pub(crate) struct DashboardView {
     // TODO: filter
     filter: WatchlistFilter,
     filter_string: String,
-    // websockets
-    ws_book: Option<WsHandle<book::Message>>,
-    ws_trade: Option<WsHandle<trades::Message>>,
     // widgets
     market: Market,
 }
@@ -219,8 +215,6 @@ impl DashboardView {
             calculator: CalculatorPane::new(),
             filter: WatchlistFilter::Favorites,
             filter_string: "".to_string(),
-            ws_book: None,
-            ws_trade: None,
             market: Market::new(),
         }
     }
@@ -235,6 +229,7 @@ impl DashboardView {
         message: DashboardMessage,
         api: &Client,
         data: &AppData,
+        ws: &Websockets,
     ) -> Command<Message> {
         match message {
             DashboardMessage::Clicked(pane) => {
@@ -272,44 +267,10 @@ impl DashboardView {
                 self.filter_string = wfi;
                 Command::none()
             }
-            DashboardMessage::BuyPressed => self.market.buy_pressed(api),
-            DashboardMessage::SellPressed => self.market.sell_pressed(api),
-            DashboardMessage::MarketPairInput(new) => {
-                self.market.set_pair(new, false);
-                Command::none()
-            }
-            DashboardMessage::MarketPriceInput(new) => {
-                self.market.set_price(new);
-                Command::none()
-            }
-            DashboardMessage::MarketAmountInput(new) => {
-                self.market.set_amount(new);
-                Command::none()
-            }
-            DashboardMessage::AssetSelected(a) => {
-                self.market.set_pair(a, true);
-                self.update_pair();
+            DashboardMessage::AssetSelected(pair) => {
+                ws.track_new_currency_pair(&pair);
+                self.market.pair_selected(pair);
 
-                Command::none()
-            }
-            DashboardMessage::QtySet(f) => {
-                let usdt_b = data
-                    .balances
-                    .iter()
-                    .find(|b| b.asset == "USDT")
-                    .unwrap()
-                    .free;
-                self.market.set_amount((usdt_b * f).to_string());
-                Command::none()
-            }
-            DashboardMessage::PriceInc(inc) => {
-                let price = data
-                    .prices
-                    .get(self.market.pair())
-                    .expect("price exists for some reason");
-                self.market.set_price(
-                    (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string(),
-                );
                 Command::none()
             }
             DashboardMessage::Calculator(msg) => self
@@ -317,11 +278,8 @@ impl DashboardView {
                 .update(msg)
                 .map(DashboardMessage::from)
                 .map(Message::from),
-            DashboardMessage::MarketPairSet => {
-                self.update_pair();
-                Command::none()
-            }
             DashboardMessage::TimeframeChanged(tf) => api.klines(self.pair().to_owned(), tf),
+            DashboardMessage::Market(msg) => self.market.update(msg, api, data, ws),
         }
     }
 
@@ -336,14 +294,6 @@ impl DashboardView {
         self.chart.data.clear();
         self.chart.data.push_iter_overwrite(slc);
         Command::none()
-    }
-
-    pub(crate) fn set_ws_trade_handle(&mut self, handle: Option<WsHandle<trades::Message>>) {
-        self.ws_trade = handle;
-    }
-
-    pub(crate) fn set_ws_book_handle(&mut self, handle: Option<WsHandle<book::Message>>) {
-        self.ws_book = handle;
     }
 
     pub(crate) fn chart_pair_price(&mut self, asset: &AssetDetails) {
@@ -379,7 +329,7 @@ impl DashboardView {
                 PaneType::Chart => self.chart.view(),
                 PaneType::Book => book_view(&data.book),
                 PaneType::Trades => trades_view(&data.trades),
-                PaneType::Market => self.market.view(),
+                PaneType::Market => self.market.view().map(DashboardMessage::from),
                 PaneType::Balances => balances_view(&data.balances),
                 PaneType::Orders => orders_view(&data.orders, &data.prices),
                 PaneType::Calculator => self.calculator.view().map(DashboardMessage::from),
@@ -401,21 +351,6 @@ impl DashboardView {
     }
 
     pub(crate) fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch([
-            trades::connect(self.market.ws_pair().to_owned()).map(Message::from),
-            book::connect(self.market.ws_pair().to_owned()).map(Message::from),
-            window::frames().map(Message::LoaderTick),
-        ])
-    }
-
-    fn update_pair(&mut self) {
-        let lower_pair = self.market.ws_pair().to_owned();
-
-        if let Some(book_ws) = &mut self.ws_book {
-            book_ws.send(book::Message::NewPair(lower_pair.clone()));
-        };
-        if let Some(ws_trade) = &mut self.ws_trade {
-            ws_trade.send(trades::Message::NewPair(lower_pair));
-        };
+        Subscription::batch([window::frames().map(Message::LoaderTick)])
     }
 }

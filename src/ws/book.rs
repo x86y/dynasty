@@ -19,7 +19,7 @@ pub(crate) enum Message {
 }
 
 #[derive(Debug)]
-struct BookWs {
+pub(crate) struct BookWs {
     pair: String,
 }
 

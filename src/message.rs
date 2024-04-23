@@ -63,7 +63,6 @@ pub(crate) enum Message {
     ///
     /// You cannot close settings while config is invalid
     SettingsToggled,
-    LoaderTick(Instant),
 
     /// Manually triggered at interval
     Tick,
@@ -77,9 +76,7 @@ pub(crate) enum Message {
     // API keys update happened
     CredentialsUpdated,
 
-    Ws(WsMessage),
-
-    /// ??? ??? ???
+    /// API responses
     OrdersRecieved(Vec<Order>),
     BalancesRecieved(Vec<Balance>),
     KlinesRecieved(KlineSummaries),
@@ -91,8 +88,14 @@ pub(crate) enum Message {
     /// Dashboard view events
     Dashboard(DashboardMessage),
 
+    /// Event from one of websockets
+    Ws(WsMessage),
+
     /// Does nothing
     NoOp,
+
+    // Loader widget tick
+    LoaderTick(Instant),
 }
 
 impl From<MaybeError> for Message {

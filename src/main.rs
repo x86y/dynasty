@@ -1,6 +1,7 @@
 mod api;
 mod app;
 mod config;
+mod data;
 mod message;
 mod svg_logos;
 mod theme;

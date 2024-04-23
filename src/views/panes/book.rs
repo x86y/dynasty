@@ -1,6 +1,6 @@
 use super::orders::{t, tb};
 
-use crate::{message::Message, theme::h2c};
+use crate::{theme::h2c, views::dashboard::DashboardMessage};
 
 use std::collections::BTreeMap;
 
@@ -11,7 +11,7 @@ use iced::{
 
 pub fn book_view(
     book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
-) -> Element<'_, Message> {
+) -> Element<'_, DashboardMessage> {
     let header = row![
         tb("Price").width(Length::Fill),
         tb("Amount").width(Length::Fill),

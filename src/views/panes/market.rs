@@ -60,44 +60,39 @@ impl Market {
         &self.ws_pair
     }
 
-    pub(crate) fn view(&self) -> Element<'_, Message> {
+    pub(crate) fn view(&self) -> Element<'_, DashboardMessage> {
         container(
             column![
                 Space::new(Length::Fill, 1.0),
                 tin!("type a pair", &self.pair)
-                    .on_input(|s| DashboardMessage::MarketPairInput(s).into())
+                    .on_input(DashboardMessage::MarketPairInput)
                     .width(300.0)
-                    .on_submit(DashboardMessage::MarketPairSet.into()),
+                    .on_submit(DashboardMessage::MarketPairSet),
                 row![
                     column![
                         tin!("price", &self.price)
-                            .on_input(|s| DashboardMessage::MarketPriceInput(s).into())
+                            .on_input(DashboardMessage::MarketPriceInput)
                             .width(150.0),
                         row![
                             bbtn!(text("-0.1%").size(12))
-                                .on_press(DashboardMessage::PriceInc(-0.1).into()),
-                            bbtn!(text("+0.1%").size(12))
-                                .on_press(DashboardMessage::PriceInc(0.1).into()),
+                                .on_press(DashboardMessage::PriceInc(-0.1)),
+                            bbtn!(text("+0.1%").size(12)).on_press(DashboardMessage::PriceInc(0.1)),
                         ]
                         .spacing(2.0)
                         .width(150.0),
                     ],
                     column![
                         tin!("amount", &self.amount)
-                            .on_input(|s| DashboardMessage::MarketAmountInput(s).into())
+                            .on_input(DashboardMessage::MarketAmountInput)
                             .width(150.0),
                         row![
-                            bbtn!(text("10%").size(12))
-                                .on_press(DashboardMessage::QtySet(0.1).into()),
+                            bbtn!(text("10%").size(12)).on_press(DashboardMessage::QtySet(0.1)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("25%").size(12))
-                                .on_press(DashboardMessage::QtySet(0.25).into()),
+                            bbtn!(text("25%").size(12)).on_press(DashboardMessage::QtySet(0.25)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("50%").size(12))
-                                .on_press(DashboardMessage::QtySet(0.5).into()),
+                            bbtn!(text("50%").size(12)).on_press(DashboardMessage::QtySet(0.5)),
                             Space::new(Length::Fill, 1.0),
-                            bbtn!(text("100%").size(12))
-                                .on_press(DashboardMessage::QtySet(1.0).into()),
+                            bbtn!(text("100%").size(12)).on_press(DashboardMessage::QtySet(1.0)),
                         ]
                         .width(150.0),
                     ]
@@ -108,12 +103,12 @@ impl Market {
                     button(tb("Buy").style(iced::Color::WHITE).size(12))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
                         .padding(8)
-                        .on_press(DashboardMessage::BuyPressed.into()),
+                        .on_press(DashboardMessage::BuyPressed),
                     Space::new(5.0, 0.0),
                     button(tb("Sell").style(iced::Color::WHITE).size(12))
                         .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
                         .padding(8)
-                        .on_press(DashboardMessage::SellPressed.into())
+                        .on_press(DashboardMessage::SellPressed)
                 ],
                 Space::new(Length::Fill, 1.0)
             ]

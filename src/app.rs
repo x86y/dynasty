@@ -273,7 +273,7 @@ impl Application for App {
                     }
                 };
 
-                self.dashboard.ws(update)
+                self.dashboard.ws(update).map(Message::from)
             }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;
@@ -305,10 +305,11 @@ impl Application for App {
             Message::KlinesRecieved(kr) => match kr {
                 KlineSummaries::AllKlineSummaries(klines) => {
                     let closes: Vec<f64> = klines.iter().map(|kline| kline.close).collect();
-                    self.dashboard.prepend_chart_data(&closes)
+                    self.dashboard
+                        .prepend_chart_data(&closes)
+                        .map(Message::from)
                 }
             },
-            Message::TimeframeChanged(tf) => self.api.klines(self.dashboard.pair().to_owned(), tf),
         }
     }
 
@@ -405,7 +406,11 @@ impl Application for App {
                 if self.settings_opened {
                     container(self.settings.view())
                 } else {
-                    container(self.dashboard.view(&self.data, &self.config))
+                    container(
+                        self.dashboard
+                            .view(&self.data, &self.config)
+                            .map(Message::from),
+                    )
                 }
             ]
             .spacing(8)

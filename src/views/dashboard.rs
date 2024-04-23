@@ -84,7 +84,7 @@ pub fn view_controls<'a>(
     total_panes: usize,
     is_pinned: bool,
     is_maximized: bool,
-) -> Element<'a, Message> {
+) -> Element<'a, DashboardMessage> {
     let mut row = row![].spacing(5);
 
     if total_panes > 1 {
@@ -92,12 +92,12 @@ pub fn view_controls<'a>(
             let (content, message) = if is_maximized {
                 (
                     text('\u{F3DE}').font(Font::with_name("bootstrap-icons")),
-                    DashboardMessage::Restore.into(),
+                    DashboardMessage::Restore,
                 )
             } else {
                 (
                     text('\u{F3DF}').font(Font::with_name("bootstrap-icons")),
-                    DashboardMessage::Maximize(pane).into(),
+                    DashboardMessage::Maximize(pane),
                 )
             };
             button(content.size(12).style(h2c("FFFFFF").unwrap()))
@@ -120,7 +120,7 @@ pub fn view_controls<'a>(
     .style(theme::Button::Destructive);
 
     if total_panes > 1 && !is_pinned {
-        close = close.on_press(DashboardMessage::Close(pane).into());
+        close = close.on_press(DashboardMessage::Close(pane));
     }
 
     row.push(close).into()
@@ -146,6 +146,7 @@ pub(crate) enum DashboardMessage {
     AssetSelected(String),
     QtySet(f64),
     Calculator(CalculatorMessage),
+    TimeframeChanged(String),
 }
 
 impl From<CalculatorMessage> for DashboardMessage {
@@ -311,11 +312,16 @@ impl DashboardView {
                 );
                 Command::none()
             }
-            DashboardMessage::Calculator(msg) => self.calculator.update(msg),
+            DashboardMessage::Calculator(msg) => self
+                .calculator
+                .update(msg)
+                .map(DashboardMessage::from)
+                .map(Message::from),
             DashboardMessage::MarketPairSet => {
                 self.update_pair();
                 Command::none()
             }
+            DashboardMessage::TimeframeChanged(tf) => api.klines(self.pair().to_owned(), tf),
         }
     }
 
@@ -323,13 +329,13 @@ impl DashboardView {
         self.calculator.tick(data);
     }
 
-    pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<Message> {
+    pub(crate) fn prepend_chart_data(&mut self, slc: &[f64]) -> Command<DashboardMessage> {
         self.chart.data.clear();
         self.chart.data.push_slice_overwrite(slc);
         Command::none()
     }
 
-    pub(crate) fn ws(&mut self, message: WsMessage) -> Command<Message> {
+    pub(crate) fn ws(&mut self, message: WsMessage) -> Command<DashboardMessage> {
         match message {
             WsMessage::Price(m) => match m {
                 crate::ws::WsEvent::Created(_) => (),
@@ -359,7 +365,11 @@ impl DashboardView {
         Command::none()
     }
 
-    pub(crate) fn view<'a>(&'a self, data: &'a AppData, config: &'a Config) -> PaneGrid<Message> {
+    pub(crate) fn view<'a>(
+        &'a self,
+        data: &'a AppData,
+        config: &'a Config,
+    ) -> Element<'a, DashboardMessage> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
@@ -379,13 +389,13 @@ impl DashboardView {
                     &self.filter_string,
                     &data.loader,
                 ),
-                PaneType::Chart => self.chart.view().into(),
+                PaneType::Chart => self.chart.view(),
                 PaneType::Book => book_view(&data.book),
                 PaneType::Trades => trades_view(&data.trades),
                 PaneType::Market => self.market.view(),
                 PaneType::Balances => balances_view(&data.balances),
                 PaneType::Orders => orders_view(&data.orders, &data.prices),
-                PaneType::Calculator => self.calculator.view(),
+                PaneType::Calculator => self.calculator.view().map(DashboardMessage::from),
             }))
             .title_bar(title_bar)
             .style(if is_focused {
@@ -397,9 +407,10 @@ impl DashboardView {
         .width(Length::Fill)
         .height(Length::Fill)
         .spacing(10)
-        .on_click(|p| DashboardMessage::Clicked(p).into())
-        .on_drag(|d| DashboardMessage::Dragged(d).into())
-        .on_resize(10, |r| DashboardMessage::Resized(r).into())
+        .on_click(DashboardMessage::Clicked)
+        .on_drag(DashboardMessage::Dragged)
+        .on_resize(10, DashboardMessage::Resized)
+        .into()
     }
 
     pub(crate) fn subscription(&self) -> Subscription<Message> {

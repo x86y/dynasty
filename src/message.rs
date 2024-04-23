@@ -84,7 +84,6 @@ pub(crate) enum Message {
     BalancesRecieved(Vec<Balance>),
     KlinesRecieved(KlineSummaries),
     MarketChanged(String),
-    TimeframeChanged(String),
 
     /// Settings view events
     Settings(SettingsMessage),

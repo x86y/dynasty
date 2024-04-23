@@ -193,8 +193,6 @@ impl Market {
 
     // FIXME: this is totally wrong and broken
     /// Set new pair from selected currency
-    ///
-    /// from_selection means value came from other widget and needs to be normalized
     pub(crate) fn pair_selected(&mut self, mut new: String) {
         // FIXME: this breaks with any other currency
         if !(new.ends_with("USDT") || new.ends_with("BTC") || new.ends_with("ETH")) {

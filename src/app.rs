@@ -186,31 +186,43 @@ impl Application for App {
                 self.fetch_data()
             }
             Message::Ws(update) => {
-                match &update {
+                match update {
                     WsMessage::Book(event) => {
-                        if let WsEvent::Message(bt) = event {
-                            self.data.book = (bt.sym.clone(), bt.bids.clone(), bt.asks.clone());
-                        }
+                        match event {
+                            WsEvent::Created(handle) => {
+                                self.dashboard.set_ws_book_handle(Some(handle))
+                            }
+                            WsEvent::Connected => (),
+                            WsEvent::Message(bt) => {
+                                self.data.book = (bt.sym, bt.bids, bt.asks);
+                            }
+                            WsEvent::Disconnected => self.dashboard.set_ws_book_handle(None),
+                        };
                     }
-                    WsMessage::Trade(event) => {
-                        if let WsEvent::Message(te) = event {
+                    WsMessage::Trade(event) => match event {
+                        WsEvent::Created(handle) => {
+                            self.dashboard.set_ws_trade_handle(Some(handle))
+                        }
+                        WsEvent::Connected => (),
+                        WsEvent::Message(te) => {
                             if self.data.trades.len() >= 1000 {
                                 self.data.trades.pop_back();
                             }
-                            self.data.trades.push_front(te.clone());
+                            self.data.trades.push_front(te);
                         }
-                    }
+                        WsEvent::Disconnected => self.dashboard.set_ws_trade_handle(None),
+                    },
                     WsMessage::User(event) => match event {
-                        WsEvent::Created(handle) => self.ws_user = Some(handle.clone()),
+                        WsEvent::Created(handle) => self.ws_user = Some(handle),
                         WsEvent::Connected => (),
                         WsEvent::Disconnected => self.ws_user = None,
                         WsEvent::Message(msg) => match msg {
                             binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
-                                for b in p.balances.iter() {
+                                for b in p.balances.into_iter() {
                                     let ib =
                                         self.data.balances.iter_mut().find(|a| a.asset == b.asset);
                                     if let Some(uib) = ib {
-                                        *uib = unsafe { std::mem::transmute(b.clone()) }
+                                        *uib = unsafe { std::mem::transmute(b) }
                                     }
                                 }
                             }
@@ -231,18 +243,18 @@ impl Application for App {
                                     self.data.orders.insert(
                                         0,
                                         Order {
-                                            symbol: o.symbol.clone(),
+                                            symbol: o.symbol,
                                             order_id: o.order_id,
                                             order_list_id: o.order_list_id as i32,
-                                            client_order_id: o.client_order_id.clone().unwrap(),
+                                            client_order_id: o.client_order_id.unwrap(),
                                             price: o.price,
                                             orig_qty: o.qty,
                                             executed_qty: o.qty_last_executed,
                                             cummulative_quote_qty: o.qty,
-                                            status: o.current_order_status.clone(),
-                                            time_in_force: o.time_in_force.clone(),
-                                            order_type: o.order_type.clone(),
-                                            side: o.side.clone(),
+                                            status: o.current_order_status,
+                                            time_in_force: o.time_in_force,
+                                            order_type: o.order_type,
+                                            side: o.side,
                                             stop_price: o.stop_price,
                                             iceberg_qty: o.iceberg_qty,
                                             time: o.event_time,
@@ -264,16 +276,16 @@ impl Application for App {
                     },
                     WsMessage::Price(m) => {
                         match m {
-                            WsEvent::Created(handle) => self.ws_prices = Some(handle.clone()),
+                            WsEvent::Created(handle) => self.ws_prices = Some(handle),
                             WsEvent::Connected | WsEvent::Disconnected => (),
-                            WsEvent::Message(m) => {
-                                self.data.prices.insert(m.name.clone(), m.price);
+                            WsEvent::Message(asset) => {
+                                self.dashboard.chart_pair_price(&asset);
+                                self.data.prices.insert(asset.name.to_owned(), asset.price);
                             }
                         };
                     }
-                };
-
-                self.dashboard.ws(update).map(Message::from)
+                }
+                Command::none()
             }
             Message::OrdersRecieved(orders) => {
                 self.data.orders = orders;

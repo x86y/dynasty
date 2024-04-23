@@ -1,7 +1,7 @@
+use crate::theme::h2c;
 use crate::views::components::loading::Loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
-use crate::{message::Message, theme::h2c};
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
@@ -31,7 +31,7 @@ macro_rules! filter_button {
     };
 }
 
-fn asset_button<'a>(n: &str, p: f32) -> Element<'a, Message> {
+fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
     container(row![
         button(tb(n).size(14).style(h2c("EFE1D1").unwrap()))
             .on_press(DashboardMessage::AssetSelected(n.to_string()).into())
@@ -55,7 +55,7 @@ pub fn watchlist_view<'a>(
     filter: WatchlistFilter,
     search: &'a str,
     loader: &'a Loader,
-) -> Element<'a, Message> {
+) -> Element<'a, DashboardMessage> {
     if ps.is_empty() {
         return loader.view();
     };
@@ -69,28 +69,28 @@ pub fn watchlist_view<'a>(
                 text("\u{F588}").font(Font::with_name("bootstrap-icons")),
                 WatchlistFilter::Favorites,
                 filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Favorites).into()
+                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Favorites)
             ),
             filter_button!(
                 "BTC",
                 WatchlistFilter::Btc,
                 filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Btc).into()
+                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Btc)
             ),
             filter_button!(
                 "ETH",
                 WatchlistFilter::Eth,
                 filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Eth).into()
+                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Eth)
             ),
             filter_button!(
                 "ALTS",
                 WatchlistFilter::Alts,
                 filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Alts).into()
+                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Alts)
             ),
             text_input("type to filter", search)
-                .on_input(|a| DashboardMessage::WatchlistFilterInput(a).into())
+                .on_input(DashboardMessage::WatchlistFilterInput)
                 .style(iced::theme::TextInput::Custom(Box::new(Inp {})))
         ]
         .spacing(2.0),

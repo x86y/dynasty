@@ -1,5 +1,4 @@
 use crate::{
-    message::Message,
     svg_logos,
     theme::h2c,
     views::{components::unstyled_btn::UnstyledBtn, dashboard::DashboardMessage},
@@ -13,7 +12,7 @@ use iced::{
 
 use super::orders::tb;
 
-pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, Message> {
+pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, DashboardMessage> {
     Column::with_children(
         bs.iter()
             .map(|b| {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{api::Client, message::Message, theme::h2c};
+use crate::{api::Client, theme::h2c, views::dashboard::DashboardMessage};
 
 use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
@@ -28,7 +28,10 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
     .style(h2c("808080").unwrap())
 }
 
-pub fn orders_view<'a>(os: &[Order], ps: &'a HashMap<String, f32>) -> Element<'a, Message> {
+pub fn orders_view<'a>(
+    os: &[Order],
+    ps: &'a HashMap<String, f32>,
+) -> Element<'a, DashboardMessage> {
     let header = filled![
         tb("Symbol").width(Length::Fixed(100.0)),
         tb("Price").width(Length::Fixed(100.0)),

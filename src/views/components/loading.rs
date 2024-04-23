@@ -9,7 +9,7 @@ use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme, Vector};
 
 use std::time::Instant;
 
-use crate::message::Message;
+use crate::views::dashboard::DashboardMessage;
 
 #[derive(Default, Debug)]
 pub struct Loader {
@@ -17,7 +17,7 @@ pub struct Loader {
 }
 
 impl Loader {
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<DashboardMessage> {
         canvas(&self.state)
             .width(Length::Fill)
             .height(Length::Fill)

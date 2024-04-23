@@ -1,7 +1,7 @@
-use crate::message::Message;
-use crate::views::components::better_btn::GreenBtn;
+use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
 use iced::widget::button;
 use iced::widget::column;
+use iced::widget::container;
 use iced::widget::row;
 use iced::widget::Row;
 use iced::widget::Space;
@@ -11,8 +11,6 @@ use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
-
-use iced::widget::{container, Container};
 use ringbuf::Rb;
 
 use super::orders::tb;
@@ -24,7 +22,7 @@ pub struct ChartPane {
     pub data: ringbuf::StaticRb<f64, 500>,
 }
 
-impl Chart<Message> for ChartPane {
+impl Chart<DashboardMessage> for ChartPane {
     type State = ();
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         const LINE_COLOR: RGBColor = colors::GREEN;
@@ -73,7 +71,7 @@ impl Chart<Message> for ChartPane {
 impl ChartPane {
     pub(crate) fn new() -> Self {
         Self {
-            data: ringbuf::StaticRb::default()
+            data: ringbuf::StaticRb::default(),
         }
     }
 
@@ -81,12 +79,12 @@ impl ChartPane {
         let _ = self.data.push_overwrite(new_p);
     }
 
-    pub(crate) fn view(&self) -> Container<'_, Message> {
+    pub(crate) fn view(&self) -> Element<'_, DashboardMessage> {
         let btns = Row::with_children(
             ["1m", "5m", "30m", "1h", "1d"]
                 .map(|t| {
                     button(tb(t).style(iced::Color::WHITE).size(12))
-                        .on_press(Message::TimeframeChanged(t.into()))
+                        .on_press(DashboardMessage::TimeframeChanged(t.into()))
                         .padding(8)
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
                 })
@@ -115,5 +113,6 @@ impl ChartPane {
         .padding(2)
         .center_x()
         .center_y()
+        .into()
     }
 }

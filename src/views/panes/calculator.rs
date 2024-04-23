@@ -3,7 +3,7 @@ compile_error!("no calculator backend selected");
 
 use std::collections::HashMap;
 
-use crate::{app::AppData, message::Message, theme::h2c, views::components::better_btn::GreenBtn};
+use crate::{app::AppData, theme::h2c, views::components::better_btn::GreenBtn};
 
 use binance::rest_model::Order;
 use iced::{
@@ -55,7 +55,7 @@ impl CalculatorPane {
             .collect();
     }
 
-    pub(crate) fn update(&mut self, message: CalculatorMessage) -> Command<Message> {
+    pub(crate) fn update(&mut self, message: CalculatorMessage) -> Command<CalculatorMessage> {
         match message {
             CalculatorMessage::Toggle => {
                 self.run();
@@ -78,17 +78,17 @@ impl CalculatorPane {
         }
     }
 
-    pub(crate) fn view(&self) -> Element<'_, Message> {
+    pub(crate) fn view(&self) -> Element<'_, CalculatorMessage> {
         if self.is_editing {
             container(
                 column![
                     text_editor::TextEditor::new(&self.content)
                         .height(Length::Fill)
-                        .on_action(|a| Message::Dashboard(CalculatorMessage::Action(a).into())),
+                        .on_action(CalculatorMessage::Action),
                     container(
                         button(text("\u{F4F5}").font(Font::with_name("bootstrap-icons")))
                             .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                            .on_press(Message::Dashboard(CalculatorMessage::Toggle.into()))
+                            .on_press(CalculatorMessage::Toggle)
                     )
                     .padding(2)
                 ]
@@ -112,7 +112,7 @@ impl CalculatorPane {
                     Space::new(Length::Fill, Length::Fill),
                     button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                        .on_press(Message::Dashboard(CalculatorMessage::Toggle.into()))
+                        .on_press(CalculatorMessage::Toggle)
                 ]
                 .align_items(Alignment::Center),
             )

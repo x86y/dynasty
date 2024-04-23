@@ -1,6 +1,6 @@
 use super::orders::{t, tb};
 
-use crate::{message::Message, theme::h2c, ws::trades::TradesEvent};
+use crate::{theme::h2c, views::dashboard::DashboardMessage, ws::trades::TradesEvent};
 
 use std::collections::VecDeque;
 
@@ -9,7 +9,7 @@ use iced::{
     Color, Element, Length,
 };
 
-pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, Message> {
+pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, DashboardMessage> {
     column![
         row![
             tb("Price").width(Length::Fill),

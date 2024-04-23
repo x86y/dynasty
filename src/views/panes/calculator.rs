@@ -3,7 +3,7 @@ compile_error!("no calculator backend selected");
 
 use std::collections::HashMap;
 
-use crate::{app::AppData, theme::h2c, views::components::better_btn::GreenBtn};
+use crate::{data::AppData, theme::h2c, views::components::better_btn::GreenBtn};
 
 use binance::rest_model::Order;
 use iced::{
@@ -31,7 +31,7 @@ pub(crate) struct CalculatorPane {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum CalculatorMessage {
+pub(crate) enum CalculatorPaneMessage {
     Toggle,
     Action(text_editor::Action),
 }
@@ -55,15 +55,18 @@ impl CalculatorPane {
             .collect();
     }
 
-    pub(crate) fn update(&mut self, message: CalculatorMessage) -> Command<CalculatorMessage> {
+    pub(crate) fn update(
+        &mut self,
+        message: CalculatorPaneMessage,
+    ) -> Command<CalculatorPaneMessage> {
         match message {
-            CalculatorMessage::Toggle => {
+            CalculatorPaneMessage::Toggle => {
                 self.run();
                 self.is_editing = !self.is_editing;
 
                 Command::none()
             }
-            CalculatorMessage::Action(action) => {
+            CalculatorPaneMessage::Action(action) => {
                 self.content.perform(action);
                 Command::none()
             }
@@ -78,17 +81,17 @@ impl CalculatorPane {
         }
     }
 
-    pub(crate) fn view(&self) -> Element<'_, CalculatorMessage> {
+    pub(crate) fn view(&self) -> Element<'_, CalculatorPaneMessage> {
         if self.is_editing {
             container(
                 column![
                     text_editor::TextEditor::new(&self.content)
                         .height(Length::Fill)
-                        .on_action(CalculatorMessage::Action),
+                        .on_action(CalculatorPaneMessage::Action),
                     container(
                         button(text("\u{F4F5}").font(Font::with_name("bootstrap-icons")))
                             .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                            .on_press(CalculatorMessage::Toggle)
+                            .on_press(CalculatorPaneMessage::Toggle)
                     )
                     .padding(2)
                 ]
@@ -112,7 +115,7 @@ impl CalculatorPane {
                     Space::new(Length::Fill, Length::Fill),
                     button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
                         .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
-                        .on_press(CalculatorMessage::Toggle)
+                        .on_press(CalculatorPaneMessage::Toggle)
                 ]
                 .align_items(Alignment::Center),
             )

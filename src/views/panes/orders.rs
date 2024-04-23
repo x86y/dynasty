@@ -45,83 +45,79 @@ pub fn orders_view<'a>(
     .padding([0, 12])
     .width(Length::Fill);
 
-    let rows: Vec<Element<_>> = os
-        .iter()
-        .map(|b| {
-            let time_t = {
-                let dt: chrono::DateTime<chrono::Utc> =
-                    chrono::TimeZone::timestamp_opt(&chrono::Utc, (b.time / 1000) as i64, 0)
-                        .unwrap();
-                let formatted_time = dt.format("%m-%d %H:%M").to_string();
-                t(formatted_time).width(Length::Fixed(150.0))
-            };
+    let rows = os.iter().map(|b| {
+        let time_t = {
+            let dt: chrono::DateTime<chrono::Utc> =
+                chrono::TimeZone::timestamp_opt(&chrono::Utc, (b.time / 1000) as i64, 0).unwrap();
+            let formatted_time = dt.format("%m-%d %H:%M").to_string();
+            t(formatted_time).width(Length::Fixed(150.0))
+        };
 
-            let symbol_t = {
-                let s = &b.symbol;
-                tb(s).style(h2c("11EE11").unwrap())
-            }
-            .width(Length::Fixed(100.0));
-            let [base, quote] = Client::split_symbol(&b.symbol).unwrap();
-            let norm_price = if b.order_type != OrderType::Market {
-                b.price
-            } else {
-                b.cummulative_quote_qty / b.executed_qty
+        let symbol_t = {
+            let s = &b.symbol;
+            tb(s).style(h2c("11EE11").unwrap())
+        }
+        .width(Length::Fixed(100.0));
+        let [base, quote] = Client::split_symbol(&b.symbol).unwrap();
+        let norm_price = if b.order_type != OrderType::Market {
+            b.price
+        } else {
+            b.cummulative_quote_qty / b.executed_qty
+        };
+        let price_t = t(format!("{norm_price:.3}")).width(Length::Fixed(100.0));
+        let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
+        let executed_base =
+            t(format!("{:.0} {quote}", b.executed_qty * norm_price)).width(Length::Fixed(100.0));
+        let side_t = t(format!("{:?}", &b.side))
+            .width(Length::Fixed(100.0))
+            .style(
+                if b.side == OrderSide::Buy {
+                    h2c("11EE11")
+                } else {
+                    h2c("EE1111")
+                }
+                .unwrap(),
+            );
+        let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
+        let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
+
+        let pnl = {
+            let pnl_value = match b.side {
+                binance::rest_model::OrderSide::Buy => {
+                    b.executed_qty * (*price_now as f64 - norm_price)
+                }
+                binance::rest_model::OrderSide::Sell => {
+                    b.executed_qty * (norm_price - *price_now as f64)
+                }
             };
-            let price_t = t(format!("{norm_price:.3}")).width(Length::Fixed(100.0));
-            let executed_t = t(format!("{} {base}", b.executed_qty)).width(Length::Fixed(100.0));
-            let executed_base = t(format!("{:.0} {quote}", b.executed_qty * norm_price))
-                .width(Length::Fixed(100.0));
-            let side_t = t(format!("{:?}", &b.side))
+            t(format!("{pnl_value:.0}$"))
                 .width(Length::Fixed(100.0))
                 .style(
-                    if b.side == OrderSide::Buy {
+                    if pnl_value >= 0.0 {
                         h2c("11EE11")
                     } else {
                         h2c("EE1111")
                     }
                     .unwrap(),
-                );
-            let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
-            let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
+                )
+        };
 
-            let pnl = {
-                let pnl_value = match b.side {
-                    binance::rest_model::OrderSide::Buy => {
-                        b.executed_qty * (*price_now as f64 - norm_price)
-                    }
-                    binance::rest_model::OrderSide::Sell => {
-                        b.executed_qty * (norm_price - *price_now as f64)
-                    }
-                };
-                t(format!("{pnl_value:.0}$"))
-                    .width(Length::Fixed(100.0))
-                    .style(
-                        if pnl_value >= 0.0 {
-                            h2c("11EE11")
-                        } else {
-                            h2c("EE1111")
-                        }
-                        .unwrap(),
-                    )
-            };
-
-            container(
-                filled![
-                    symbol_t,
-                    price_t,
-                    executed_t,
-                    executed_base,
-                    side_t,
-                    status_t,
-                    pnl,
-                    time_t
-                ]
-                .width(Length::Fill),
-            )
-            .padding([2, 4])
-            .into()
-        })
-        .collect();
+        container(
+            filled![
+                symbol_t,
+                price_t,
+                executed_t,
+                executed_base,
+                side_t,
+                status_t,
+                pnl,
+                time_t
+            ]
+            .width(Length::Fill),
+        )
+        .padding([2, 4])
+        .into()
+    });
 
     column![header, Column::with_children(rows).padding(8)].into()
 }

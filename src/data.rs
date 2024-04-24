@@ -1,7 +1,5 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    mem::MaybeUninit,
-};
+use ahash::AHashMap;
+use std::{collections::BTreeMap, mem::MaybeUninit};
 
 use binance::rest_model::{Balance, Order};
 
@@ -12,7 +10,7 @@ pub(crate) type StaticLocalRb<T, const N: usize> = ringbuf::LocalRb<T, [MaybeUni
 
 #[derive(Default)]
 pub(crate) struct AppData {
-    pub(crate) prices: HashMap<String, f32>,
+    pub(crate) prices: AHashMap<String, f32>,
     pub(crate) book: (String, BTreeMap<String, f64>, BTreeMap<String, f64>),
     pub(crate) trades: StaticLocalRb<TradesEvent, 1000>,
     pub(crate) balances: Vec<Balance>,

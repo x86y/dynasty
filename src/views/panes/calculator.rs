@@ -1,10 +1,9 @@
 #[cfg(not(any(feature = "calculator_meval", feature = "calculator_k")))]
 compile_error!("no calculator backend selected");
 
-use std::collections::HashMap;
-
 use crate::{data::AppData, theme::h2c, views::components::better_btn::GreenBtn};
 
+use ahash::AHashMap;
 use binance::rest_model::Order;
 use iced::{
     widget::{
@@ -125,7 +124,7 @@ impl CalculatorPane {
     }
 }
 
-pub(crate) fn order_value(order: &Order, prices: &HashMap<String, f32>) -> f64 {
+pub(crate) fn order_value(order: &Order, prices: &AHashMap<String, f32>) -> f64 {
     let price_now = *prices.get(&order.symbol).unwrap_or(&0.0) as f64;
     let price = order.price;
     let qty = order.executed_qty;
@@ -140,8 +139,7 @@ pub(crate) fn order_value(order: &Order, prices: &HashMap<String, f32>) -> f64 {
 mod calc_k {
     use crate::{api::Client, views::panes::calculator::order_value};
 
-    use std::collections::HashMap;
-
+    use ahash::AHashMap;
     use binance::rest_model::Order;
     use ngnk::{kinit, CK, K0};
 
@@ -154,7 +152,7 @@ mod calc_k {
             Self {}
         }
 
-        pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
+        pub(crate) fn update_context(&mut self, prices: &AHashMap<String, f32>, orders: &[Order]) {
             let mut keys = String::new();
             let mut values = String::new();
             for (key, val) in prices.iter().take(250) {
@@ -189,8 +187,7 @@ mod calc_k {
 mod calc_meval {
     use crate::views::panes::calculator::order_value;
 
-    use std::collections::HashMap;
-
+    use ahash::AHashMap;
     use binance::rest_model::Order;
     use meval::{Context, Expr};
 
@@ -205,7 +202,7 @@ mod calc_meval {
             }
         }
 
-        pub(crate) fn update_context(&mut self, prices: &HashMap<String, f32>, orders: &[Order]) {
+        pub(crate) fn update_context(&mut self, prices: &AHashMap<String, f32>, orders: &[Order]) {
             for (key, value) in prices.iter() {
                 let name = key.strip_suffix("USDT").unwrap_or(key);
                 if name.is_empty() {

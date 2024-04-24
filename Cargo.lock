@@ -889,6 +889,7 @@ dependencies = [
 name = "dynasty"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "async-tungstenite",
  "binance-rs-async",
  "chrono",

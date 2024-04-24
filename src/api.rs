@@ -172,19 +172,17 @@ impl Client {
         )
     }
 
-    pub(crate) fn split_symbol(symbol: &str) -> Option<(String, String)> {
+    pub(crate) fn split_symbol(symbol: &str) -> Option<[&str; 2]> {
         let quote_assets = vec![
             "BTC", "ETH", "USDT", "BNB", "TUSD", "PAX", "USDC", "XRP", "USDS", "TRX", "BUSD",
             "NGN", "RUB", "TRY", "EUR", "ZAR", "BKRW", "IDRT", "GBP", "UAH", "BIDR", "AUD", "DAI",
             "BRL", "BVND", "VAI", "USDP", "DOGE", "UST", "DOT", "PLN", "RON", "ARS",
         ];
 
-        let quote_assets_regex = format!("({})", quote_assets.join("|"));
-        let regex = Regex::new(&format!(r"^(.+)({})$", quote_assets_regex)).unwrap();
+        let quote_assets_regex = quote_assets.join("|");
+        let regex = Regex::new(&format!(r"^([A-Z]+)({quote_assets_regex})$")).unwrap();
 
-        regex
-            .captures(symbol)
-            .map(|captures| (captures[1].into(), captures[2].into()))
+        regex.captures(symbol).map(|captures| captures.extract().1)
     }
 }
 
@@ -246,7 +244,7 @@ mod tests {
 
         for symbol in test_cases {
             match Client::split_symbol(symbol) {
-                Some((base, quote)) => {
+                Some([base, quote]) => {
                     assert_eq!(
                         format!("{}{}", base, quote),
                         symbol,

@@ -29,12 +29,11 @@ pub(crate) trait WsListener {
     /// Main entrypoint
     async fn run(&mut self, mut output: mpsc_futures::Sender<WsMessage>) -> ! {
         // forward messages out of websocket callback
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let (tx, mut rx) = mpsc_tokio::unbounded_channel();
 
         let mut web_socket = WebSockets::new(|event| {
-            let _ = tx.send(event);
-
-            Ok(())
+            tx.send(event)
+                .map_err(|e| binance::errors::Error::Msg(e.to_string()))
         });
 
         let (input_tx, mut input_rx) = mpsc_tokio::unbounded_channel();
@@ -85,7 +84,7 @@ pub(crate) trait WsListener {
                         }
                     }
                     event = rx.recv().fuse() => {
-                        let handled = self.handle_event(event.expect("nobody should be closing channel"));
+                        let handled = self.handle_event(event.expect("channel closed"));
                         let message = self.message(WsEvent::Message(handled));
                         let _ = output.send(message).await;
                     }

@@ -40,7 +40,11 @@ impl Client {
     }
 
     /// Replace credentials in inner client
-    pub(crate) fn swap_credentials(&mut self, public: String, secret: String) -> Command<Message> {
+    pub(crate) fn update_credentials(
+        &mut self,
+        public: String,
+        secret: String,
+    ) -> Command<Message> {
         let binance_account = Arc::clone(&self.binance_account);
 
         Command::perform(

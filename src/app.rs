@@ -43,7 +43,7 @@ impl App {
             errors: vec![],
             settings_opened: !config.valid(),
             dashboard: DashboardView::new(),
-            ws: Websockets::new(config.api_key.clone(), "BTCUSDT".to_owned()),
+            ws: Websockets::new(config.api_key.clone(), "BTCUSDT"),
             settings: SettingsView::new(config),
         }
     }
@@ -140,7 +140,7 @@ impl Application for App {
                     self.toggle_settings();
 
                     if credentials_updated {
-                        self.api.swap_credentials(
+                        self.api.update_credentials(
                             self.config.api_key.clone(),
                             self.config.api_secret_key.clone(),
                         )

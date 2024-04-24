@@ -365,7 +365,7 @@ impl DashboardView {
     }
 
     pub(crate) fn subscription(&self, data: &AppData) -> Subscription<Message> {
-        if data.prices.is_empty() {
+        if data.is_loading() {
             window::frames()
                 .map(DashboardMessage::LoaderTick)
                 .map(Message::from)

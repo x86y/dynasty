@@ -53,7 +53,7 @@ pub(crate) trait WsListener {
             let endpoint = match self.endpoint().await {
                 Ok(endpoint) => endpoint,
                 Err(e) => {
-                    eprintln!("Endpoint error: {e:?}");
+                    tracing::error!("Endpoint error: {e}");
 
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     continue;
@@ -61,7 +61,7 @@ pub(crate) trait WsListener {
             };
 
             if let Err(e) = web_socket.connect(&endpoint).await {
-                eprintln!("WebSocket connection error: {e:?}");
+                tracing::error!("WebSocket connection error: {e}");
 
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
@@ -74,7 +74,7 @@ pub(crate) trait WsListener {
                 futures::select! {
                     ws_closed = web_socket.event_loop(&keep_running).fuse() => {
                         if let Err(e) = ws_closed {
-                            eprintln!("WebSocket stream error: {e:?}");
+                            tracing::error!("WebSocket stream error: {e}");
                         }
                         break;
                     }

@@ -173,7 +173,7 @@ impl Application for App {
                 Command::none()
             }
             Message::DispatchErr((source, message)) => {
-                eprintln!("error: {source}: {message}");
+                tracing::error!("error: {source}: {message}");
                 // FIXME: error panel cannot be closed and covers settings button
                 // self.errors.push(message);
 

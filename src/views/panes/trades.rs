@@ -1,22 +1,23 @@
 use super::orders::{t, tb};
 
-use crate::{
-    data::StaticLocalRb, theme::h2c, views::dashboard::DashboardMessage, ws::trades::TradesEvent,
-};
+use crate::{data::AppData, theme::h2c, views::dashboard::DashboardMessage};
 
 use iced::{
     widget::{column, container, row, scrollable, Column},
     Color, Element, Length,
 };
-use ringbuf::{ring_buffer::RbBase, Rb};
+use ringbuf::Rb;
 
 pub fn trades_view<'a>(
-    bs: &StaticLocalRb<TradesEvent, 1000>,
+    data: &'a AppData,
     loader: &'a crate::views::components::loading::Loader,
 ) -> Element<'a, DashboardMessage> {
-    if bs.occupied_len() == 0 {
+    let bs = &data.trades;
+
+    if bs.len() == 0 {
         return loader.view();
     }
+
     column![
         row![
             tb("Price").width(Length::Fill),

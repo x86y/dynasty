@@ -1,10 +1,10 @@
 use crate::{
+    data::AppData,
     svg_logos,
     theme::h2c,
     views::{components::unstyled_btn::UnstyledBtn, dashboard::DashboardMessage},
 };
 
-use binance::rest_model::Balance;
 use iced::{
     widget::{button, container, row, svg, text, Column, Space},
     Element, Length,
@@ -13,12 +13,15 @@ use iced::{
 use super::orders::tb;
 
 pub fn balances_view<'a>(
-    bs: &[Balance],
+    data: &'a AppData,
     loader: &'a crate::views::components::loading::Loader,
 ) -> Element<'a, DashboardMessage> {
+    let bs = &data.balances;
+
     if bs.is_empty() {
         return loader.view();
     }
+
     Column::with_children(
         bs.iter()
             .map(|b| {

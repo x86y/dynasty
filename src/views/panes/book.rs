@@ -1,8 +1,6 @@
 use super::orders::{t, tb};
 
-use crate::{theme::h2c, views::dashboard::DashboardMessage};
-
-use std::collections::BTreeMap;
+use crate::{data::AppData, theme::h2c, views::dashboard::DashboardMessage};
 
 use iced::{
     widget::{column, row, Column, Container},
@@ -10,9 +8,11 @@ use iced::{
 };
 
 pub fn book_view<'a>(
-    book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
+    data: &'a AppData,
     loader: &'a crate::views::components::loading::Loader,
 ) -> Element<'a, DashboardMessage> {
+    let book = &data.book;
+
     if book.1.is_empty() {
         return loader.view();
     }

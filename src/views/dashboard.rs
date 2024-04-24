@@ -334,18 +334,18 @@ impl DashboardView {
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
                 PaneType::Prices => watchlist_view(
-                    &data.prices,
+                    data,
                     &config.watchlist_favorites,
                     self.filter,
                     &self.filter_string,
                     &self.loader,
                 ),
                 PaneType::Chart => self.chart.view(&self.loader),
-                PaneType::Book => book_view(&data.book, &self.loader),
-                PaneType::Trades => trades_view(&data.trades, &self.loader),
+                PaneType::Book => book_view(data, &self.loader),
+                PaneType::Trades => trades_view(data, &self.loader),
                 PaneType::Market => self.market.view().map(DashboardMessage::from),
-                PaneType::Balances => balances_view(&data.balances, &self.loader),
-                PaneType::Orders => orders_view(&data.orders, &data.prices, &self.loader),
+                PaneType::Balances => balances_view(data, &self.loader),
+                PaneType::Orders => orders_view(data, &self.loader),
                 PaneType::Calculator => self.calculator.view().map(DashboardMessage::from),
             }))
             .title_bar(title_bar)

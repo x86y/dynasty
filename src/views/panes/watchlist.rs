@@ -1,8 +1,8 @@
+use crate::data::AppData;
 use crate::theme::h2c;
 use crate::views::components::loading::Loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
-use ahash::AHashMap;
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
@@ -50,12 +50,14 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
 }
 
 pub fn watchlist_view<'a>(
-    ps: &'a AHashMap<String, f32>,
+    data: &'a AppData,
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
     loader: &'a Loader,
 ) -> Element<'a, DashboardMessage> {
+    let ps = &data.prices;
+
     if ps.is_empty() {
         return loader.view();
     };

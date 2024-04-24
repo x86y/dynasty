@@ -1,7 +1,6 @@
-use crate::{api::Client, theme::h2c, views::dashboard::DashboardMessage};
+use crate::{api::Client, data::AppData, theme::h2c, views::dashboard::DashboardMessage};
 
-use ahash::AHashMap;
-use binance::rest_model::{Order, OrderSide, OrderType};
+use binance::rest_model::{OrderSide, OrderType};
 use iced::{
     widget::{column, container, row, text, Column, Space},
     Element, Font, Length,
@@ -28,14 +27,16 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
 }
 
 pub fn orders_view<'a>(
-    os: &[Order],
-    ps: &'a AHashMap<String, f32>,
+    data: &'a AppData,
     loader: &'a crate::views::components::loading::Loader,
 ) -> Element<'a, DashboardMessage> {
-    if os.is_empty() {
+    let ps = &data.prices;
+    let os = &data.orders;
+
+    if os.is_empty() || ps.is_empty() {
         return loader.view();
     }
-    
+
     let header = filled![
         tb("Symbol").width(Length::Fixed(100.0)),
         tb("Price").width(Length::Fixed(100.0)),

@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{api::Client, theme::h2c, views::dashboard::DashboardMessage};
 
+use ahash::AHashMap;
 use binance::rest_model::{Order, OrderSide, OrderType};
 use iced::{
     widget::{column, container, row, text, Column, Space},
@@ -30,7 +29,7 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
 
 pub fn orders_view<'a>(
     os: &[Order],
-    ps: &'a HashMap<String, f32>,
+    ps: &'a AHashMap<String, f32>,
 ) -> Element<'a, DashboardMessage> {
     let header = filled![
         tb("Symbol").width(Length::Fixed(100.0)),

@@ -2,11 +2,11 @@ use crate::theme::h2c;
 use crate::views::components::loading::Loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
+use ahash::AHashMap;
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input, Column, Space},
     Element, Font, Length,
 };
-use std::collections::HashMap;
 
 use super::orders::tb;
 
@@ -50,7 +50,7 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
 }
 
 pub fn watchlist_view<'a>(
-    ps: &'a HashMap<String, f32>,
+    ps: &'a AHashMap<String, f32>,
     favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,

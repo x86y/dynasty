@@ -13,8 +13,16 @@ use crate::{app::App, config::Config};
 use std::env;
 
 use iced::{Application, Font, Settings};
+use tracing_subscriber::EnvFilter;
 
 fn main() -> iced::Result {
+    let filter = EnvFilter::from_default_env();
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_file(true)
+        .with_line_number(true)
+        .init();
+
     let config = Config::load().unwrap_or_default();
 
     App::run(Settings {

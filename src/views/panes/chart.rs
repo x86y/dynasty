@@ -10,6 +10,7 @@ use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
+use ringbuf::ring_buffer::RbBase;
 use ringbuf::Rb;
 
 use super::orders::tb;
@@ -77,7 +78,13 @@ impl ChartPane {
         let _ = self.data.push_overwrite(new_p);
     }
 
-    pub(crate) fn view(&self) -> Element<'_, DashboardMessage> {
+    pub(crate) fn view<'a>(
+        &'a self,
+        loader: &'a crate::views::components::loading::Loader,
+    ) -> Element<'_, DashboardMessage> {
+        if self.data.is_empty() {
+            return loader.view();
+        }
         let btns = Row::with_children(
             ["1m", "5m", "30m", "1h", "1d"]
                 .map(|t| {

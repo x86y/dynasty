@@ -340,12 +340,12 @@ impl DashboardView {
                     &self.filter_string,
                     &self.loader,
                 ),
-                PaneType::Chart => self.chart.view(),
-                PaneType::Book => book_view(&data.book),
-                PaneType::Trades => trades_view(&data.trades),
+                PaneType::Chart => self.chart.view(&self.loader),
+                PaneType::Book => book_view(&data.book, &self.loader),
+                PaneType::Trades => trades_view(&data.trades, &self.loader),
                 PaneType::Market => self.market.view().map(DashboardMessage::from),
-                PaneType::Balances => balances_view(&data.balances),
-                PaneType::Orders => orders_view(&data.orders, &data.prices),
+                PaneType::Balances => balances_view(&data.balances, &self.loader),
+                PaneType::Orders => orders_view(&data.orders, &data.prices, &self.loader),
                 PaneType::Calculator => self.calculator.view().map(DashboardMessage::from),
             }))
             .title_bar(title_bar)

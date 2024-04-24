@@ -156,7 +156,7 @@ mod calc_k {
             let mut keys = String::new();
             let mut values = String::new();
             for (key, val) in prices.iter().take(250) {
-                if let Some((base, _)) = Client::split_symbol(key) {
+                if let Some([base, _]) = Client::split_symbol(key) {
                     let filtered: String = base.chars().filter(|c| c.is_alphabetic()).collect();
                     if !filtered.is_empty() {
                         keys.push_str(&format!("`\"{filtered}\""));

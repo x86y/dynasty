@@ -30,7 +30,12 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
 pub fn orders_view<'a>(
     os: &[Order],
     ps: &'a AHashMap<String, f32>,
+    loader: &'a crate::views::components::loading::Loader,
 ) -> Element<'a, DashboardMessage> {
+    if os.is_empty() {
+        return loader.view();
+    }
+    
     let header = filled![
         tb("Symbol").width(Length::Fixed(100.0)),
         tb("Price").width(Length::Fixed(100.0)),

@@ -1,4 +1,5 @@
 use ahash::AHashMap;
+use ringbuf::ring_buffer::RbBase;
 use std::{collections::BTreeMap, mem::MaybeUninit};
 
 use binance::rest_model::{Balance, Order};
@@ -16,4 +17,15 @@ pub(crate) struct AppData {
     pub(crate) balances: Vec<Balance>,
     pub(crate) orders: Vec<Order>,
     pub(crate) quote: String,
+}
+
+impl AppData {
+    /// Not all data is ready yet
+    pub(crate) fn is_loading(&self) -> bool {
+        self.prices.is_empty()
+            || self.book.1.is_empty()
+            || self.trades.is_empty()
+            || self.balances.is_empty()
+            || self.orders.is_empty()
+    }
 }

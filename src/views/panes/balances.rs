@@ -12,7 +12,13 @@ use iced::{
 
 use super::orders::tb;
 
-pub fn balances_view<'a>(bs: &[Balance]) -> Element<'a, DashboardMessage> {
+pub fn balances_view<'a>(
+    bs: &[Balance],
+    loader: &'a crate::views::components::loading::Loader,
+) -> Element<'a, DashboardMessage> {
+    if bs.is_empty() {
+        return loader.view();
+    }
     Column::with_children(
         bs.iter()
             .map(|b| {

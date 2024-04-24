@@ -8,9 +8,15 @@ use iced::{
     widget::{column, container, row, scrollable, Column},
     Color, Element, Length,
 };
-use ringbuf::Rb;
+use ringbuf::{ring_buffer::RbBase, Rb};
 
-pub fn trades_view(bs: &StaticLocalRb<TradesEvent, 1000>) -> Element<'_, DashboardMessage> {
+pub fn trades_view<'a>(
+    bs: &StaticLocalRb<TradesEvent, 1000>,
+    loader: &'a crate::views::components::loading::Loader,
+) -> Element<'a, DashboardMessage> {
+    if bs.occupied_len() == 0 {
+        return loader.view();
+    }
     column![
         row![
             tb("Price").width(Length::Fill),

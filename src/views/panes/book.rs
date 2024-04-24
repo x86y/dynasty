@@ -9,9 +9,13 @@ use iced::{
     Element, Length,
 };
 
-pub fn book_view(
+pub fn book_view<'a>(
     book: &(String, BTreeMap<String, f64>, BTreeMap<String, f64>),
-) -> Element<'_, DashboardMessage> {
+    loader: &'a crate::views::components::loading::Loader,
+) -> Element<'a, DashboardMessage> {
+    if book.1.is_empty() {
+        return loader.view();
+    }
     let header = row![
         tb("Price").width(Length::Fill),
         tb("Amount").width(Length::Fill),

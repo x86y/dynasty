@@ -1,5 +1,6 @@
 use binance::rest_model::{Order, OrderStatus};
 use iced::Subscription;
+use ringbuf::Rb;
 use tokio::sync::mpsc;
 
 use self::listener::WsListener;
@@ -49,6 +50,7 @@ impl<T> WsHandle<T> {
         self.0.send(msg).unwrap();
     }
 }
+
 pub(crate) struct Websockets {
     currency_pair: String,
     api_key: String,
@@ -59,7 +61,7 @@ pub(crate) struct Websockets {
 }
 
 impl Websockets {
-    pub(crate) fn new(api_key: String, currency_pair: String) -> Self {
+    pub(crate) fn new(api_key: String, currency_pair: &str) -> Self {
         Self {
             user: None,
             prices: None,
@@ -89,11 +91,12 @@ impl Websockets {
 
     pub(crate) fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
-            trades::connect(self.currency_pair.clone()).map(Message::from),
-            book::connect(self.currency_pair.clone()).map(Message::from),
-            prices::connect().map(Message::from),
-            user::connect(self.api_key.clone()).map(Message::from),
+            trades::connect(self.currency_pair.clone()),
+            book::connect(self.currency_pair.clone()),
+            prices::connect(),
+            user::connect(self.api_key.clone()),
         ])
+        .map(Message::from)
     }
 
     pub(crate) fn update(
@@ -115,10 +118,7 @@ impl Websockets {
             WsMessage::Trade(event) => match event {
                 WsEvent::Created(handle) => self.trade = Some(handle),
                 WsEvent::Message(te) => {
-                    if data.trades.len() >= 1000 {
-                        data.trades.pop_back();
-                    }
-                    data.trades.push_front(te);
+                    data.trades.push_overwrite(te);
                 }
                 WsEvent::Connected | WsEvent::Disconnected => (),
             },

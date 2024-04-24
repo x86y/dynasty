@@ -1,15 +1,16 @@
 use super::orders::{t, tb};
 
-use crate::{theme::h2c, views::dashboard::DashboardMessage, ws::trades::TradesEvent};
-
-use std::collections::VecDeque;
+use crate::{
+    data::StaticLocalRb, theme::h2c, views::dashboard::DashboardMessage, ws::trades::TradesEvent,
+};
 
 use iced::{
     widget::{column, container, row, scrollable, Column},
     Color, Element, Length,
 };
+use ringbuf::Rb;
 
-pub fn trades_view(bs: &VecDeque<TradesEvent>) -> Element<'_, DashboardMessage> {
+pub fn trades_view(bs: &StaticLocalRb<TradesEvent, 1000>) -> Element<'_, DashboardMessage> {
     column![
         row![
             tb("Price").width(Length::Fill),

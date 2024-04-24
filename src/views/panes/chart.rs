@@ -1,4 +1,3 @@
-use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
 use iced::widget::button;
 use iced::widget::column;
 use iced::widget::container;
@@ -14,12 +13,11 @@ use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use ringbuf::Rb;
 
 use super::orders::tb;
-
-#[derive(Debug, Clone)]
-pub(crate) enum ChartMessage {}
+use crate::data::StaticLocalRb;
+use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
 
 pub struct ChartPane {
-    pub data: ringbuf::StaticRb<f64, 500>,
+    pub data: StaticLocalRb<f64, 500>,
 }
 
 impl Chart<DashboardMessage> for ChartPane {
@@ -71,7 +69,7 @@ impl Chart<DashboardMessage> for ChartPane {
 impl ChartPane {
     pub(crate) fn new() -> Self {
         Self {
-            data: ringbuf::StaticRb::default(),
+            data: ringbuf::LocalRb::default(),
         }
     }
 

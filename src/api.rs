@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use binance::{
     account::Account,
@@ -12,6 +12,8 @@ use regex::Regex;
 use tokio::sync::Mutex;
 
 use crate::message::Message;
+
+static SPLIT_SYMBOL_REGEX: OnceLock<Regex> = OnceLock::new();
 
 pub(crate) struct Client {
     binance_account: Arc<Mutex<Account>>,
@@ -173,14 +175,16 @@ impl Client {
     }
 
     pub(crate) fn split_symbol(symbol: &str) -> Option<[&str; 2]> {
-        let quote_assets = vec![
-            "BTC", "ETH", "USDT", "BNB", "TUSD", "PAX", "USDC", "XRP", "USDS", "TRX", "BUSD",
-            "NGN", "RUB", "TRY", "EUR", "ZAR", "BKRW", "IDRT", "GBP", "UAH", "BIDR", "AUD", "DAI",
-            "BRL", "BVND", "VAI", "USDP", "DOGE", "UST", "DOT", "PLN", "RON", "ARS",
-        ];
+        let regex = SPLIT_SYMBOL_REGEX.get_or_init(|| {
+            let quote_assets = vec![
+                "BTC", "ETH", "USDT", "BNB", "TUSD", "PAX", "USDC", "XRP", "USDS", "TRX", "BUSD",
+                "NGN", "RUB", "TRY", "EUR", "ZAR", "BKRW", "IDRT", "GBP", "UAH", "BIDR", "AUD",
+                "DAI", "BRL", "BVND", "VAI", "USDP", "DOGE", "UST", "DOT", "PLN", "RON", "ARS",
+            ];
 
-        let quote_assets_regex = quote_assets.join("|");
-        let regex = Regex::new(&format!(r"^([A-Z]+)({quote_assets_regex})$")).unwrap();
+            let quote_assets_regex = quote_assets.join("|");
+            Regex::new(&format!(r"^([A-Z]+)({quote_assets_regex})$")).unwrap()
+        });
 
         regex.captures(symbol).map(|captures| captures.extract().1)
     }

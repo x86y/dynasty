@@ -42,11 +42,8 @@ pub struct State {
 }
 
 impl State {
-    const SUN_RADIUS: f32 = 35.0;
-    const ORBIT_RADIUS: f32 = 75.0;
+    const ORBIT_RADIUS: f32 = 20.0;
     const EARTH_RADIUS: f32 = 6.0;
-    const MOON_RADIUS: f32 = 2.0;
-    const MOON_DISTANCE: f32 = 14.0;
 
     pub fn new() -> State {
         let now = Instant::now();
@@ -79,11 +76,8 @@ impl<Message> canvas::Program<Message> for State {
 
         let system = self.system_cache.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();
-
-            let sun = Path::circle(center, Self::SUN_RADIUS);
             let orbit = Path::circle(center, Self::ORBIT_RADIUS);
 
-            frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
             frame.stroke(
                 &orbit,
                 Stroke {
@@ -98,8 +92,8 @@ impl<Message> canvas::Program<Message> for State {
             );
 
             let elapsed = self.now - self.start;
-            let rotation = (2.0 * PI / 60.0) * elapsed.as_secs() as f32
-                + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
+            let rotation = (2.0 * PI / 3.0) * elapsed.as_secs() as f32
+                + (2.0 * PI / 3_000.0) * elapsed.subsec_millis() as f32;
 
             frame.with_save(|frame| {
                 frame.translate(Vector::new(center.x, center.y));
@@ -116,14 +110,6 @@ impl<Message> canvas::Program<Message> for State {
                 .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47));
 
                 frame.fill(&earth, earth_fill);
-
-                frame.with_save(|frame| {
-                    frame.rotate(rotation * 10.0);
-                    frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
-
-                    let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
-                    frame.fill(&moon, Color::WHITE);
-                });
             });
         });
 

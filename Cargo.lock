@@ -876,7 +876,6 @@ dependencies = [
  "binance-rs-async",
  "chrono",
  "directories-next",
- "futures",
  "iced",
  "iced_futures",
  "meval",

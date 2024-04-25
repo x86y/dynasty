@@ -18,7 +18,7 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 async-tungstenite = { version = "0.25", features = ["tokio-rustls-webpki-roots"]}
 tokio = { version = "1.32.0", default-features = false, features=["sync"]}
-ngnk = { path = "src/ngnk", optional = true }
+ngnk = { path = "crates/ngnk", optional = true }
 meval = { version = "0.2.0", optional = true }
 plotters = "0.3.5"
 plotters-iced = "0.10.0"

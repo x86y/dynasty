@@ -4,6 +4,7 @@ use binance::websockets::WebSockets;
 use futures::{channel::mpsc as mpsc_futures, FutureExt, SinkExt};
 use serde::de::DeserializeOwned;
 use tokio::sync::mpsc as mpsc_tokio;
+use tracing::info;
 
 use super::{WsEvent, WsHandle, WsMessage};
 
@@ -53,7 +54,7 @@ pub(crate) trait WsListener {
             let endpoint = match self.endpoint().await {
                 Ok(endpoint) => endpoint,
                 Err(e) => {
-                    tracing::error!("Endpoint error: {e}");
+                    tracing::error!("endpoint error: {e}");
 
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     continue;
@@ -61,12 +62,13 @@ pub(crate) trait WsListener {
             };
 
             if let Err(e) = web_socket.connect(&endpoint).await {
-                tracing::error!("WebSocket connection error: {e}");
+                tracing::error!("connection error: {e}");
 
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
 
+            info!("connected {}", &endpoint);
             let connected = self.message(WsEvent::Connected);
             let _ = output.send(connected).await;
 
@@ -74,14 +76,12 @@ pub(crate) trait WsListener {
                 futures::select! {
                     ws_closed = web_socket.event_loop(&keep_running).fuse() => {
                         if let Err(e) = ws_closed {
-                            tracing::error!("WebSocket stream error: {e}");
+                            tracing::error!("stream error: {e}");
                         }
                         break;
                     }
                     input = input_rx.recv().fuse() => {
-                        if let Some(input) = input {
-                            self.handle_input(input, &mut keep_running);
-                        }
+                        self.handle_input(input.expect("channel closed"), &mut keep_running);
                     }
                     event = rx.recv().fuse() => {
                         let handled = self.handle_event(event.expect("channel closed"));
@@ -91,6 +91,7 @@ pub(crate) trait WsListener {
                 }
             }
 
+            info!("disconnected {}", &endpoint);
             let disconnected = self.message(WsEvent::Disconnected);
             let _ = output.send(disconnected).await;
         }

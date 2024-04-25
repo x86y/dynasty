@@ -1,6 +1,7 @@
 use crate::api::Client;
 use crate::config::Config;
 use crate::data::AppData;
+use crate::data::PriceFilter;
 use crate::message::MaybeError;
 use crate::message::Message;
 use crate::svg_logos;
@@ -36,9 +37,14 @@ pub(crate) struct App {
 impl App {
     fn new(config: Config) -> Self {
         let api = Client::new(config.api_key.clone(), config.api_secret_key.clone());
+
+        let mut data = AppData::default();
+        data.prices
+            .apply_filter(PriceFilter::Matches(config.watchlist_favorites.clone()));
+
         App {
             config: config.clone(),
-            data: Default::default(),
+            data,
             api,
             errors: Vec::new(),
             settings_opened: !config.complete(),
@@ -199,7 +205,10 @@ impl Application for App {
 
                 Command::none()
             }
-            Message::Dashboard(msg) => self.dashboard.update(msg, &self.api, &self.data, &self.ws),
+            Message::Dashboard(msg) => {
+                self.dashboard
+                    .update(msg, &self.api, &mut self.data, &self.ws, &self.config)
+            }
             Message::Settings(msg) => self.settings.update(msg),
             Message::NoOp => Command::none(),
             Message::KlinesRecieved(kr) => match kr {
@@ -235,7 +244,7 @@ impl Application for App {
                         .watchlist_favorites
                         .iter()
                         .map(|t| {
-                            let price_now = &self.data.prices.get(t).unwrap_or(&0.0);
+                            let price_now = &self.data.prices.price(t);
 
                             let ticker = t.strip_suffix("USDT").unwrap_or(t);
                             let handle = match svg_logos::LOGOS.get(ticker) {
@@ -303,11 +312,7 @@ impl Application for App {
                 if self.settings_opened {
                     container(self.settings.view())
                 } else {
-                    container(
-                        self.dashboard
-                            .view(&self.data, &self.config)
-                            .map(Message::from),
-                    )
+                    container(self.dashboard.view(&self.data).map(Message::from))
                 }
             ]
             .spacing(8)

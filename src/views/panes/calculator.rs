@@ -3,7 +3,6 @@ compile_error!("no calculator backend selected");
 
 use crate::{data::AppData, theme::h2c, views::components::better_btn::GreenBtn};
 
-use ahash::AHashMap;
 use binance::rest_model::Order;
 use iced::{
     widget::{
@@ -73,7 +72,7 @@ impl CalculatorPane {
     }
 
     pub(crate) fn tick(&mut self, data: &AppData) {
-        self.calculator.update_context(&data.prices, &data.orders);
+        self.calculator.update_context(data);
 
         if !self.is_editing {
             self.run();
@@ -124,8 +123,7 @@ impl CalculatorPane {
     }
 }
 
-pub(crate) fn order_value(order: &Order, prices: &AHashMap<String, f32>) -> f64 {
-    let price_now = *prices.get(&order.symbol).unwrap_or(&0.0) as f64;
+pub(crate) fn order_value(order: &Order, price_now: f64) -> f64 {
     let price = order.price;
     let qty = order.executed_qty;
     if order.side == binance::rest_model::OrderSide::Buy {
@@ -137,10 +135,8 @@ pub(crate) fn order_value(order: &Order, prices: &AHashMap<String, f32>) -> f64 
 
 #[cfg(feature = "calculator_k")]
 mod calc_k {
-    use crate::{api::Client, views::panes::calculator::order_value};
+    use crate::{api::Client, data::AppData, views::panes::calculator::order_value};
 
-    use ahash::AHashMap;
-    use binance::rest_model::Order;
     use ngnk::{kinit, CK, K0};
 
     pub(crate) struct Calculator {}
@@ -152,10 +148,10 @@ mod calc_k {
             Self {}
         }
 
-        pub(crate) fn update_context(&mut self, prices: &AHashMap<String, f32>, orders: &[Order]) {
+        pub(crate) fn update_context(&mut self, data: &AppData) {
             let mut keys = String::new();
             let mut values = String::new();
-            for (key, val) in prices.iter().take(250) {
+            for (key, val) in data.prices.descending().take(250) {
                 if let Some([base, _]) = Client::split_symbol(key) {
                     let filtered: String = base.chars().filter(|c| c.is_alphabetic()).collect();
                     if !filtered.is_empty() {
@@ -168,9 +164,12 @@ mod calc_k {
             keys.clear();
             values.clear();
 
-            for (i, trade) in orders.iter().enumerate() {
+            for (i, trade) in data.orders.iter().enumerate() {
                 keys.push_str(&format!("`t{} ", i));
-                values.push_str(&format!("{} ", order_value(trade, prices)));
+                values.push_str(&format!(
+                    "{} ",
+                    order_value(trade, data.prices.price(&trade.symbol) as f64)
+                ));
             }
             K0(format!("ORDERS:({keys}!{values})"), Vec::new());
         }
@@ -185,10 +184,8 @@ mod calc_k {
 
 #[cfg(feature = "calculator_meval")]
 mod calc_meval {
-    use crate::views::panes::calculator::order_value;
+    use crate::{data::AppData, views::panes::calculator::order_value};
 
-    use ahash::AHashMap;
-    use binance::rest_model::Order;
     use meval::{Context, Expr};
 
     pub(crate) struct Calculator {
@@ -202,8 +199,8 @@ mod calc_meval {
             }
         }
 
-        pub(crate) fn update_context(&mut self, prices: &AHashMap<String, f32>, orders: &[Order]) {
-            for (key, value) in prices.iter() {
+        pub(crate) fn update_context(&mut self, data: &AppData) {
+            for (key, value) in data.prices.descending() {
                 let name = key.strip_suffix("USDT").unwrap_or(key);
                 if name.is_empty() {
                     continue;
@@ -212,8 +209,11 @@ mod calc_meval {
                 self.ctx.var(name, *value as f64);
             }
 
-            for (i, trade) in orders.iter().enumerate() {
-                self.ctx.var(format!("t{i}"), order_value(trade, prices));
+            for (i, trade) in data.orders.iter().enumerate() {
+                self.ctx.var(
+                    format!("t{i}"),
+                    order_value(trade, data.prices.price(&trade.symbol) as f64),
+                );
             }
         }
 

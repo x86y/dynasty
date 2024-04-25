@@ -15,7 +15,7 @@ use ringbuf::Rb;
 use crate::{
     api::Client,
     config::Config,
-    data::AppData,
+    data::{AppData, PriceFilter},
     message::Message,
     theme::h2c,
     ws::{prices::AssetDetails, Websockets},
@@ -165,12 +165,12 @@ impl From<MarketPanelMessage> for DashboardMessage {
 pub(crate) struct DashboardView {
     focus: Option<pane_grid::Pane>,
     panes: pane_grid::State<Pane>,
-    chart: ChartPane,
-    calculator: CalculatorPane,
     // TODO: filter
     filter: WatchlistFilter,
     filter_string: String,
-    // widgets
+    // panes
+    chart: ChartPane,
+    calculator: CalculatorPane,
     market: Market,
     loader: Loader,
 }
@@ -223,7 +223,7 @@ impl DashboardView {
             chart: ChartPane::new(),
             calculator: CalculatorPane::new(),
             filter: WatchlistFilter::Favorites,
-            filter_string: "".to_string(),
+            filter_string: String::new(),
             market: Market::new(),
             loader: Loader::new(),
         }
@@ -238,8 +238,9 @@ impl DashboardView {
         &mut self,
         message: DashboardMessage,
         api: &Client,
-        data: &AppData,
+        data: &mut AppData,
         ws: &Websockets,
+        config: &Config,
     ) -> Command<Message> {
         match message {
             DashboardMessage::Clicked(pane) => {
@@ -270,11 +271,25 @@ impl DashboardView {
                 Command::none()
             }
             DashboardMessage::ApplyWatchlistFilter(f) => {
+                let filters = if self.filter_string.is_empty() {
+                    match f {
+                        WatchlistFilter::Favorites => {
+                            PriceFilter::Matches(config.watchlist_favorites.clone())
+                        }
+                        WatchlistFilter::Eth => PriceFilter::Contains("ETH".to_owned()),
+                        WatchlistFilter::Btc => PriceFilter::Contains("BTC".to_owned()),
+                        WatchlistFilter::Alts => PriceFilter::All,
+                    }
+                } else {
+                    PriceFilter::Contains(self.filter_string.clone())
+                };
+
+                data.prices.apply_filter(filters);
                 self.filter = f;
                 Command::none()
             }
-            DashboardMessage::WatchlistFilterInput(wfi) => {
-                self.filter_string = wfi;
+            DashboardMessage::WatchlistFilterInput(s) => {
+                self.filter_string = s.to_uppercase();
                 Command::none()
             }
             DashboardMessage::AssetSelected(pair) => {
@@ -316,11 +331,7 @@ impl DashboardView {
         }
     }
 
-    pub(crate) fn view<'a>(
-        &'a self,
-        data: &'a AppData,
-        config: &'a Config,
-    ) -> Element<'a, DashboardMessage> {
+    pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
@@ -333,13 +344,9 @@ impl DashboardView {
                 .padding([8, 12]);
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
-                PaneType::Prices => watchlist_view(
-                    data,
-                    &config.watchlist_favorites,
-                    self.filter,
-                    &self.filter_string,
-                    &self.loader,
-                ),
+                PaneType::Prices => {
+                    watchlist_view(data, self.filter, &self.filter_string, &self.loader)
+                }
                 PaneType::Chart => self.chart.view(&self.loader),
                 PaneType::Book => book_view(data, &self.loader),
                 PaneType::Trades => trades_view(data, &self.loader),

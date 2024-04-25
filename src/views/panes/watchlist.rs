@@ -11,7 +11,7 @@ use iced::{
 use super::orders::tb;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum WatchlistFilter {
+pub(crate) enum WatchlistFilter {
     Favorites,
     Eth,
     Btc,
@@ -51,19 +51,13 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
 
 pub fn watchlist_view<'a>(
     data: &'a AppData,
-    favorites: &'a [String],
     filter: WatchlistFilter,
     search: &'a str,
     loader: &'a Loader,
 ) -> Element<'a, DashboardMessage> {
-    let ps = &data.prices;
-
-    if ps.is_empty() {
+    if data.prices.is_empty() {
         return loader.view();
     };
-
-    let mut sorted_assets: Vec<_> = ps.iter().collect();
-    sorted_assets.sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
 
     column![
         row![
@@ -98,21 +92,8 @@ pub fn watchlist_view<'a>(
         .spacing(2.0),
         scrollable(
             Column::with_children(
-                sorted_assets
-                    .iter()
-                    .filter_map(|i| {
-                        if search.is_empty() {
-                            match filter {
-                                WatchlistFilter::Favorites => favorites.contains(i.0),
-                                WatchlistFilter::Eth => i.0.contains("ETH"),
-                                WatchlistFilter::Btc => i.0.contains("BTC"),
-                                WatchlistFilter::Alts => true,
-                            }
-                            .then_some((i.0, i.1))
-                        } else {
-                            i.0.contains(&search.to_uppercase()).then_some((i.0, i.1))
-                        }
-                    })
+                data.prices
+                    .descending_filtered()
                     .map(|(n, p)| asset_button(n, *p))
                     .map(Element::from)
             )

@@ -24,24 +24,36 @@ impl TradesWs {
     }
 }
 
-fn str_as_f32<'de, D>(deserializer: D) -> Result<f32, D::Error>
+fn str_as_f32_as_str_formatted<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = <&str>::deserialize(deserializer)?;
-    s.parse::<f32>().map_err(de::Error::custom)
+    let f = s.parse::<f32>().map_err(de::Error::custom)?;
+
+    Ok(format!("{:.2}", f))
+}
+
+fn u64_as_time_formatted<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let i = <u64>::deserialize(deserializer)?;
+    let timestamp = i64::try_from(i).map_err(de::Error::custom)?;
+    let dt = chrono::DateTime::from_timestamp(timestamp / 1000, 0).unwrap();
+    Ok(dt.format("%H:%M:%S").to_string())
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct TradesEvent {
-    #[serde(rename = "p", deserialize_with = "str_as_f32")]
-    pub(crate) price: f32,
+    #[serde(rename = "p", deserialize_with = "str_as_f32_as_str_formatted")]
+    pub(crate) price: String,
 
-    #[serde(rename = "q", deserialize_with = "str_as_f32")]
-    pub(crate) qty: f32,
+    #[serde(rename = "q", deserialize_with = "str_as_f32_as_str_formatted")]
+    pub(crate) qty: String,
 
-    #[serde(rename = "T")]
-    pub(crate) trade_order_time: u64,
+    #[serde(rename = "T", deserialize_with = "u64_as_time_formatted")]
+    pub(crate) trade_order_time_formatted: String,
 
     #[serde(rename = "m")]
     pub(crate) is_buyer_maker: bool,

@@ -40,7 +40,7 @@ impl App {
 
         let mut data = AppData::default();
         data.prices
-            .apply_filter(PriceFilter::Matches(config.watchlist_favorites.clone()));
+            .set_filter(PriceFilter::Matches(config.watchlist_favorites.clone()));
 
         App {
             config: config.clone(),

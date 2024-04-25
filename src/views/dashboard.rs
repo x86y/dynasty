@@ -140,7 +140,7 @@ pub(crate) enum DashboardMessage {
     Restore,
     Close(pane_grid::Pane),
     WatchlistFilterInput(String),
-    ApplyWatchlistFilter(WatchlistFilter),
+    ApplyWatchlistFilter((WatchlistFilter, bool)),
     AssetSelected(String),
     Market(MarketPanelMessage),
     Calculator(CalculatorPaneMessage),
@@ -270,26 +270,30 @@ impl DashboardView {
                 }
                 Command::none()
             }
-            DashboardMessage::ApplyWatchlistFilter(f) => {
-                let filters = if self.filter_string.is_empty() {
-                    match f {
+            DashboardMessage::ApplyWatchlistFilter((f, clicked_again)) => {
+                if clicked_again {
+                    data.prices.flip_sort();
+                } else {
+                    let filter = match f {
                         WatchlistFilter::Favorites => {
                             PriceFilter::Matches(config.watchlist_favorites.clone())
                         }
                         WatchlistFilter::Eth => PriceFilter::Contains("ETH".to_owned()),
                         WatchlistFilter::Btc => PriceFilter::Contains("BTC".to_owned()),
                         WatchlistFilter::Alts => PriceFilter::All,
-                    }
-                } else {
-                    PriceFilter::Contains(self.filter_string.clone())
-                };
+                    };
 
-                data.prices.apply_filter(filters);
-                self.filter = f;
+                    data.prices.set_filter(filter);
+                    self.filter = f;
+                }
+
                 Command::none()
             }
             DashboardMessage::WatchlistFilterInput(s) => {
                 self.filter_string = s.to_uppercase();
+                data.prices
+                    .set_filter(PriceFilter::Contains(self.filter_string.clone()));
+
                 Command::none()
             }
             DashboardMessage::AssetSelected(pair) => {

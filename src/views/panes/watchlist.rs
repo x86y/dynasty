@@ -19,7 +19,7 @@ pub(crate) enum WatchlistFilter {
 }
 
 macro_rules! filter_button {
-    ($label:expr, $filter:expr, $current_filter:expr, $message:expr) => {
+    ($label:expr, $filter:expr, $current_filter:expr) => {
         button($label)
             .padding(8)
             .style(if $filter == $current_filter {
@@ -27,7 +27,10 @@ macro_rules! filter_button {
             } else {
                 iced::theme::Button::Text
             })
-            .on_press($message)
+            .on_press(DashboardMessage::ApplyWatchlistFilter((
+                $filter,
+                $filter == $current_filter,
+            )))
     };
 }
 
@@ -64,27 +67,11 @@ pub fn watchlist_view<'a>(
             filter_button!(
                 text("\u{F588}").font(Font::with_name("bootstrap-icons")),
                 WatchlistFilter::Favorites,
-                filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Favorites)
+                filter
             ),
-            filter_button!(
-                "BTC",
-                WatchlistFilter::Btc,
-                filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Btc)
-            ),
-            filter_button!(
-                "ETH",
-                WatchlistFilter::Eth,
-                filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Eth)
-            ),
-            filter_button!(
-                "ALTS",
-                WatchlistFilter::Alts,
-                filter,
-                DashboardMessage::ApplyWatchlistFilter(WatchlistFilter::Alts)
-            ),
+            filter_button!("BTC", WatchlistFilter::Btc, filter),
+            filter_button!("ETH", WatchlistFilter::Eth, filter),
+            filter_button!("ALTS", WatchlistFilter::Alts, filter),
             text_input("type to filter", search)
                 .on_input(DashboardMessage::WatchlistFilterInput)
                 .style(iced::theme::TextInput::Custom(Box::new(Inp {})))
@@ -93,7 +80,7 @@ pub fn watchlist_view<'a>(
         scrollable(
             Column::with_children(
                 data.prices
-                    .descending_filtered()
+                    .sorted_and_filtered()
                     .map(|(n, p)| asset_button(n, *p))
                     .map(Element::from)
             )

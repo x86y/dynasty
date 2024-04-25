@@ -151,7 +151,7 @@ mod calc_k {
         pub(crate) fn update_context(&mut self, data: &AppData) {
             let mut keys = String::new();
             let mut values = String::new();
-            for (key, val) in data.prices.descending().take(250) {
+            for (key, val) in data.prices.sorted().take(250) {
                 if let Some([base, _]) = Client::split_symbol(key) {
                     let filtered: String = base.chars().filter(|c| c.is_alphabetic()).collect();
                     if !filtered.is_empty() {
@@ -200,7 +200,7 @@ mod calc_meval {
         }
 
         pub(crate) fn update_context(&mut self, data: &AppData) {
-            for (key, value) in data.prices.descending() {
+            for (key, value) in data.prices.sorted() {
                 let name = key.strip_suffix("USDT").unwrap_or(key);
                 if name.is_empty() {
                     continue;

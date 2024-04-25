@@ -126,7 +126,7 @@ impl Prices {
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.ordered.is_empty()
+        self.map.is_empty()
     }
 
     pub(crate) fn sorted(&self) -> impl Iterator<Item = &(String, f32)> {

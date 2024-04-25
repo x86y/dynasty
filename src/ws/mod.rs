@@ -187,7 +187,7 @@ impl Websockets {
                     WsEvent::Created(handle) => self.prices = Some(handle),
                     WsEvent::Message(asset) => {
                         dashboard.chart_pair_price(&asset);
-                        data.prices.insert(asset.name.to_owned(), asset.price);
+                        data.prices.add(asset.name, asset.price);
                     }
                     WsEvent::Connected | WsEvent::Disconnected => (),
                 };

@@ -154,12 +154,9 @@ impl Market {
                 Command::none()
             }
             MarketPanelMessage::PriceMultiplied(inc) => {
-                let price = data
-                    .prices
-                    .get(&self.pair)
-                    .expect("price exists for some reason");
+                let price = data.prices.price(&self.pair);
                 self.price =
-                    (((*price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
+                    (((price as f64 * (1.0 + (inc / 100.0))) * 100.0).round() / 100.0).to_string();
                 Command::none()
             }
             MarketPanelMessage::PairSet => {

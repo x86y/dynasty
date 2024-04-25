@@ -84,15 +84,15 @@ pub fn orders_view<'a>(
                 .unwrap(),
             );
         let status_t = t(format!("{:?}", &b.status)).width(Length::Fixed(100.0));
-        let price_now = ps.get(&b.symbol).unwrap_or(&0.0);
+        let price_now = ps.price(&b.symbol);
 
         let pnl = {
             let pnl_value = match b.side {
                 binance::rest_model::OrderSide::Buy => {
-                    b.executed_qty * (*price_now as f64 - norm_price)
+                    b.executed_qty * (price_now as f64 - norm_price)
                 }
                 binance::rest_model::OrderSide::Sell => {
-                    b.executed_qty * (norm_price - *price_now as f64)
+                    b.executed_qty * (norm_price - price_now as f64)
                 }
             };
             t(format!("{pnl_value:.0}$"))

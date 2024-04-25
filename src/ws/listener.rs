@@ -13,6 +13,11 @@ pub(crate) trait WsListener {
     type Input;
     type Output;
 
+    /// Websocket recv timeout
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(30)
+    }
+
     /// Wrap `WsEvent` in correct variant of `WsMessage`
     fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage;
 
@@ -62,7 +67,7 @@ pub(crate) trait WsListener {
             };
 
             if let Err(e) = web_socket.connect(&endpoint).await {
-                tracing::error!("connection error: {e}");
+                tracing::error!("{} connection error: {}", &endpoint, e);
 
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
@@ -71,6 +76,8 @@ pub(crate) trait WsListener {
             info!("connected {}", &endpoint);
             let connected = self.message(WsEvent::Connected);
             let _ = output.send(connected).await;
+
+            let timeout = self.timeout();
 
             loop {
                 tokio::select! {
@@ -85,7 +92,15 @@ pub(crate) trait WsListener {
                     input = input_rx.recv() => {
                         self.handle_input(input.expect("channel closed"), &mut keep_running);
                     }
-                    event = rx.recv() => {
+                    maybe_event = tokio::time::timeout(timeout, rx.recv()) => {
+                        let event = match maybe_event {
+                            Ok(event) => event,
+                            Err(_) => {
+                                tracing::error!("{} hung, disconnecting", &endpoint);
+
+                                break;
+                            }
+                        };
                         let handled = self.handle_event(event.expect("channel closed"));
                         let message = self.message(WsEvent::Message(handled));
                         let _ = output.send(message).await;

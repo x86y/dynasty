@@ -48,7 +48,6 @@ pub(crate) struct Prices {
     ordered: Vec<(String, f32)>,
     sort_descending: bool,
     filter: PriceFilter,
-    filtered: Vec<(String, f32)>,
 }
 
 impl Default for Prices {
@@ -66,7 +65,6 @@ impl Prices {
             ordered: Vec::new(),
             sort_descending: true,
             filter: PriceFilter::Matches(Vec::new()),
-            filtered: Vec::new(),
         }
     }
 
@@ -76,7 +74,8 @@ impl Prices {
 
     /// Immediately applies filter to update UI
     fn filter_now(&mut self) {
-        self.filtered = self
+        self.ordered = self.map.iter().map(|(k, v)| (k.to_owned(), *v)).collect();
+        self.ordered = self
             .ordered
             .iter()
             .filter_map(|(name, price)| {
@@ -90,7 +89,6 @@ impl Prices {
     }
 
     fn sort_now(&mut self) {
-        self.ordered = self.map.iter().map(|(k, v)| (k.to_owned(), *v)).collect();
         let sort_pred = if self.sort_descending {
             |(_, p1): &(_, f32), (_, p2): &(_, f32)| p2.partial_cmp(p1).unwrap()
         } else {
@@ -136,7 +134,7 @@ impl Prices {
     }
 
     pub(crate) fn sorted_and_filtered(&self) -> impl Iterator<Item = &(String, f32)> {
-        self.filtered.iter()
+        self.ordered.iter()
     }
 }
 

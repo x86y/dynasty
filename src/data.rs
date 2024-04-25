@@ -5,7 +5,7 @@ use std::{
     mem::MaybeUninit,
     time::{Duration, Instant},
 };
-use tracing::debug;
+use tracing::trace;
 
 use binance::rest_model::{Balance, Order};
 
@@ -30,9 +30,7 @@ pub(crate) enum PriceFilter {
 impl PriceFilter {
     fn apply(&self, value: &str) -> bool {
         match self {
-            PriceFilter::Matches(filters) => {
-                filters.iter().find(|filter| value == *filter).is_some()
-            }
+            PriceFilter::Matches(filters) => filters.iter().any(|filter| value == *filter),
             PriceFilter::Contains(filter) => value.contains(filter),
             PriceFilter::All => true,
         }
@@ -44,12 +42,13 @@ impl PriceFilter {
 /// Data is pushed to buffer before being available. Buffer is drained on pushes no more often than
 /// one second
 pub(crate) struct Prices {
+    buffer: Vec<(String, f32)>,
+    buffer_drained_at: Instant,
     map: AHashMap<String, f32>,
     ordered: Vec<(String, f32)>,
-    filters: PriceFilter,
+    sort_descending: bool,
+    filter: PriceFilter,
     filtered: Vec<(String, f32)>,
-    buffer: Vec<(String, f32)>,
-    buffer_last_drained: Instant,
 }
 
 impl Default for Prices {
@@ -61,12 +60,13 @@ impl Default for Prices {
 impl Prices {
     fn new() -> Self {
         Self {
+            buffer: Vec::new(),
+            buffer_drained_at: Instant::now() - Duration::from_secs(1),
             map: AHashMap::default(),
             ordered: Vec::new(),
-            filters: PriceFilter::Matches(Vec::new()),
+            sort_descending: true,
+            filter: PriceFilter::Matches(Vec::new()),
             filtered: Vec::new(),
-            buffer: Vec::new(),
-            buffer_last_drained: Instant::now() - Duration::from_secs(1),
         }
     }
 
@@ -75,12 +75,12 @@ impl Prices {
     }
 
     /// Immediately applies filter to update UI
-    fn run_filter_now(&mut self) {
+    fn filter_now(&mut self) {
         self.filtered = self
             .ordered
             .iter()
             .filter_map(|(name, price)| {
-                if self.filters.apply(name) {
+                if self.filter.apply(name) {
                     Some((name.clone(), *price))
                 } else {
                     None
@@ -89,39 +89,53 @@ impl Prices {
             .collect();
     }
 
+    fn sort_now(&mut self) {
+        self.ordered = self.map.iter().map(|(k, v)| (k.to_owned(), *v)).collect();
+        let sort_pred = if self.sort_descending {
+            |(_, p1): &(_, f32), (_, p2): &(_, f32)| p2.partial_cmp(p1).unwrap()
+        } else {
+            |(_, p1): &(_, f32), (_, p2): &(_, f32)| p1.partial_cmp(p2).unwrap()
+        };
+        self.ordered.sort_by(sort_pred);
+    }
+
     pub(crate) fn add(&mut self, name: String, price: f32) {
         self.buffer.push((name, price));
 
-        if self.buffer_last_drained.elapsed().as_secs() < 1 {
+        if self.buffer_drained_at.elapsed().as_secs() < 1 {
             return;
         }
-        self.buffer_last_drained = Instant::now();
+        self.buffer_drained_at = Instant::now();
 
-        debug!("draining {} prices", self.buffer.len());
+        trace!("draining {} prices", self.buffer.len());
 
         self.map.extend(self.buffer.drain(..));
 
-        self.ordered = self.map.iter().map(|(k, v)| (k.to_owned(), *v)).collect();
-        self.ordered
-            .sort_by(|(_, p1), (_, p2)| p2.partial_cmp(p1).unwrap());
-
-        self.run_filter_now();
+        self.filter_now();
+        self.sort_now();
     }
 
-    pub(crate) fn apply_filter(&mut self, filter: PriceFilter) {
-        self.filters = filter;
-        self.run_filter_now();
+    pub(crate) fn set_filter(&mut self, filter: PriceFilter) {
+        trace!("filtering by {:?}", filter);
+
+        self.filter = filter;
+        self.filter_now();
+    }
+
+    pub(crate) fn flip_sort(&mut self) {
+        self.sort_descending = !self.sort_descending;
+        self.ordered.reverse();
     }
 
     pub(crate) fn is_empty(&self) -> bool {
         self.ordered.is_empty()
     }
 
-    pub(crate) fn descending(&self) -> impl Iterator<Item = &(String, f32)> {
+    pub(crate) fn sorted(&self) -> impl Iterator<Item = &(String, f32)> {
         self.ordered.iter()
     }
 
-    pub(crate) fn descending_filtered(&self) -> impl Iterator<Item = &(String, f32)> {
+    pub(crate) fn sorted_and_filtered(&self) -> impl Iterator<Item = &(String, f32)> {
         self.filtered.iter()
     }
 }

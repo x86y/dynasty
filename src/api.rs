@@ -6,8 +6,8 @@ use binance::{
     market::Market,
     rest_model::{OrderSide, OrderStatus},
 };
-use futures::future::join_all;
 use iced::Command;
+use iced_futures::futures::future::join_all;
 use regex::Regex;
 use tokio::sync::Mutex;
 

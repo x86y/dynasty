@@ -1,7 +1,7 @@
 use std::{error::Error, sync::atomic::AtomicBool, time::Duration};
 
 use binance::websockets::WebSockets;
-use futures::{channel::mpsc as mpsc_futures, FutureExt, SinkExt};
+use iced_futures::futures::{channel::mpsc as mpsc_futures, SinkExt};
 use serde::de::DeserializeOwned;
 use tokio::sync::mpsc as mpsc_tokio;
 use tracing::info;
@@ -73,17 +73,19 @@ pub(crate) trait WsListener {
             let _ = output.send(connected).await;
 
             loop {
-                futures::select! {
-                    ws_closed = web_socket.event_loop(&keep_running).fuse() => {
+                tokio::select! {
+                    biased;
+
+                    ws_closed = web_socket.event_loop(&keep_running) => {
                         if let Err(e) = ws_closed {
                             tracing::error!("stream error: {e}");
                         }
                         break;
                     }
-                    input = input_rx.recv().fuse() => {
+                    input = input_rx.recv() => {
                         self.handle_input(input.expect("channel closed"), &mut keep_running);
                     }
-                    event = rx.recv().fuse() => {
+                    event = rx.recv() => {
                         let handled = self.handle_event(event.expect("channel closed"));
                         let message = self.message(WsEvent::Message(handled));
                         let _ = output.send(message).await;

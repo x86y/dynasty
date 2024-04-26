@@ -164,7 +164,7 @@ impl Market {
                 Command::none()
             }
             MarketPanelMessage::PairInput(new) => {
-                self.pair = new;
+                self.pair = new.to_uppercase();
                 Command::none()
             }
         }
@@ -190,7 +190,7 @@ impl Market {
 
     // FIXME: this is totally wrong and broken
     /// Set new pair from selected currency
-    pub(crate) fn pair_selected(&mut self, mut new: String) {
+    pub(crate) fn set_currency_pair(&mut self, mut new: String) {
         // FIXME: this breaks with any other currency
         if !(new.ends_with("USDT") || new.ends_with("BTC") || new.ends_with("ETH")) {
             new = format!("{new}USDT");

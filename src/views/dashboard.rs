@@ -15,7 +15,7 @@ use ringbuf::Rb;
 use crate::{
     api::Client,
     config::Config,
-    data::{AppData, PriceFilter},
+    data::AppData,
     message::Message,
     theme::h2c,
     ws::{prices::AssetDetails, Websockets},
@@ -32,12 +32,12 @@ use super::{
         orders::orders_view,
         style,
         trades::trades_view,
-        watchlist::{watchlist_view, WatchlistFilter},
+        watchlist::{WatchlistMessage, WatchlistPane},
     },
 };
 
 #[derive(PartialEq)]
-pub enum PaneType {
+pub(crate) enum PaneType {
     Prices,
     Book,
     Trades,
@@ -46,12 +46,6 @@ pub enum PaneType {
     Orders,
     Calculator,
     Chart,
-}
-
-impl From<usize> for PaneType {
-    fn from(_value: usize) -> Self {
-        Self::Balances
-    }
 }
 
 impl ToString for PaneType {
@@ -70,9 +64,9 @@ impl ToString for PaneType {
     }
 }
 
-pub struct Pane {
-    pub id: PaneType,
-    pub is_pinned: bool,
+pub(crate) struct Pane {
+    id: PaneType,
+    is_pinned: bool,
 }
 
 impl Pane {
@@ -139,15 +133,24 @@ pub(crate) enum DashboardMessage {
     Maximize(pane_grid::Pane),
     Restore,
     Close(pane_grid::Pane),
-    WatchlistFilterInput(String),
-    ApplyWatchlistFilter((WatchlistFilter, bool)),
-    AssetSelected(String),
+
+    Watchlist(WatchlistMessage),
     Market(MarketPanelMessage),
     Calculator(CalculatorPaneMessage),
+
+    CurrencyPairSelected(String),
+
+    // TODO: move to chart
     TimeframeChanged(String),
 
     // Loader widget tick
     LoaderTick(Instant),
+}
+
+impl From<WatchlistMessage> for DashboardMessage {
+    fn from(value: WatchlistMessage) -> Self {
+        Self::Watchlist(value)
+    }
 }
 
 impl From<CalculatorPaneMessage> for DashboardMessage {
@@ -165,10 +168,7 @@ impl From<MarketPanelMessage> for DashboardMessage {
 pub(crate) struct DashboardView {
     focus: Option<pane_grid::Pane>,
     panes: pane_grid::State<Pane>,
-    // TODO: filter
-    filter: WatchlistFilter,
-    filter_string: String,
-    // panes
+    watchlist: WatchlistPane,
     chart: ChartPane,
     calculator: CalculatorPane,
     market: Market,
@@ -220,10 +220,9 @@ impl DashboardView {
         Self {
             focus: None,
             panes,
+            watchlist: WatchlistPane::new(),
             chart: ChartPane::new(),
             calculator: CalculatorPane::new(),
-            filter: WatchlistFilter::Favorites,
-            filter_string: String::new(),
             market: Market::new(),
             loader: Loader::new(),
         }
@@ -270,38 +269,17 @@ impl DashboardView {
                 }
                 Command::none()
             }
-            DashboardMessage::ApplyWatchlistFilter((f, clicked_again)) => {
-                if clicked_again {
-                    data.prices.flip_sort();
-                } else {
-                    let filter = match f {
-                        WatchlistFilter::Favorites => {
-                            PriceFilter::Matches(config.watchlist_favorites.clone())
-                        }
-                        WatchlistFilter::Eth => PriceFilter::Contains("ETH".to_owned()),
-                        WatchlistFilter::Btc => PriceFilter::Contains("BTC".to_owned()),
-                        WatchlistFilter::Alts => PriceFilter::All,
-                    };
-
-                    data.prices.set_filter(filter);
-                    self.filter = f;
-                }
-
-                Command::none()
-            }
-            DashboardMessage::WatchlistFilterInput(s) => {
-                self.filter_string = s.to_uppercase();
-                data.prices
-                    .set_filter(PriceFilter::Contains(self.filter_string.clone()));
-
-                Command::none()
-            }
-            DashboardMessage::AssetSelected(pair) => {
+            DashboardMessage::CurrencyPairSelected(pair) => {
                 ws.track_new_currency_pair(&pair);
-                self.market.pair_selected(pair);
+                self.market.set_currency_pair(pair);
 
                 Command::none()
             }
+            DashboardMessage::Watchlist(msg) => self
+                .watchlist
+                .update(msg, data, config)
+                .map(DashboardMessage::from)
+                .map(Message::from),
             DashboardMessage::Calculator(msg) => self
                 .calculator
                 .update(msg)
@@ -348,9 +326,10 @@ impl DashboardView {
                 .padding([8, 12]);
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
-                PaneType::Prices => {
-                    watchlist_view(data, self.filter, &self.filter_string, &self.loader)
-                }
+                PaneType::Prices => self
+                    .watchlist
+                    .view(data, &self.loader)
+                    .map(DashboardMessage::from),
                 PaneType::Chart => self.chart.view(&self.loader),
                 PaneType::Book => book_view(data, &self.loader),
                 PaneType::Trades => trades_view(data, &self.loader),

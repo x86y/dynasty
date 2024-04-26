@@ -72,7 +72,6 @@ impl Prices {
         *self.map.get(name).unwrap_or(&0.0)
     }
 
-    /// Immediately applies filter to update UI
     fn filter_now(&mut self) {
         self.ordered = self.map.iter().map(|(k, v)| (k.to_owned(), *v)).collect();
         self.ordered = self
@@ -86,6 +85,8 @@ impl Prices {
                 }
             })
             .collect();
+
+        self.sort_now();
     }
 
     fn sort_now(&mut self) {
@@ -110,9 +111,11 @@ impl Prices {
         self.map.extend(self.buffer.drain(..));
 
         self.filter_now();
-        self.sort_now();
     }
 
+    /// Sets filter
+    ///
+    /// This immediately applies
     pub(crate) fn set_filter(&mut self, filter: PriceFilter) {
         trace!("filtering by {:?}", filter);
 
@@ -120,17 +123,27 @@ impl Prices {
         self.filter_now();
     }
 
+    /// Inverts sorting
+    ///
+    /// This immediately applies
     pub(crate) fn flip_sort(&mut self) {
         self.sort_descending = !self.sort_descending;
         self.ordered.reverse();
+    }
+
+    /// Restores original sorting order
+    ///
+    /// This does not immediately apply
+    pub(crate) fn reset_sort(&mut self) {
+        self.sort_descending = true;
     }
 
     pub(crate) fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
 
-    pub(crate) fn sorted(&self) -> impl Iterator<Item = &(String, f32)> {
-        self.ordered.iter()
+    pub(crate) fn all(&self) -> impl Iterator<Item = (&String, &f32)> {
+        self.map.iter()
     }
 
     pub(crate) fn sorted_and_filtered(&self) -> impl Iterator<Item = &(String, f32)> {

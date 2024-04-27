@@ -72,9 +72,6 @@ pub(crate) enum Message {
     /// Config update happened
     ConfigUpdated(Result<Config, String>),
 
-    // API keys update happened
-    CredentialsUpdated,
-
     /// API responses
     OrdersRecieved(Vec<Order>),
     BalancesRecieved(Vec<Balance>),

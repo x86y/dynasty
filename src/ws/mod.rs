@@ -189,6 +189,7 @@ impl Websockets {
                         for asset in &assets {
                             if asset.name == dashboard.pair() {
                                 data.price_chart.push_overwrite(f64::from(asset.price));
+                                break;
                             }
                         }
                         data.prices.add_many(assets);

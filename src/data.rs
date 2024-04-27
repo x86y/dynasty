@@ -1,14 +1,10 @@
 use ahash::AHashMap;
-use std::{
-    collections::BTreeMap,
-    mem::MaybeUninit,
-    time::{Duration, Instant},
-};
+use std::{collections::BTreeMap, mem::MaybeUninit};
 use tracing::trace;
 
 use binance::rest_model::{Balance, Order};
 
-use crate::ws::trades::TradesEvent;
+use crate::ws::{prices::AssetDetails, trades::TradesEvent};
 
 /// Stack-allocated thread-local ring buffer with static capacity.
 pub(crate) type StaticLocalRb<T, const N: usize> = ringbuf::LocalRb<T, [MaybeUninit<T>; N]>;
@@ -41,8 +37,6 @@ impl PriceFilter {
 /// Data is pushed to buffer before being available. Buffer is drained on pushes no more often than
 /// one second
 pub(crate) struct Prices {
-    buffer: Vec<(String, f32)>,
-    buffer_drained_at: Instant,
     map: AHashMap<String, f32>,
     ordered: Vec<(String, f32)>,
     sort_descending: bool,
@@ -58,8 +52,6 @@ impl Default for Prices {
 impl Prices {
     fn new() -> Self {
         Self {
-            buffer: Vec::new(),
-            buffer_drained_at: Instant::now() - Duration::from_secs(1),
             map: AHashMap::default(),
             ordered: Vec::new(),
             sort_descending: true,
@@ -97,17 +89,11 @@ impl Prices {
         self.ordered.sort_by(sort_pred);
     }
 
-    pub(crate) fn add(&mut self, name: String, price: f32) {
-        self.buffer.push((name, price));
+    pub(crate) fn add_many(&mut self, assets: Vec<AssetDetails>) {
+        trace!("adding {} prices", assets.len());
 
-        if self.buffer_drained_at.elapsed().as_secs() < 1 {
-            return;
-        }
-        self.buffer_drained_at = Instant::now();
-
-        trace!("draining {} prices", self.buffer.len());
-
-        self.map.extend(self.buffer.drain(..));
+        self.map
+            .extend(assets.into_iter().map(|a| (a.name, a.price)));
 
         self.filter_now();
     }

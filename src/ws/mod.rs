@@ -185,11 +185,13 @@ impl Websockets {
             WsMessage::Price(m) => {
                 match m {
                     WsEvent::Created(handle) => self.prices = Some(handle),
-                    WsEvent::Message(asset) => {
-                        if asset.name == dashboard.pair() {
-                            data.price_chart.push_overwrite(f64::from(asset.price));
+                    WsEvent::Message(assets) => {
+                        for asset in &assets {
+                            if asset.name == dashboard.pair() {
+                                data.price_chart.push_overwrite(f64::from(asset.price));
+                            }
                         }
-                        data.prices.add(asset.name, asset.price);
+                        data.prices.add_many(assets);
                     }
                     WsEvent::Connected | WsEvent::Disconnected => (),
                 };

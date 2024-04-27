@@ -1,5 +1,6 @@
 use std::{error::Error, sync::atomic::AtomicBool};
 
+use binance::websockets::all_ticker_stream;
 use iced::subscription::{self, Subscription};
 use serde::{de, Deserialize, Deserializer};
 
@@ -34,16 +35,16 @@ impl PricesWs {
 }
 
 impl WsListener for PricesWs {
-    type Event = AssetDetails;
+    type Event = Vec<AssetDetails>;
     type Input = ();
-    type Output = AssetDetails;
+    type Output = Vec<AssetDetails>;
 
     fn message(&self, msg: WsEvent<Self::Input, Self::Output>) -> WsMessage {
         WsMessage::Price(msg)
     }
 
     async fn endpoint(&self) -> Result<String, Box<dyn Error + Send>> {
-        Ok("!ticker".to_owned())
+        Ok(all_ticker_stream().to_owned())
     }
 
     fn handle_event(&self, event: Self::Event) -> Self::Output {

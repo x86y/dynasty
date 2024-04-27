@@ -95,7 +95,7 @@ impl Config {
         self.api_key.is_empty() || self.api_secret_key.is_empty()
     }
 
-    pub(crate) fn valid(&self) -> bool {
+    pub(crate) fn complete(&self) -> bool {
         !self.crendentials_empty()
     }
 }

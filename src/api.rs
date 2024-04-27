@@ -161,7 +161,7 @@ impl Client {
             ];
 
             let quote_assets_regex = quote_assets.join("|");
-            Regex::new(&format!(r"^([A-Z]+)({quote_assets_regex})$")).unwrap()
+            Regex::new(&format!(r"^([0-9A-Z]+)({quote_assets_regex})$")).unwrap()
         });
 
         regex.captures(symbol).map(|captures| captures.extract().1)
@@ -222,6 +222,7 @@ mod tests {
             "BTCPLN",
             "BTCRON",
             "BTCARS",
+            "1INCHUSDT",
         ];
 
         for symbol in test_cases {

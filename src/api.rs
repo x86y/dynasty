@@ -9,54 +9,38 @@ use binance::{
 use iced::Command;
 use iced_futures::futures::future::join_all;
 use regex::Regex;
-use tokio::sync::Mutex;
 
 use crate::message::Message;
 
 static SPLIT_SYMBOL_REGEX: OnceLock<Regex> = OnceLock::new();
 
 pub(crate) struct Client {
-    binance_account: Arc<Mutex<Account>>,
-    binance_market: Arc<Mutex<Market>>,
+    binance_account: Arc<Account>,
+    binance_market: Arc<Market>,
 }
 
 impl Client {
-    fn make_client(public: String, secret: String) -> Account {
-        Binance::new(Some(public), Some(secret))
+    fn make_client(public: String, secret: String) -> Arc<Account> {
+        Arc::new(Binance::new(Some(public), Some(secret)))
     }
 
-    fn make_market(public: String, secret: String) -> Market {
-        Binance::new(Some(public), Some(secret))
+    fn make_market(public: String, secret: String) -> Arc<Market> {
+        Arc::new(Binance::new(Some(public), Some(secret)))
     }
 
     pub(crate) fn new(public: String, secret: String) -> Self {
         Self {
-            binance_account: Arc::new(Mutex::new(Self::make_client(
-                public.clone(),
-                secret.clone(),
-            ))),
-            binance_market: Arc::new(Mutex::new(Self::make_market(public, secret))),
+            binance_account: Self::make_client(public.clone(), secret.clone()),
+            binance_market: Self::make_market(public, secret),
         }
     }
 
     /// Replace credentials in inner client
-    pub(crate) fn update_credentials(
-        &mut self,
-        public: String,
-        secret: String,
-    ) -> Command<Message> {
-        let binance_account = Arc::clone(&self.binance_account);
-
-        Command::perform(
-            async move {
-                let mut account = binance_account.lock().await;
-                *account = Self::make_client(public, secret);
-            },
-            |_| Message::CredentialsUpdated,
-        )
+    pub(crate) fn update_credentials(&mut self, public: String, secret: String) {
+        self.binance_account = Self::make_client(public, secret);
     }
 
-    pub(crate) fn orders_history(&self) -> Command<Message> {
+    pub(crate) fn orders_history(&self, assets: Vec<String>) -> Command<Message> {
         let binance_account = Arc::clone(&self.binance_account);
 
         Command::perform(
@@ -65,20 +49,10 @@ impl Client {
                 let ago = now
                     .checked_sub_signed(chrono::Duration::try_weeks(8).unwrap())
                     .unwrap();
-                let assets = [
-                    "LINKUSDT",
-                    "UNIUSDT",
-                    "1INCHUSDT",
-                    "OPUSDT",
-                    "ARBUSDT",
-                    "SYNUSDT",
-                ];
                 let mut os: Vec<_> = {
-                    let account = binance_account.lock().await;
-
-                    join_all(assets.into_iter().map(|a: &str| {
-                        account.get_all_orders(binance::account::OrdersQuery {
-                            symbol: a.to_string(),
+                    join_all(assets.into_iter().map(|a| {
+                        binance_account.get_all_orders(binance::account::OrdersQuery {
+                            symbol: a,
                             order_id: None,
                             start_time: Some(ago.timestamp_millis() as u64),
                             end_time: None,
@@ -110,13 +84,15 @@ impl Client {
             async move {
                 let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
 
-                let account = binance_account.lock().await;
-
-                join_all(assets.iter().map(|&a| account.get_balance(a.to_string())))
-                    .await
-                    .into_iter()
-                    .flatten()
-                    .collect()
+                join_all(
+                    assets
+                        .iter()
+                        .map(|&a| binance_account.get_balance(a.to_string())),
+                )
+                .await
+                .into_iter()
+                .flatten()
+                .collect()
             },
             Message::BalancesRecieved,
         )
@@ -126,7 +102,7 @@ impl Client {
         let market = Arc::clone(&self.binance_market);
         Command::perform(
             async move {
-                let acc = market.lock().await;
+                let acc = market;
                 acc.get_klines(
                     pair,
                     if tf.is_empty() { "5m" } else { &tf },
@@ -153,8 +129,6 @@ impl Client {
         Command::perform(
             async move {
                 binance_account
-                    .lock()
-                    .await
                     .place_order(binance::account::OrderRequest {
                         symbol: pair,
                         side,

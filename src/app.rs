@@ -50,7 +50,8 @@ impl App {
 
     fn fetch_data(&self) -> Command<Message> {
         Command::batch([
-            self.api.orders_history(),
+            self.api
+                .orders_history(self.config.watchlist_favorites.clone()),
             self.api.balances(),
             self.api.klines(
                 if self.data.quote.is_empty() {
@@ -143,7 +144,9 @@ impl Application for App {
                         self.api.update_credentials(
                             self.config.api_key.clone(),
                             self.config.api_secret_key.clone(),
-                        )
+                        );
+                        self.ws.relogin_user(&self.config.api_key);
+                        self.fetch_data()
                     } else {
                         Command::none()
                     }
@@ -152,10 +155,6 @@ impl Application for App {
                     Message::DispatchErr(("config".to_string(), err.to_string()))
                 }),
             },
-            Message::CredentialsUpdated => {
-                self.ws.relogin_user(&self.config.api_key);
-                self.fetch_data()
-            }
             Message::Ws(msg) => {
                 self.ws.update(msg, &mut self.data, &mut self.dashboard);
                 Command::none()

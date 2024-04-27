@@ -7,7 +7,7 @@ fn default_favorites() -> Vec<String> {
         "BTCUSDT", "ETHUSDT", "LINKUSDT", "UNIUSDT", "ARBUSDT", "SYNUSDT", "OPUSDT",
     ]
     .into_iter()
-    .map(|s| s.to_owned())
+    .map(ToOwned::to_owned)
     .collect()
 }
 
@@ -22,8 +22,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            api_key: "".to_string(),
-            api_secret_key: "".to_string(),
+            api_key: String::new(),
+            api_secret_key: String::new(),
             watchlist_favorites: default_favorites(),
         }
     }
@@ -43,14 +43,10 @@ pub enum SaveError {
 
 impl Display for SaveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SaveError::File(err) => err.to_string(),
-                SaveError::Write(err) => err.to_string(),
-            }
-        )
+        match self {
+            SaveError::File(err) | SaveError::Write(err) => err,
+        }
+        .fmt(f)
     }
 }
 

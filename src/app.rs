@@ -22,6 +22,7 @@ use iced::widget::Row;
 use iced::widget::Space;
 use iced::widget::{column, container, row, text};
 use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
+use ringbuf::Rb;
 
 pub(crate) struct App {
     config: Config,
@@ -214,7 +215,9 @@ impl Application for App {
             Message::KlinesRecieved(kr) => match kr {
                 KlineSummaries::AllKlineSummaries(klines) => {
                     let closes = klines.iter().map(|kline| kline.close);
-                    self.dashboard.prepend_chart_data(closes).map(Message::from)
+                    self.data.price_chart.push_iter_overwrite(closes);
+
+                    Command::none()
                 }
             },
         }
@@ -224,7 +227,6 @@ impl Application for App {
         Subscription::batch([
             iced::time::every(Duration::from_millis(1000)).map(|_| Message::Tick),
             self.ws.subscription(),
-            self.dashboard.subscription(&self.data),
             /*
             keyboard::on_key_press(|key_code, modifiers| {
                 if !modifiers.command() {

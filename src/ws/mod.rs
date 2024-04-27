@@ -126,7 +126,7 @@ impl Websockets {
                 WsEvent::Created(handle) => self.user = Some(handle),
                 WsEvent::Message(msg) => match msg {
                     binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
-                        for b in p.balances.into_iter() {
+                        for b in p.balances {
                             let ib = data.balances.iter_mut().find(|a| a.asset == b.asset);
                             if let Some(uib) = ib {
                                 *uib = unsafe { std::mem::transmute(b) }
@@ -186,7 +186,9 @@ impl Websockets {
                 match m {
                     WsEvent::Created(handle) => self.prices = Some(handle),
                     WsEvent::Message(asset) => {
-                        dashboard.chart_pair_price(&asset);
+                        if asset.name == dashboard.pair() {
+                            data.price_chart.push_overwrite(f64::from(asset.price));
+                        }
                         data.prices.add(asset.name, asset.price);
                     }
                     WsEvent::Connected | WsEvent::Disconnected => (),

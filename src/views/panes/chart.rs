@@ -14,27 +14,35 @@ use ringbuf::ring_buffer::RbBase;
 use ringbuf::Rb;
 
 use super::orders::tb;
-use crate::data::StaticLocalRb;
+use crate::data::AppData;
+use crate::views::components::loading::Loader;
 use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
 
-pub struct ChartPane {
-    pub data: StaticLocalRb<f64, 500>,
+pub(crate) struct ChartPane {
+    loader: Loader,
 }
 
-impl Chart<DashboardMessage> for ChartPane {
+struct PriceChart<'a>(&'a AppData);
+
+impl Chart<DashboardMessage> for PriceChart<'_> {
     type State = ();
+
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         const LINE_COLOR: RGBColor = colors::GREEN;
 
-        let (min, max) = self.data.iter().fold((f32::MAX, f32::MIN), |acc, &x| {
-            (acc.0.min(x as f32), acc.1.max(x as f32))
-        });
+        let (min, max) = self
+            .0
+            .price_chart
+            .iter()
+            .fold((f32::MAX, f32::MIN), |acc, &x| {
+                (acc.0.min(x as f32), acc.1.max(x as f32))
+            });
 
         let mut chart = builder
             .x_label_area_size(0_i32)
             .y_label_area_size(70_i32)
             .margin(0_i32)
-            .build_cartesian_2d(0..self.data.len(), min..max)
+            .build_cartesian_2d(0..self.0.price_chart.len(), min..max)
             .expect("Failed to build chart");
 
         chart
@@ -60,7 +68,11 @@ impl Chart<DashboardMessage> for ChartPane {
 
         chart
             .draw_series(LineSeries::new(
-                self.data.iter().enumerate().map(|(x, y)| (x, (*y as f32))),
+                self.0
+                    .price_chart
+                    .iter()
+                    .enumerate()
+                    .map(|(x, y)| (x, (*y as f32))),
                 LINE_COLOR,
             ))
             .expect("failed to draw chart data");
@@ -70,21 +82,15 @@ impl Chart<DashboardMessage> for ChartPane {
 impl ChartPane {
     pub(crate) fn new() -> Self {
         Self {
-            data: ringbuf::LocalRb::default(),
+            loader: Loader::new(),
         }
     }
 
-    pub(crate) fn update_data(&mut self, new_p: f64) {
-        let _ = self.data.push_overwrite(new_p);
-    }
-
-    pub(crate) fn view<'a>(
-        &'a self,
-        loader: &'a crate::views::components::loading::Loader,
-    ) -> Element<'_, DashboardMessage> {
-        if self.data.is_empty() {
-            return loader.view();
+    pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
+        if data.price_chart.is_empty() {
+            return self.loader.view();
         }
+
         let btns = Row::with_children(
             ["1m", "5m", "30m", "1h", "1d"]
                 .map(|t| {
@@ -98,7 +104,7 @@ impl ChartPane {
         .spacing(4);
 
         container(column![
-            ChartWidget::new(self),
+            ChartWidget::new(PriceChart(data)),
             row![
                 Space::new(Length::Fill, 0),
                 btns,

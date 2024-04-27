@@ -31,7 +31,7 @@ where
     let s = <&str>::deserialize(deserializer)?;
     let f = s.parse::<f32>().map_err(de::Error::custom)?;
 
-    Ok(format!("{:.2}", f))
+    Ok(format!("{f:.2}"))
 }
 
 fn u64_as_time_formatted<'de, D>(deserializer: D) -> Result<String, D::Error>

@@ -61,6 +61,7 @@ pub(crate) enum WatchlistMessage {
 
 #[derive(Debug)]
 pub(crate) struct WatchlistPane {
+    loader: Loader,
     filter: WatchlistFilter,
     filter_string: String,
 }
@@ -68,18 +69,15 @@ pub(crate) struct WatchlistPane {
 impl WatchlistPane {
     pub(crate) fn new() -> Self {
         Self {
+            loader: Loader::new(),
             filter: WatchlistFilter::Favorites,
             filter_string: String::new(),
         }
     }
 
-    pub(crate) fn view<'a>(
-        &'a self,
-        data: &'a AppData,
-        loader: &'a Loader,
-    ) -> Element<'a, DashboardMessage> {
+    pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         if data.prices.is_empty() {
-            return loader.view();
+            return self.loader.view();
         };
 
         column![

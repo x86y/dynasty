@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use iced::{
     theme,
     widget::{
@@ -7,33 +5,23 @@ use iced::{
         pane_grid::{self, Configuration},
         responsive, row, text, PaneGrid,
     },
-    window, Command, Element, Font, Length,
+    Command, Element, Font, Length,
 };
-use iced_futures::Subscription;
-use ringbuf::Rb;
 
 use crate::{
-    api::Client,
-    config::Config,
-    data::AppData,
-    message::Message,
-    theme::h2c,
-    ws::{prices::AssetDetails, Websockets},
+    api::Client, config::Config, data::AppData, message::Message, theme::h2c, ws::Websockets,
 };
 
-use super::{
-    components::loading::Loader,
-    panes::{
-        balances::balances_view,
-        book::book_view,
-        calculator::{CalculatorPane, CalculatorPaneMessage},
-        chart::ChartPane,
-        market::{Market, MarketPanelMessage},
-        orders::orders_view,
-        style,
-        trades::trades_view,
-        watchlist::{WatchlistMessage, WatchlistPane},
-    },
+use super::panes::{
+    balances::BalancesPane,
+    book::BookPane,
+    calculator::{CalculatorPane, CalculatorPaneMessage},
+    chart::ChartPane,
+    market::{Market, MarketPanelMessage},
+    orders::OrdersPane,
+    style,
+    trades::TradesPane,
+    watchlist::{WatchlistMessage, WatchlistPane},
 };
 
 #[derive(PartialEq)]
@@ -142,9 +130,6 @@ pub(crate) enum DashboardMessage {
 
     // TODO: move to chart
     TimeframeChanged(String),
-
-    // Loader widget tick
-    LoaderTick(Instant),
 }
 
 impl From<WatchlistMessage> for DashboardMessage {
@@ -172,7 +157,10 @@ pub(crate) struct DashboardView {
     chart: ChartPane,
     calculator: CalculatorPane,
     market: Market,
-    loader: Loader,
+    book: BookPane,
+    orders: OrdersPane,
+    balances: BalancesPane,
+    trades: TradesPane,
 }
 
 macro_rules! v {
@@ -224,7 +212,10 @@ impl DashboardView {
             chart: ChartPane::new(),
             calculator: CalculatorPane::new(),
             market: Market::new(),
-            loader: Loader::new(),
+            book: BookPane::new(),
+            orders: OrdersPane::new(),
+            balances: BalancesPane::new(),
+            trades: TradesPane::new(),
         }
     }
 
@@ -287,30 +278,11 @@ impl DashboardView {
                 .map(Message::from),
             DashboardMessage::TimeframeChanged(tf) => api.klines(self.pair().to_owned(), tf),
             DashboardMessage::Market(msg) => self.market.update(msg, api, data, ws),
-            DashboardMessage::LoaderTick(instant) => {
-                self.loader.update(instant);
-                Command::none()
-            }
         }
     }
 
     pub(crate) fn tick(&mut self, data: &AppData) {
         self.calculator.tick(data);
-    }
-
-    pub(crate) fn prepend_chart_data<T>(&mut self, slc: T) -> Command<DashboardMessage>
-    where
-        T: Iterator<Item = f64>,
-    {
-        self.chart.data.clear();
-        self.chart.data.push_iter_overwrite(slc);
-        Command::none()
-    }
-
-    pub(crate) fn chart_pair_price(&mut self, asset: &AssetDetails) {
-        if asset.name == self.market.pair() {
-            self.chart.update_data(f64::from(asset.price));
-        }
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
@@ -326,16 +298,13 @@ impl DashboardView {
                 .padding([8, 12]);
 
             pane_grid::Content::new(responsive(|_size| match pane.id {
-                PaneType::Prices => self
-                    .watchlist
-                    .view(data, &self.loader)
-                    .map(DashboardMessage::from),
-                PaneType::Chart => self.chart.view(&self.loader),
-                PaneType::Book => book_view(data, &self.loader),
-                PaneType::Trades => trades_view(data, &self.loader),
+                PaneType::Prices => self.watchlist.view(data).map(DashboardMessage::from),
+                PaneType::Chart => self.chart.view(data),
+                PaneType::Book => self.book.view(data),
+                PaneType::Trades => self.trades.view(data),
                 PaneType::Market => self.market.view().map(DashboardMessage::from),
-                PaneType::Balances => balances_view(data, &self.loader),
-                PaneType::Orders => orders_view(data, &self.loader),
+                PaneType::Balances => self.balances.view(data),
+                PaneType::Orders => self.orders.view(data),
                 PaneType::Calculator => self.calculator.view().map(DashboardMessage::from),
             }))
             .title_bar(title_bar)
@@ -352,15 +321,5 @@ impl DashboardView {
         .on_drag(DashboardMessage::Dragged)
         .on_resize(10, DashboardMessage::Resized)
         .into()
-    }
-
-    pub(crate) fn subscription(&self, data: &AppData) -> Subscription<Message> {
-        if data.is_loading() {
-            window::frames()
-                .map(DashboardMessage::LoaderTick)
-                .map(Message::from)
-        } else {
-            Subscription::none()
-        }
     }
 }

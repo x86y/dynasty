@@ -1,4 +1,4 @@
-//! Loading wdiget
+//! Loading wdiget based on solar system iced example
 
 use iced::mouse;
 use iced::widget::canvas;
@@ -13,56 +13,27 @@ use crate::views::dashboard::DashboardMessage;
 
 #[derive(Debug)]
 pub struct Loader {
-    state: State,
+    system_cache: canvas::Cache,
+    start: Instant,
 }
 
 impl Loader {
+    const ORBIT_RADIUS: f32 = 20.0;
+    const EARTH_RADIUS: f32 = 6.0;
+
     pub(crate) fn new() -> Self {
         Self {
-            state: State::new(),
+            system_cache: canvas::Cache::default(),
+            start: Instant::now(),
         }
     }
 
     pub(crate) fn view(&self) -> Element<DashboardMessage> {
-        canvas(&self.state)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    }
-
-    pub(crate) fn update(&mut self, now: Instant) {
-        self.state.update(now);
+        canvas(self).width(Length::Fill).height(Length::Fill).into()
     }
 }
 
-#[derive(Debug)]
-pub struct State {
-    system_cache: canvas::Cache,
-    start: Instant,
-    now: Instant,
-}
-
-impl State {
-    const ORBIT_RADIUS: f32 = 20.0;
-    const EARTH_RADIUS: f32 = 6.0;
-
-    pub fn new() -> State {
-        let now = Instant::now();
-
-        State {
-            system_cache: canvas::Cache::default(),
-            start: now,
-            now,
-        }
-    }
-
-    fn update(&mut self, now: Instant) {
-        self.now = now;
-        self.system_cache.clear();
-    }
-}
-
-impl<Message> canvas::Program<Message> for State {
+impl<Message> canvas::Program<Message> for Loader {
     type State = ();
 
     fn draw(
@@ -75,6 +46,7 @@ impl<Message> canvas::Program<Message> for State {
     ) -> Vec<Geometry> {
         use std::f32::consts::PI;
 
+        self.system_cache.clear();
         let system = self.system_cache.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();
             let orbit = Path::circle(center, Self::ORBIT_RADIUS);
@@ -92,7 +64,7 @@ impl<Message> canvas::Program<Message> for State {
                 },
             );
 
-            let elapsed = self.now - self.start;
+            let elapsed = self.start.elapsed();
             let rotation = (2.0 * PI / 3.0) * elapsed.as_secs() as f32
                 + (2.0 * PI / 3_000.0) * elapsed.subsec_millis() as f32;
 

@@ -77,22 +77,16 @@ impl Client {
         )
     }
 
-    pub(crate) fn balances(&self) -> Command<Message> {
+    pub(crate) fn balances(&self, assets: Vec<String>) -> Command<Message> {
         let binance_account = Arc::clone(&self.binance_account);
 
         Command::perform(
             async move {
-                let assets = ["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"];
-
-                join_all(
-                    assets
-                        .iter()
-                        .map(|&a| binance_account.get_balance(a.to_string())),
-                )
-                .await
-                .into_iter()
-                .flatten()
-                .collect()
+                join_all(assets.iter().map(|a| binance_account.get_balance(a)))
+                    .await
+                    .into_iter()
+                    .flatten()
+                    .collect()
             },
             Message::BalancesRecieved,
         )

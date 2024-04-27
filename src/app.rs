@@ -40,8 +40,8 @@ impl App {
             config: config.clone(),
             data: Default::default(),
             api,
-            errors: vec![],
-            settings_opened: !config.valid(),
+            errors: Vec::new(),
+            settings_opened: !config.complete(),
             dashboard: DashboardView::new(),
             ws: Websockets::new(config.api_key.clone(), "BTCUSDT"),
             settings: SettingsView::new(config),
@@ -50,9 +50,25 @@ impl App {
 
     fn fetch_data(&self) -> Command<Message> {
         Command::batch([
-            self.api
-                .orders_history(self.config.watchlist_favorites.clone()),
-            self.api.balances(),
+            self.api.orders_history(
+                vec![
+                    "LINKUSDT",
+                    "UNIUSDT",
+                    "1INCHUSDT",
+                    "OPUSDT",
+                    "ARBUSDT",
+                    "SYNUSDT",
+                ]
+                .into_iter()
+                .map(ToOwned::to_owned)
+                .collect(),
+            ),
+            self.api.balances(
+                vec!["LINK", "UNI", "ARB", "OP", "SYN", "USDT", "OP"]
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .collect(),
+            ),
             self.api.klines(
                 if self.data.quote.is_empty() {
                     "BTCUSDT".into()
@@ -65,7 +81,7 @@ impl App {
     }
 
     fn toggle_settings(&mut self) {
-        self.settings_opened = !(self.settings_opened && self.config.valid());
+        self.settings_opened = !(self.settings_opened && self.config.complete());
     }
 }
 

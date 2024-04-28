@@ -2,7 +2,7 @@ use super::orders::{t, tb};
 use crate::{
     data::AppData,
     theme::h2c,
-    views::{components::loading::Loader, dashboard::DashboardMessage},
+    views::{components::loading::loader, dashboard::DashboardMessage},
 };
 
 use iced::{
@@ -11,19 +11,15 @@ use iced::{
 };
 use ringbuf::{ring_buffer::RbBase, Rb};
 
-pub(crate) struct TradesPane {
-    loader: Loader,
-}
+pub(crate) struct TradesPane {}
 
 impl TradesPane {
     pub(crate) fn new() -> Self {
-        Self {
-            loader: Loader::new(),
-        }
+        Self {}
     }
     pub fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         if data.trades.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         }
 
         column![

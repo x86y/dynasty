@@ -878,6 +878,7 @@ dependencies = [
  "directories-next",
  "iced",
  "iced_futures",
+ "lyon_algorithms",
  "meval",
  "ngnk",
  "phf",

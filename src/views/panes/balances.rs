@@ -3,7 +3,7 @@ use crate::{
     svg_logos,
     theme::h2c,
     views::{
-        components::{loading::Loader, unstyled_btn::UnstyledBtn},
+        components::{loading::loader, unstyled_btn::UnstyledBtn},
         dashboard::DashboardMessage,
     },
 };
@@ -15,22 +15,18 @@ use iced::{
 
 use super::orders::tb;
 
-pub(crate) struct BalancesPane {
-    loader: Loader,
-}
+pub(crate) struct BalancesPane {}
 
 impl BalancesPane {
     pub(crate) fn new() -> Self {
-        Self {
-            loader: Loader::new(),
-        }
+        Self {}
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         let bs = &data.balances;
 
         if bs.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         }
 
         Column::with_children(

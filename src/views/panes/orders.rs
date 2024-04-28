@@ -2,7 +2,7 @@ use crate::{
     api::Client,
     data::AppData,
     theme::h2c,
-    views::{components::loading::Loader, dashboard::DashboardMessage},
+    views::{components::loading::loader, dashboard::DashboardMessage},
 };
 
 use binance::rest_model::{OrderSide, OrderType};
@@ -31,15 +31,11 @@ pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
     .style(h2c("808080").unwrap())
 }
 
-pub(crate) struct OrdersPane {
-    loader: Loader,
-}
+pub(crate) struct OrdersPane {}
 
 impl OrdersPane {
     pub(crate) fn new() -> Self {
-        Self {
-            loader: Loader::new(),
-        }
+        Self {}
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
@@ -47,7 +43,7 @@ impl OrdersPane {
         let os = &data.orders;
 
         if os.is_empty() || ps.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         }
 
         let header = filled![

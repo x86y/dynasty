@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::data::{AppData, PriceFilter};
 use crate::theme::h2c;
-use crate::views::components::loading::Loader;
+use crate::views::components::loading::loader;
 use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
 use iced::Command;
@@ -30,7 +30,8 @@ macro_rules! filter_button {
                 iced::theme::Button::Text
             })
             .on_press(DashboardMessage::Watchlist(WatchlistMessage::ApplyFilter(
-                ($filter, $filter == $current_filter),
+                $filter,
+                $filter == $current_filter,
             )))
     };
 }
@@ -56,12 +57,10 @@ fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
 #[derive(Debug, Clone)]
 pub(crate) enum WatchlistMessage {
     FilterInput(String),
-    ApplyFilter((WatchlistFilter, bool)),
+    ApplyFilter(WatchlistFilter, bool),
 }
 
-#[derive(Debug)]
 pub(crate) struct WatchlistPane {
-    loader: Loader,
     filter: WatchlistFilter,
     filter_string: String,
 }
@@ -69,7 +68,6 @@ pub(crate) struct WatchlistPane {
 impl WatchlistPane {
     pub(crate) fn new() -> Self {
         Self {
-            loader: Loader::new(),
             filter: WatchlistFilter::Favorites,
             filter_string: String::new(),
         }
@@ -77,7 +75,7 @@ impl WatchlistPane {
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         if data.prices.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         };
 
         column![
@@ -116,7 +114,7 @@ impl WatchlistPane {
         config: &Config,
     ) -> Command<WatchlistMessage> {
         match msg {
-            WatchlistMessage::ApplyFilter((f, clicked_again)) => {
+            WatchlistMessage::ApplyFilter(f, clicked_again) => {
                 if clicked_again {
                     data.prices.flip_sort();
                 } else {
@@ -129,7 +127,6 @@ impl WatchlistPane {
                         WatchlistFilter::Btc => PriceFilter::Contains("BTC".to_owned()),
                         WatchlistFilter::Alts => PriceFilter::All,
                     };
-
                     data.prices.set_filter(filter);
                     self.filter = f;
                 }

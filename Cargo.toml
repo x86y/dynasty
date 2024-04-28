@@ -44,7 +44,7 @@ directories-next = "2.0"
 web-sys = { version = "0.3", features = ["Window", "Storage"] }
 
 [patch.crates-io]
-binance-rs-async = { git = "https://github.com/Fogapod/binance-rs-async", rev = "1197a144dbf8926995d173216f6faaba03899d2a" }
+binance-rs-async = { git = "https://github.com/Fogapod/binance-rs-async", rev = "fb2a1daf1063d3b7edb551d4dc8ef8d4d7197538" }
 
 [profile.release]
 codegen-units = 1

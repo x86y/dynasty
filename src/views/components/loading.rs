@@ -319,7 +319,7 @@ where
         renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
             use iced::advanced::graphics::geometry::Renderer as _;
 
-            renderer.draw(vec![geometry]);
+            renderer.draw_geometry(geometry);
         });
     }
 }

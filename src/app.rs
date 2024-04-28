@@ -21,7 +21,8 @@ use iced::widget::svg;
 use iced::widget::Row;
 use iced::widget::Space;
 use iced::widget::{column, container, row, text};
-use iced::{Application, Color, Command, Element, Length, Subscription, Theme};
+use iced::Renderer;
+use iced::{Color, Command, Element, Length, Subscription, Theme};
 use ringbuf::Rb;
 
 pub(crate) struct App {
@@ -92,7 +93,8 @@ impl App {
     }
 }
 
-impl Application for App {
+impl iced::advanced::Application for App {
+    type Renderer = Renderer;
     type Message = Message;
     type Theme = Theme;
     type Flags = Config;
@@ -268,13 +270,13 @@ impl Application for App {
                 Space::new(Length::Fill, 1),
                 button(text("Settings").size(14))
                     .padding(8)
-                    .style(iced::theme::Button::Text)
+                    .style(iced::widget::button::text)
                     .on_press(Message::SettingsToggled)
             ]
             .align_items(iced::Alignment::Center),
         )
         .padding([0, 16])
-        .style(container::Appearance {
+        .style(|_t| container::Style {
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
             border: iced::Border {
                 radius: 16.0.into(),
@@ -289,13 +291,13 @@ impl Application for App {
                 Space::new(Length::Fill, 1),
                 button(text("X").size(14))
                     .padding(8)
-                    .style(iced::theme::Button::Text)
+                    .style(iced::widget::button::text)
                     .on_press(Message::SettingsToggled)
             ]
             .align_items(iced::Alignment::Center),
         )
         .padding([0, 16])
-        .style(container::Appearance {
+        .style(|_t| container::Style {
             background: Some(iced::Background::Color(Color::from_rgb(0.99, 0.03, 0.03))),
             border: iced::Border {
                 radius: 16.0.into(),
@@ -327,7 +329,7 @@ impl Application for App {
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
-            .style(|_: &_| container::Appearance {
+            .style(|_: &_| container::Style {
                 background: Some(iced::Background::Color(Color::BLACK)),
                 ..Default::default()
             })

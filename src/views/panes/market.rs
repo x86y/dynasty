@@ -4,13 +4,11 @@ use crate::{
     api::Client,
     data::AppData,
     message::Message,
-    views::components::{
-        better_btn::{GreenBtn, RedBtn},
-        input::Inp,
-    },
+    views::components::better_btn::{green_btn, red_btn},
     ws::Websockets,
 };
 
+use iced::widget::button::text as btext;
 use iced::{
     widget::{button, column, container, row, text, text_input, Space},
     Alignment, Command, Element, Length,
@@ -18,13 +16,13 @@ use iced::{
 
 macro_rules! bbtn {
     ($e: expr) => {
-        button($e).style(iced::theme::Button::Text).padding(8)
+        button($e).style(btext).padding(8)
     };
 }
 
 macro_rules! tin {
     ($e: expr, $b: expr) => {
-        text_input($e, $b).style(iced::theme::TextInput::Custom(Box::new(Inp {})))
+        text_input($e, $b)
     };
 }
 
@@ -105,13 +103,13 @@ impl Market {
                 .spacing(4.0)
                 .width(300.0),
                 row![
-                    button(tb("Buy").style(iced::Color::WHITE).size(12))
-                        .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                    button(tb("Buy").color(iced::Color::WHITE).size(12))
+                        .style(|_t, _s| green_btn())
                         .padding(8)
                         .on_press(MarketPanelMessage::BuyPressed),
                     Space::new(5.0, 0.0),
-                    button(tb("Sell").style(iced::Color::WHITE).size(12))
-                        .style(iced::theme::Button::Custom(Box::new(RedBtn {})))
+                    button(tb("Sell").color(iced::Color::WHITE).size(12))
+                        .style(|_t, _s| red_btn())
                         .padding(8)
                         .on_press(MarketPanelMessage::SellPressed)
                 ],

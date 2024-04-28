@@ -18,17 +18,18 @@ macro_rules! fill {
 }
 macro_rules! filled { ($($rs:expr),+) => { row![$($rs, fill![]),+] }; }
 
-pub fn t<'a>(s: impl ToString) -> iced::widget::Text<'a> {
-    text(s).size(14).style(h2c("EEEEEE").unwrap())
+pub fn t<'a>(s: impl ToString + iced::widget::text::IntoFragment<'a>) -> iced::widget::Text<'a> {
+    text::Text::new(s).size(14).color(h2c("EEEEEE").unwrap())
 }
-pub fn tb<'a>(s: impl ToString) -> iced::widget::Text<'a> {
+
+pub fn tb<'a>(s: impl ToString + iced::widget::text::IntoFragment<'a>) -> iced::widget::Text<'a> {
     t(s).font(Font {
         family: iced::font::Family::Name("Iosevka"),
         weight: iced::font::Weight::Bold,
         ..Default::default()
     })
     .size(14)
-    .style(h2c("808080").unwrap())
+    .color(h2c("808080").unwrap())
 }
 
 pub(crate) struct OrdersPane {}
@@ -70,7 +71,7 @@ impl OrdersPane {
 
             let symbol_t = {
                 let s = &b.symbol;
-                tb(s).style(h2c("11EE11").unwrap())
+                tb(s).color(h2c("11EE11").unwrap())
             }
             .width(Length::Fixed(100.0));
             let [base, quote] = Client::split_symbol(&b.symbol).unwrap();
@@ -85,7 +86,7 @@ impl OrdersPane {
                 .width(Length::Fixed(100.0));
             let side_t = t(format!("{:?}", &b.side))
                 .width(Length::Fixed(100.0))
-                .style(
+                .color(
                     if b.side == OrderSide::Buy {
                         h2c("11EE11")
                     } else {
@@ -107,7 +108,7 @@ impl OrdersPane {
                 };
                 t(format!("{pnl_value:.0}$"))
                     .width(Length::Fixed(100.0))
-                    .style(
+                    .color(
                         if pnl_value >= 0.0 {
                             h2c("11EE11")
                         } else {

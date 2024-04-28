@@ -1,7 +1,6 @@
 use iced::{
-    theme,
     widget::{
-        button,
+        button::{danger, secondary},
         pane_grid::{self, Configuration},
         responsive, row, text, PaneGrid,
     },
@@ -87,24 +86,24 @@ pub fn view_controls<'a>(
                     DashboardMessage::Maximize(pane),
                 )
             };
-            button(content.size(12).style(h2c("FFFFFF").unwrap()))
+            iced::widget::button(content.size(12).color(h2c("FFFFFF").unwrap()))
                 .height(14)
                 .width(14)
-                .style(theme::Button::Secondary)
+                .style(secondary)
                 .on_press(message)
         };
 
         row = row.push(toggle);
     }
 
-    let mut close = button(
+    let mut close = iced::widget::button(
         text('\u{F62A}')
             .size(12)
             .font(Font::with_name("bootstrap-icons")),
     )
     .height(14)
     .width(14)
-    .style(theme::Button::Destructive);
+    .style(danger);
 
     if total_panes > 1 && !is_pinned {
         close = close.on_press(DashboardMessage::Close(pane));

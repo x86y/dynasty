@@ -77,7 +77,7 @@ impl SettingsView {
             .height(Length::Fill)
             .align_items(iced::Alignment::Center),
         )
-        .style(container::Appearance {
+        .style(|_t| container::Style {
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
             border: iced::Border {
                 radius: 16.0.into(),

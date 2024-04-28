@@ -1,9 +1,8 @@
 use crate::{
     data::AppData,
     svg_logos,
-    theme::h2c,
     views::{
-        components::{loading::loader, unstyled_btn::UnstyledBtn},
+        components::{better_btn::unstyled_btn, loading::loader},
         dashboard::DashboardMessage,
     },
 };
@@ -46,20 +45,16 @@ impl BalancesPane {
                     container(row![
                         row![
                             svg,
-                            button(tb(&b.asset).size(14).style(h2c("B7BDB7").unwrap()))
-                                .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
+                            button(tb(&b.asset).size(14))
+                                .style(|_t, _s| unstyled_btn())
                                 .on_press(DashboardMessage::CurrencyPairSelected(b.asset.clone())),
                         ]
                         .spacing(4)
                         .align_items(iced::Alignment::Center),
                         Space::new(Length::Fill, 1.0),
-                        button(
-                            text(format!("{}", (b.free * 10.0).round() / 10.0))
-                                .size(14)
-                                .style(h2c("B7BDB7").unwrap())
-                        )
-                        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {})))
-                        .on_press(DashboardMessage::CurrencyPairSelected(b.asset.clone())),
+                        button(text(format!("{}", (b.free * 10.0).round() / 10.0)).size(14))
+                            .style(|_t, _s| unstyled_btn())
+                            .on_press(DashboardMessage::CurrencyPairSelected(b.asset.clone())),
                     ])
                     .width(Length::Fill)
                 })

@@ -93,11 +93,10 @@ impl WatchlistPane {
                 filter_button!("BTC", WatchlistFilter::Btc, self.filter),
                 filter_button!("ETH", WatchlistFilter::Eth, self.filter),
                 filter_button!("ALTS", WatchlistFilter::Alts, self.filter),
-                text_input("type to filter", &self.filter_string)
-                    .on_input(|i| WatchlistMessage::FilterInput(i).into())
-                    // .style(|t| iced::widget::TextInput::Style(Box::new(Inp {})))
             ]
             .spacing(2.0),
+            text_input("type to filter", &self.filter_string)
+                .on_input(|i| WatchlistMessage::FilterInput(i).into()),
             scrollable(
                 Column::with_children(
                     data.prices

@@ -1,6 +1,7 @@
 use crate::{
     data::AppData,
     svg_logos,
+    theme::h2c,
     views::{
         components::{better_btn::unstyled_btn, loading::loader},
         dashboard::DashboardMessage,
@@ -45,7 +46,7 @@ impl BalancesPane {
                     container(row![
                         row![
                             svg,
-                            button(tb(&b.asset).size(14))
+                            button(tb(&b.asset).size(14).color(h2c("B7BDB7").unwrap()))
                                 .style(|_t, _s| unstyled_btn())
                                 .on_press(DashboardMessage::CurrencyPairSelected(b.asset.clone())),
                         ]

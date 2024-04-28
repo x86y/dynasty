@@ -41,18 +41,12 @@ impl BookPane {
                     row![
                         t(format!("{:.2}", price.parse::<f64>().unwrap()))
                             .width(Length::FillPortion(1))
-                            .style(|_t| iced::widget::text::Style {
-                                color: Some(h2c("B7BDB7").unwrap())
-                            }),
+                            .color(iced::Color::from_rgb(1.0, 0.0, 0.0)),
                         t(format!("{quantity:.4}"))
                             .width(Length::FillPortion(1))
-                            .style(|_t| iced::widget::text::Style {
-                                color: Some(h2c("B7BDB7").unwrap())
-                            }),
+                            .color(h2c("B7BDB7").unwrap()),
                         t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
-                            .style(|_t| iced::widget::text::Style {
-                                color: Some(h2c("B7BDB7").unwrap())
-                            })
+                            .color(h2c("B7BDB7").unwrap())
                             .width(Length::FillPortion(1)),
                     ]
                     .spacing(10)

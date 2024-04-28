@@ -7,7 +7,7 @@ use crate::{
 
 use binance::rest_model::{OrderSide, OrderType};
 use iced::{
-    widget::{column, container, row, text, Column, Space},
+    widget::{column, container, row, scrollable, text, Column, Space},
     Element, Font, Length,
 };
 
@@ -135,6 +135,6 @@ impl OrdersPane {
             .into()
         });
 
-        column![header, Column::with_children(rows).padding(8)].into()
+        column![header, scrollable(Column::with_children(rows).padding(8))].into()
     }
 }

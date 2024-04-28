@@ -3,7 +3,7 @@ use super::orders::{t, tb};
 use crate::{
     data::AppData,
     theme::h2c,
-    views::{components::loading::Loader, dashboard::DashboardMessage},
+    views::{components::loading::loader, dashboard::DashboardMessage},
 };
 
 use iced::{
@@ -11,23 +11,20 @@ use iced::{
     Element, Length,
 };
 
-pub(crate) struct BookPane {
-    loader: Loader,
-}
+pub(crate) struct BookPane {}
 
 impl BookPane {
     pub(crate) fn new() -> Self {
-        Self {
-            loader: Loader::new(),
-        }
+        Self {}
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         let book = &data.book;
 
         if book.1.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         }
+
         let header = row![
             tb("Price").width(Length::Fill),
             tb("Amount").width(Length::Fill),

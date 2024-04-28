@@ -15,12 +15,10 @@ use ringbuf::Rb;
 
 use super::orders::tb;
 use crate::data::AppData;
-use crate::views::components::loading::Loader;
+use crate::views::components::loading::loader;
 use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
 
-pub(crate) struct ChartPane {
-    loader: Loader,
-}
+pub(crate) struct ChartPane {}
 
 struct PriceChart<'a>(&'a AppData);
 
@@ -81,14 +79,12 @@ impl Chart<DashboardMessage> for PriceChart<'_> {
 
 impl ChartPane {
     pub(crate) fn new() -> Self {
-        Self {
-            loader: Loader::new(),
-        }
+        Self {}
     }
 
     pub(crate) fn view<'a>(&'a self, data: &'a AppData) -> Element<'a, DashboardMessage> {
         if data.price_chart.is_empty() {
-            return self.loader.view();
+            return loader!().into();
         }
 
         let btns = Row::with_children(

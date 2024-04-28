@@ -26,6 +26,8 @@ ringbuf = "0.3.3"
 ahash = "0.8.11"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+# loader widget
+lyon_algorithms = "1.0.4"
 
 [features]
 default = ["calculator_meval"]

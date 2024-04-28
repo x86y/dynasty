@@ -1,13 +1,14 @@
 #[cfg(not(any(feature = "calculator_meval", feature = "calculator_k")))]
 compile_error!("no calculator backend selected");
 
-use crate::{data::AppData, views::components::better_btn::green_btn};
+use crate::{data::AppData, theme::h2c, views::components::better_btn::green_btn};
 
 use binance::rest_model::Order;
 use iced::{
     widget::{
         button, column, container, text,
-        text_editor::{self, Content}, Space,
+        text_editor::{self, Content},
+        Column, Space,
     },
     Alignment, Command, Element, Font, Length,
 };
@@ -18,7 +19,7 @@ use calc_k::Calculator;
 #[cfg(all(feature = "calculator_meval", not(feature = "calculator_k")))]
 use calc_meval::Calculator;
 
-
+use super::orders::tb;
 
 pub(crate) struct CalculatorPane {
     calculator: Calculator,
@@ -98,18 +99,18 @@ impl CalculatorPane {
         } else {
             container(
                 column![
-                    /*FIXME:
-                    * Column::with_children(
+                    Column::with_children(
                         self.content
                             .text()
                             .lines()
+                            .map(|l| l.to_owned())
                             .zip(&self.eval_results)
                             .map(|(s, e)| column![
                                 tb(s).size(18).color(h2c("EFE1D1").unwrap()),
                                 text(e).size(18).color(h2c("EEEEEE").unwrap()),
                             ])
                             .map(Element::from)
-                    ), */
+                    ),
                     Space::new(Length::Fill, Length::Fill),
                     button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
                         .style(|_t, _s| green_btn())

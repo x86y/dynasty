@@ -61,7 +61,8 @@ where
         }
     }
 
-    // I DO NOT UNDERSTAND HOW TO FUCKING MAKE THIS NOT EXPLODE WHY IS THIS IMPOSSIBLE FUCK
+    // TODO: figure out why types break down when container() is used inside this method but work
+    //       with macro
     // pub(crate) fn view<'a>(self) -> Element<'a, DashboardMessage, Theme> {
     //     let s: Element<'a, DashboardMessage, Theme> = self.into();
     //     container(s)

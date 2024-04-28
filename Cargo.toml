@@ -12,7 +12,7 @@ icon = ["assets/dynasty.icns"]
 binance-rs-async = { version = "1.3.2", default_features = false, features = ["rustls-tls", "wallet_api"] }
 chrono = "0.4.31"
 iced = { git = "https://github.com/iced-rs/iced", features = ["tokio", "debug", "lazy", "svg", "image", "advanced", "canvas"], rev = "e617d7e929bf7cb9aded39dea53d079e41b530d6"  }
-iced_futures = { git = "https://github.com/iced-rs/iced" }
+iced_futures = { git = "https://github.com/iced-rs/iced", rev = "e617d7e929bf7cb9aded39dea53d079e41b530d6" }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 tokio = { version = "1.32.0", default-features = false, features=["sync"]}

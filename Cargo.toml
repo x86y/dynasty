@@ -12,10 +12,9 @@ icon = ["assets/dynasty.icns"]
 binance-rs-async = { version = "1.3.3", default_features = false, features = ["rustls-tls", "wallet_api"] }
 chrono = "0.4.31"
 iced = { version = "0.12.0", features = ["tokio", "debug", "lazy", "svg", "image", "advanced", "canvas"] }
-iced_futures = "0.12.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
-tokio = { version = "1.37.0", default-features = false, features=["sync", "macros"]}
+tokio = { version = "1.37.0", default-features = false, features = ["sync", "macros", "time"] }
 ngnk = { path = "crates/ngnk", optional = true }
 meval = { version = "0.2.0", optional = true }
 plotters = "0.3.5"
@@ -24,10 +23,17 @@ phf = "0.11.1"
 regex = "1.10.4"
 ringbuf = "0.3.3"
 ahash = "0.8.11"
+
+# logging
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
 # loader widget
 lyon_algorithms = "1.0.4"
+
+# websocket
+iced_futures = "0.12.0"
+tungstenite = { version = "0.21.0", default_featurs = false }
 
 [features]
 default = ["calculator_meval"]

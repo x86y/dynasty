@@ -889,6 +889,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "tungstenite",
  "web-sys",
 ]
 

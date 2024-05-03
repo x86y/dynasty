@@ -11,7 +11,7 @@ use tracing::info;
 
 use super::{WsEvent, WsHandle, WsMessage};
 
-const PING_INTEVAL: u64 = 5;
+const PING_INTERVAL: u64 = 5;
 
 async fn event_loop<WE>(
     ws: WebSockets<'_, WE>,
@@ -26,7 +26,7 @@ where
     let (socket, _) = ws.socket.expect("socket not connected");
     let (mut tx, mut rx) = socket.split();
 
-    let mut interval = tokio::time::interval(Duration::from_secs(PING_INTEVAL));
+    let mut interval = tokio::time::interval(Duration::from_secs(PING_INTERVAL));
     let mut last_pong = Instant::now();
 
     loop {
@@ -53,16 +53,16 @@ where
                 }
             }
             _ = interval.tick() => {
-                if last_pong.elapsed().as_secs() > PING_INTEVAL * 2 {
+                if last_pong.elapsed().as_secs() > PING_INTERVAL * 2 {
                     return Err(Error::Msg(
-                        format!("Did not receive ping in the last {} seconds)", PING_INTEVAL * 2)
+                        format!("Did not receive ping in the last {} seconds)", PING_INTERVAL * 2)
                     ));
                 }
 
                 let msg = Message::Ping(Vec::new());
                 // NOTE: unsure if timeout is needed here. This does not time out on internet
                 //       disconnect
-                timeout(Duration::from_secs(PING_INTEVAL), tx.send(msg))
+                timeout(Duration::from_secs(PING_INTERVAL), tx.send(msg))
                     .await
                     .map_err(|e| Error::Msg(format!("Ping send timed out {e}")))?
                     .map_err(|e| Error::Msg(format!("Ping send failed {e}")))?;

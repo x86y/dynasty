@@ -28,8 +28,9 @@ fn str_as_f32_as_str_formatted<'de, D>(deserializer: D) -> Result<String, D::Err
 where
     D: Deserializer<'de>,
 {
-    let s = <&str>::deserialize(deserializer)?;
-    let f = s.parse::<f32>().map_err(de::Error::custom)?;
+    let f: f32 = <&str>::deserialize(deserializer)?
+        .parse()
+        .map_err(de::Error::custom)?;
 
     Ok(format!("{f:.2}"))
 }
@@ -38,9 +39,12 @@ fn u64_as_time_formatted<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let i = <u64>::deserialize(deserializer)?;
-    let timestamp = i64::try_from(i).map_err(de::Error::custom)?;
+    let timestamp: i64 = <u64>::deserialize(deserializer)?
+        .try_into()
+        .map_err(de::Error::custom)?;
+
     let dt = chrono::DateTime::from_timestamp(timestamp / 1000, 0).unwrap();
+
     Ok(dt.format("%H:%M:%S").to_string())
 }
 

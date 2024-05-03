@@ -62,12 +62,10 @@ where
                 let msg = Message::Ping(Vec::new());
                 // NOTE: unsure if timeout is needed here. This does not time out on internet
                 //       disconnect
-                match timeout(Duration::from_secs(PING_INTEVAL), tx.send(msg)).await {
-                    Ok(result) => if let Err(e) = result {
-                        return Err(Error::Msg(format!("Ping send failed {e}")))
-                    },
-                    Err(e) => return Err(Error::Msg(format!("Ping send timed out {e}"))),
-                }
+                timeout(Duration::from_secs(PING_INTEVAL), tx.send(msg))
+                    .await
+                    .map_err(|e| Error::Msg(format!("Ping send timed out {e}")))?
+                    .map_err(|e| Error::Msg(format!("Ping send failed {e}")))?;
             }
         }
     }

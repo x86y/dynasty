@@ -13,7 +13,6 @@ use std::env;
 use std::time::Duration;
 
 use binance::rest_model::KlineSummaries;
-use iced::executor;
 use iced::font;
 use iced::widget::button;
 use iced::widget::scrollable;
@@ -96,7 +95,7 @@ impl Application for App {
     type Message = Message;
     type Theme = Theme;
     type Flags = Config;
-    type Executor = executor::Default;
+    type Executor = crate::executor::DynastyExecutor;
 
     fn new(flags: Self::Flags) -> (Self, Command<Message>) {
         let app = App::new(flags);

@@ -47,7 +47,7 @@ where
                     }
                     Message::Pong(_) => last_pong = Instant::now(),
                     Message::Close(e) => {
-                        return Err(Error::Msg(format!("Disconnected {e:?}")));
+                        return Err(Error::Msg(format!("Disconnected: {e:?}")));
                     }
                     Message::Binary(_) | Message::Frame(_) => {}
                 }
@@ -64,8 +64,8 @@ where
                 //       disconnect
                 timeout(Duration::from_secs(PING_INTERVAL), tx.send(msg))
                     .await
-                    .map_err(|e| Error::Msg(format!("Ping send timed out {e}")))?
-                    .map_err(|e| Error::Msg(format!("Ping send failed {e}")))?;
+                    .map_err(|e| Error::Msg(format!("Ping send timed out: {e}")))?
+                    .map_err(|e| Error::Msg(format!("Ping send failed: {e}")))?;
             }
         }
     }
@@ -131,7 +131,8 @@ pub(crate) trait WsListener {
             let connected = self.message(WsEvent::Connected);
             let _ = output.send(connected).await;
 
-            let mut ws_loop = Box::pin(event_loop(web_socket, &mut tx));
+            let ws_loop = event_loop(web_socket, &mut tx);
+            tokio::pin!(ws_loop);
 
             loop {
                 tokio::select! {

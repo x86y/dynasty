@@ -9,7 +9,7 @@ identifier = "io.github.me.dynasty"
 icon = ["assets/dynasty.icns"]
 
 [dependencies]
-binance-rs-async = { version = "1.3.3", default_features = false, features = ["rustls-tls", "wallet_api"] }
+binance-rs-async = { version = "1.3.3", default-features = false, features = ["rustls-tls", "wallet_api"] }
 chrono = "0.4.31"
 iced = { version = "0.12.0", features = ["tokio", "debug", "lazy", "svg", "image", "advanced", "canvas"] }
 serde = { version = "1.0.197", features = ["derive"] }
@@ -33,7 +33,7 @@ lyon_algorithms = "1.0.4"
 
 # websocket
 iced_futures = "0.12.0"
-tungstenite = { version = "0.21.0", default_featurs = false }
+tungstenite = { version = "0.21.0", default-features = false }
 
 [features]
 default = ["calculator_meval"]

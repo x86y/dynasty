@@ -127,9 +127,12 @@ impl Websockets {
                 WsEvent::Message(msg) => match msg {
                     binance::ws_model::WebsocketEvent::AccountPositionUpdate(p) => {
                         for b in p.balances {
-                            let ib = data.balances.iter_mut().find(|a| a.asset == b.asset);
-                            if let Some(uib) = ib {
-                                *uib = unsafe { std::mem::transmute(b) }
+                            for a in &mut data.balances {
+                                if a.asset == b.asset {
+                                    a.free = b.free;
+                                    a.locked = b.locked;
+                                    break;
+                                }
                             }
                         }
                     }

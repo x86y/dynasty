@@ -1,0 +1,14 @@
+name: Cargo Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cargo-check:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v4
+    # - uses: dtolnay/rust-toolchain@stable
+    - name: Run cargo check
+      run: rustup default stable && cargo check
+

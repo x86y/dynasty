@@ -12,7 +12,7 @@ use crate::{app::App, config::Config};
 
 use std::env;
 
-use iced::{Application, Font, Settings};
+use iced::{advanced::Application, Font, Settings};
 use tracing_subscriber::EnvFilter;
 
 fn main() -> iced::Result {

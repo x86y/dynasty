@@ -41,12 +41,12 @@ impl BookPane {
                     row![
                         t(format!("{:.2}", price.parse::<f64>().unwrap()))
                             .width(Length::FillPortion(1))
-                            .style(iced::Color::from_rgb(1.0, 0.0, 0.0)),
+                            .color(iced::Color::from_rgb(1.0, 0.0, 0.0)),
                         t(format!("{quantity:.4}"))
                             .width(Length::FillPortion(1))
-                            .style(h2c("B7BDB7").unwrap()),
+                            .color(h2c("B7BDB7").unwrap()),
                         t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
-                            .style(h2c("B7BDB7").unwrap())
+                            .color(h2c("B7BDB7").unwrap())
                             .width(Length::FillPortion(1)),
                     ]
                     .spacing(10)
@@ -63,13 +63,13 @@ impl BookPane {
                     row![
                         t(format!("{:.2}", price.parse::<f64>().unwrap()))
                             .width(Length::FillPortion(1))
-                            .style(iced::Color::from_rgb(0.0, 1.0, 0.0)),
+                            .color(iced::Color::from_rgb(0.0, 1.0, 0.0)),
                         t(format!("{quantity:.2}"))
                             .width(Length::FillPortion(1))
-                            .style(h2c("B7BDB7").unwrap()),
+                            .color(h2c("B7BDB7").unwrap()),
                         t(format!("{:.2}", price.parse::<f64>().unwrap() * quantity))
                             .width(Length::FillPortion(1))
-                            .style(h2c("B7BDB7").unwrap())
+                            .color(h2c("B7BDB7").unwrap())
                     ]
                     .spacing(10)
                 })
@@ -87,7 +87,7 @@ impl BookPane {
                     .unwrap_or((&String::new(), &0.0))
                     .0
             ))
-            .style(iced::Color::WHITE),
+            .color(iced::Color::WHITE),
             bid_rows
         ]
         .padding([2, 12])

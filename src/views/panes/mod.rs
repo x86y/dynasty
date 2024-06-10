@@ -31,8 +31,8 @@ pub mod style {
     use iced::widget::container;
     use iced::{Color, Theme};
 
-    pub fn pane_active(_: &Theme) -> container::Appearance {
-        container::Appearance {
+    pub fn pane_active(_: &Theme) -> container::Style {
+        container::Style {
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
             border: iced::Border {
                 width: 0.0,
@@ -43,10 +43,10 @@ pub mod style {
         }
     }
 
-    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+    pub fn pane_focused(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
-        container::Appearance {
+        container::Style {
             background: Some(iced::Background::Color(Color::from_rgb(0.07, 0.07, 0.07))),
             border: iced::Border {
                 width: 0.0,

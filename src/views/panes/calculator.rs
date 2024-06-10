@@ -1,7 +1,7 @@
 #[cfg(not(any(feature = "calculator_meval", feature = "calculator_k")))]
 compile_error!("no calculator backend selected");
 
-use crate::{data::AppData, theme::h2c, views::components::better_btn::GreenBtn};
+use crate::{data::AppData, theme::h2c, views::components::better_btn::green_btn};
 
 use binance::rest_model::Order;
 use iced::{
@@ -88,7 +88,7 @@ impl CalculatorPane {
                         .on_action(CalculatorPaneMessage::Action),
                     container(
                         button(text("\u{F4F5}").font(Font::with_name("bootstrap-icons")))
-                            .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                            .style(|_t, _s| green_btn())
                             .on_press(CalculatorPaneMessage::Toggle)
                     )
                     .padding(2)
@@ -103,16 +103,17 @@ impl CalculatorPane {
                         self.content
                             .text()
                             .lines()
+                            .map(|l| l.to_owned())
                             .zip(&self.eval_results)
                             .map(|(s, e)| column![
-                                tb(s).size(18).style(h2c("EFE1D1").unwrap()),
-                                text(e).size(18).style(h2c("EEEEEE").unwrap()),
+                                tb(s).size(18).color(h2c("EFE1D1").unwrap()),
+                                text(e).size(18).color(h2c("EEEEEE").unwrap()),
                             ])
                             .map(Element::from)
                     ),
                     Space::new(Length::Fill, Length::Fill),
                     button(text('\u{F4CA}').font(Font::with_name("bootstrap-icons")))
-                        .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                        .style(|_t, _s| green_btn())
                         .on_press(CalculatorPaneMessage::Toggle)
                 ]
                 .align_items(Alignment::Center),

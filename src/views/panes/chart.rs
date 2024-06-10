@@ -9,14 +9,15 @@ use iced::Length;
 use plotters::prelude::*;
 use plotters::style::colors;
 use plotters::style::IntoFont;
-use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
+use plotters_iced::{Chart, ChartBuilder, DrawingBackend};
 use ringbuf::ring_buffer::RbBase;
 use ringbuf::Rb;
 
 use super::orders::tb;
 use crate::data::AppData;
+use crate::views::components::better_btn::green_btn;
 use crate::views::components::loading::loader;
-use crate::views::{components::better_btn::GreenBtn, dashboard::DashboardMessage};
+use crate::views::dashboard::DashboardMessage;
 
 pub(crate) struct ChartPane {}
 
@@ -90,24 +91,24 @@ impl ChartPane {
         let btns = Row::with_children(
             ["1m", "5m", "30m", "1h", "1d"]
                 .map(|t| {
-                    button(tb(t).style(iced::Color::WHITE).size(12))
+                    button(tb(t).color(iced::Color::WHITE).size(12))
                         .on_press(DashboardMessage::TimeframeChanged(t.into()))
                         .padding(8)
-                        .style(iced::theme::Button::Custom(Box::new(GreenBtn {})))
+                        .style(|_t, _s| green_btn())
                 })
                 .map(Element::from),
         )
         .spacing(4);
 
         container(column![
-            ChartWidget::new(PriceChart(data)),
+            // ChartWidget::new(PriceChart(data)),
             row![
                 Space::new(Length::Fill, 0),
                 btns,
                 Space::new(Length::Fill, 0)
             ]
         ])
-        .style(container::Appearance {
+        .style(|_t| container::Style {
             background: Some(iced::Background::Color(iced::Color::from_rgb(
                 0.07, 0.07, 0.07,
             ))),

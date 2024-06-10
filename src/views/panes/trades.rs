@@ -40,10 +40,10 @@ impl TradesPane {
                         };
 
                         container(row![
-                            t(&b.price).style(c).width(Length::Fill),
-                            t(&b.qty).width(Length::Fill).style(h2c("B7BDB7").unwrap()),
+                            t(&b.price).color(c).width(Length::Fill),
+                            t(&b.qty).width(Length::Fill).color(h2c("B7BDB7").unwrap()),
                             t(&b.trade_order_time_formatted)
-                                .style(h2c("B7BDB7").unwrap())
+                                .color(h2c("B7BDB7").unwrap())
                                 .width(Length::Fill),
                         ])
                         .width(Length::Fill)

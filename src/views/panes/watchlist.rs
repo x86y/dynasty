@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::data::{AppData, PriceFilter};
 use crate::theme::h2c;
+use crate::views::components::better_btn::unstyled_btn;
 use crate::views::components::loading::loader;
-use crate::views::components::{better_btn::BetterBtn, input::Inp, unstyled_btn::UnstyledBtn};
 use crate::views::dashboard::DashboardMessage;
 use iced::Command;
 use iced::{
@@ -20,14 +20,19 @@ pub(crate) enum WatchlistFilter {
     Alts,
 }
 
+use crate::views::components::better_btn::better_btn;
+use iced::widget::button::text as btext;
+
 macro_rules! filter_button {
     ($label:expr, $filter:expr, $current_filter:expr) => {
         button($label)
             .padding(8)
-            .style(if $filter == $current_filter {
-                iced::theme::Button::Custom(Box::new(BetterBtn {}))
-            } else {
-                iced::theme::Button::Text
+            .style(|t, s| {
+                if $filter == $current_filter {
+                    better_btn()
+                } else {
+                    btext(t, s)
+                }
             })
             .on_press(DashboardMessage::Watchlist(WatchlistMessage::ApplyFilter(
                 $filter,
@@ -36,19 +41,19 @@ macro_rules! filter_button {
     };
 }
 
-fn asset_button<'a>(n: &str, p: f32) -> Element<'a, DashboardMessage> {
+fn asset_button(n: &str, p: f32) -> Element<'_, DashboardMessage> {
     container(row![
-        button(tb(n).size(14).style(h2c("EFE1D1").unwrap()))
+        button(tb(n).size(14).color(h2c("EFE1D1").unwrap()))
             .on_press(DashboardMessage::CurrencyPairSelected(n.to_string()))
-            .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+            .style(|_t, _s| unstyled_btn()),
         Space::new(Length::Fill, 1.0),
         button(
             text(format!("{p} "))
                 .size(14)
-                .style(h2c("B7BDB76").unwrap())
+                .color(h2c("B7BDB76").unwrap())
         )
         .on_press(DashboardMessage::CurrencyPairSelected(n.to_string()))
-        .style(iced::theme::Button::Custom(Box::new(UnstyledBtn {}))),
+        .style(|_t, _s| unstyled_btn()),
     ])
     .width(Length::Fill)
     .into()
@@ -88,11 +93,10 @@ impl WatchlistPane {
                 filter_button!("BTC", WatchlistFilter::Btc, self.filter),
                 filter_button!("ETH", WatchlistFilter::Eth, self.filter),
                 filter_button!("ALTS", WatchlistFilter::Alts, self.filter),
-                text_input("type to filter", &self.filter_string)
-                    .on_input(|i| WatchlistMessage::FilterInput(i).into())
-                    .style(iced::theme::TextInput::Custom(Box::new(Inp {})))
             ]
             .spacing(2.0),
+            text_input("type to filter", &self.filter_string)
+                .on_input(|i| WatchlistMessage::FilterInput(i).into()),
             scrollable(
                 Column::with_children(
                     data.prices

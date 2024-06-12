@@ -9,13 +9,13 @@ identifier = "io.github.me.dynasty"
 icon = ["assets/dynasty.icns"]
 
 [dependencies]
-binance-rs-async = { version = "1.3.2", default_features = false, features = ["rustls-tls", "wallet_api"] }
+binance-rs-async = { version = "1.3.2", default-features = false, features = ["rustls-tls", "wallet_api"] }
 chrono = "0.4.31"
 iced = { version = "0.12.0", features = ["tokio", "debug", "lazy", "svg", "image", "advanced", "canvas"] }
 iced_futures = "0.12.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
-tokio = { version = "1.32.0", default-features = false, features=["sync"]}
+tokio = { version = "1.32.0", default-features = false, features = ["sync", "time", "rt", "rt-multi-thread"]}
 ngnk = { path = "crates/ngnk", optional = true }
 meval = { version = "0.2.0", optional = true }
 plotters = "0.3.5"

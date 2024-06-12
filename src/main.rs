@@ -2,6 +2,7 @@ mod api;
 mod app;
 mod config;
 mod data;
+mod executor;
 mod message;
 mod svg_logos;
 mod theme;

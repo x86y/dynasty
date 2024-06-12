@@ -1,4 +1,4 @@
-use std::{error::Error, sync::atomic::AtomicBool};
+use std::error::Error;
 
 use binance::websockets::agg_trade_stream;
 use iced::subscription::{self, Subscription};
@@ -28,8 +28,9 @@ fn str_as_f32_as_str_formatted<'de, D>(deserializer: D) -> Result<String, D::Err
 where
     D: Deserializer<'de>,
 {
-    let s = <&str>::deserialize(deserializer)?;
-    let f = s.parse::<f32>().map_err(de::Error::custom)?;
+    let f: f32 = <&str>::deserialize(deserializer)?
+        .parse()
+        .map_err(de::Error::custom)?;
 
     Ok(format!("{f:.2}"))
 }
@@ -38,9 +39,12 @@ fn u64_as_time_formatted<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let i = <u64>::deserialize(deserializer)?;
-    let timestamp = i64::try_from(i).map_err(de::Error::custom)?;
+    let timestamp: i64 = <u64>::deserialize(deserializer)?
+        .try_into()
+        .map_err(de::Error::custom)?;
+
     let dt = chrono::DateTime::from_timestamp(timestamp / 1000, 0).unwrap();
+
     Ok(dt.format("%H:%M:%S").to_string())
 }
 
@@ -76,13 +80,13 @@ impl WsListener for TradesWs {
         event
     }
 
-    fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool) {
+    fn handle_input(&mut self, input: Self::Input) -> bool {
         match input {
             Message::NewPair(new_pair) => {
                 self.pair = new_pair;
-                keep_running.store(false, std::sync::atomic::Ordering::Relaxed);
+                false
             }
-        };
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{error::Error, sync::atomic::AtomicBool};
+use std::error::Error;
 
 use binance::websockets::all_ticker_stream;
 use iced::subscription::{self, Subscription};
@@ -50,8 +50,6 @@ impl WsListener for PricesWs {
     fn handle_event(&self, event: Self::Event) -> Self::Output {
         event
     }
-
-    fn handle_input(&mut self, _: Self::Input, _: &mut AtomicBool) {}
 }
 
 pub fn connect() -> Subscription<WsMessage> {

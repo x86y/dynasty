@@ -1,4 +1,4 @@
-use std::{error::Error, sync::atomic::AtomicBool};
+use std::error::Error;
 
 use binance::websockets::diff_book_depth_stream;
 use iced::subscription::{self, Subscription};
@@ -81,13 +81,13 @@ impl WsListener for BookWs {
         }
     }
 
-    fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool) {
+    fn handle_input(&mut self, input: Self::Input) -> bool {
         match input {
             Message::NewPair(new_pair) => {
                 self.pair = new_pair;
-                keep_running.store(false, std::sync::atomic::Ordering::Relaxed);
+                false
             }
-        };
+        }
     }
 }
 

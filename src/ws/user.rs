@@ -1,4 +1,4 @@
-use std::{error::Error, sync::atomic::AtomicBool};
+use std::error::Error;
 
 use binance::{api::Binance, userstream::UserStream, ws_model::WebsocketEvent};
 use iced::subscription::{self, Subscription};
@@ -46,13 +46,13 @@ impl WsListener for UserWs {
         event
     }
 
-    fn handle_input(&mut self, input: Self::Input, keep_running: &mut AtomicBool) {
+    fn handle_input(&mut self, input: Self::Input) -> bool {
         match input {
             Message::NewApiKey(new_key) => {
                 self.api_key = new_key;
-                keep_running.store(false, std::sync::atomic::Ordering::Relaxed);
+                false
             }
-        };
+        }
     }
 }
 
